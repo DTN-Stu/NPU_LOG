@@ -1,0 +1,17 @@
++incdir+../01_snax_llm_fp4_subsystem
+../01_snax_llm_fp4_subsystem/pe_defines.svh
+../01_snax_llm_fp4_subsystem/fp4_mult_lut.sv
+../01_snax_llm_fp4_subsystem/compressor_4to2.sv
+../01_snax_llm_fp4_subsystem/dot_product_16.sv
+../01_snax_llm_fp4_subsystem/latch_array.sv
+../01_snax_llm_fp4_subsystem/vsq_rescaler_32b.sv
+../01_snax_llm_fp4_subsystem/vsq_matmul_engine.sv
+../01_snax_llm_fp4_subsystem/nvfp4_scale_mac_lane.sv
+../03_baselines/MiX-main/hardware_rtl/src/systolic_arrays/MXFP4_g16/MXFP4_g16_MUL.sv
+../03_baselines/MiX-main/hardware_rtl/src/systolic_arrays/NVFP4/NVFP4_MUL.sv
+fp32_lane_backend.sv
+cfg1_mxfp4_g16_fp32_ff.sv
+cfg2_nvfp4_fp32_ff.sv
+cfg3_nvfp4_int32_lazy_ff.sv
+cfg4_log8_int32_lazy_ff.sv
+cfg5_log8_int32_lazy_latch.sv

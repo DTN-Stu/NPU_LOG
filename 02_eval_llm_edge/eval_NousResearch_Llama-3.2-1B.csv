@@ -1,0 +1,6 @@
+model,config,ppl_wikitext2,ppl_c4
+NousResearch/Llama-3.2-1B,fp16,11.412,13.71
+NousResearch/Llama-3.2-1B,mxfp4,47.072,65.989
+NousResearch/Llama-3.2-1B,nvfp4,17.677,23.526
+NousResearch/Llama-3.2-1B,log8_fp4,18.67,25.31
+NousResearch/Llama-3.2-1B,log8_fp4_expfree,18.791,25.815

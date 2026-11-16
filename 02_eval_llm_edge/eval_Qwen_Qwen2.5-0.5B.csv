@@ -1,0 +1,6 @@
+model,config,ppl_wikitext2,ppl_c4
+Qwen/Qwen2.5-0.5B,fp16,14.877,21.277
+Qwen/Qwen2.5-0.5B,mxfp4,1280.16,1608.709
+Qwen/Qwen2.5-0.5B,nvfp4,34.244,49.605
+Qwen/Qwen2.5-0.5B,log8_fp4,35.564,54.53
+Qwen/Qwen2.5-0.5B,log8_fp4_expfree,35.923,54.248
