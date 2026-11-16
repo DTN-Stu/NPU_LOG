@@ -1,0 +1,252 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 5
+Design : cfg5_log8_int32_lazy_latch
+Version: O-2018.06-SP1
+Date   : Sun Nov 15 23:13:28 2026
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+  Startpoint: u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[0].bit_gen.u_dlatch/q_reg
+            (positive level-sensitive latch clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         55.54      55.54 r
+  u_engine/u_latch_array/U4016/Y (INVx2_ASAP7_75t_R)     25.60      81.14 f
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[0].bit_gen.u_dlatch/q_reg/D (DHLx1_ASAP7_75t_R)
+                                                          0.00      81.14 f
+  data arrival time                                                 81.14
+
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  clock uncertainty                                     -50.00     -50.00
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[0].bit_gen.u_dlatch/q_reg/CLK (DHLx1_ASAP7_75t_R)
+                                                          0.00     -50.00 r
+  time borrowed from endpoint                           131.14      81.14
+  data required time                                                81.14
+  --------------------------------------------------------------------------
+  data required time                                                81.14
+  data arrival time                                                -81.14
+  --------------------------------------------------------------------------
+  slack (VIOLATED: increase significant digits)                      0.00
+
+  Time Borrowing Information
+  --------------------------------------------------------------
+  clk nominal pulse width                              1000.00   
+  library setup time                                    -22.38   
+  --------------------------------------------------------------
+  max time borrow                                       977.62   
+  --------------------------------------------------------------
+  actual time borrow                                    131.14   
+  clock uncertainty                                     -50.00   
+  --------------------------------------------------------------
+  time given to startpoint                               81.14   
+  --------------------------------------------------------------
+
+
+  Startpoint: u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[4]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[4].bit_gen.u_dlatch/q_reg
+            (positive level-sensitive latch clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[4]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[4]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         55.54      55.54 r
+  u_engine/u_latch_array/U3919/Y (INVx2_ASAP7_75t_R)     25.60      81.14 f
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[4].bit_gen.u_dlatch/q_reg/D (DHLx1_ASAP7_75t_R)
+                                                          0.00      81.14 f
+  data arrival time                                                 81.14
+
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  clock uncertainty                                     -50.00     -50.00
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[4].bit_gen.u_dlatch/q_reg/CLK (DHLx1_ASAP7_75t_R)
+                                                          0.00     -50.00 r
+  time borrowed from endpoint                           131.14      81.14
+  data required time                                                81.14
+  --------------------------------------------------------------------------
+  data required time                                                81.14
+  data arrival time                                                -81.14
+  --------------------------------------------------------------------------
+  slack (VIOLATED: increase significant digits)                      0.00
+
+  Time Borrowing Information
+  --------------------------------------------------------------
+  clk nominal pulse width                              1000.00   
+  library setup time                                    -22.38   
+  --------------------------------------------------------------
+  max time borrow                                       977.62   
+  --------------------------------------------------------------
+  actual time borrow                                    131.14   
+  clock uncertainty                                     -50.00   
+  --------------------------------------------------------------
+  time given to startpoint                               81.14   
+  --------------------------------------------------------------
+
+
+  Startpoint: u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[3]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[3].bit_gen.u_dlatch/q_reg
+            (positive level-sensitive latch clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[3]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[3]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         55.54      55.54 r
+  u_engine/u_latch_array/U4019/Y (INVx2_ASAP7_75t_R)     25.60      81.14 f
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[3].bit_gen.u_dlatch/q_reg/D (DHLx1_ASAP7_75t_R)
+                                                          0.00      81.14 f
+  data arrival time                                                 81.14
+
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  clock uncertainty                                     -50.00     -50.00
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[3].bit_gen.u_dlatch/q_reg/CLK (DHLx1_ASAP7_75t_R)
+                                                          0.00     -50.00 r
+  time borrowed from endpoint                           131.14      81.14
+  data required time                                                81.14
+  --------------------------------------------------------------------------
+  data required time                                                81.14
+  data arrival time                                                -81.14
+  --------------------------------------------------------------------------
+  slack (VIOLATED: increase significant digits)                      0.00
+
+  Time Borrowing Information
+  --------------------------------------------------------------
+  clk nominal pulse width                              1000.00   
+  library setup time                                    -22.38   
+  --------------------------------------------------------------
+  max time borrow                                       977.62   
+  --------------------------------------------------------------
+  actual time borrow                                    131.14   
+  clock uncertainty                                     -50.00   
+  --------------------------------------------------------------
+  time given to startpoint                               81.14   
+  --------------------------------------------------------------
+
+
+  Startpoint: u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[2]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[2].bit_gen.u_dlatch/q_reg
+            (positive level-sensitive latch clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[2]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[2]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         55.54      55.54 r
+  u_engine/u_latch_array/U4018/Y (INVx2_ASAP7_75t_R)     25.60      81.14 f
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[2].bit_gen.u_dlatch/q_reg/D (DHLx1_ASAP7_75t_R)
+                                                          0.00      81.14 f
+  data arrival time                                                 81.14
+
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  clock uncertainty                                     -50.00     -50.00
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[2].bit_gen.u_dlatch/q_reg/CLK (DHLx1_ASAP7_75t_R)
+                                                          0.00     -50.00 r
+  time borrowed from endpoint                           131.14      81.14
+  data required time                                                81.14
+  --------------------------------------------------------------------------
+  data required time                                                81.14
+  data arrival time                                                -81.14
+  --------------------------------------------------------------------------
+  slack (VIOLATED: increase significant digits)                      0.00
+
+  Time Borrowing Information
+  --------------------------------------------------------------
+  clk nominal pulse width                              1000.00   
+  library setup time                                    -22.38   
+  --------------------------------------------------------------
+  max time borrow                                       977.62   
+  --------------------------------------------------------------
+  actual time borrow                                    131.14   
+  clock uncertainty                                     -50.00   
+  --------------------------------------------------------------
+  time given to startpoint                               81.14   
+  --------------------------------------------------------------
+
+
+  Startpoint: u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[1].bit_gen.u_dlatch/q_reg
+            (positive level-sensitive latch clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/u_latch_array/gen_latch_storage.wdata_q_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         55.54      55.54 r
+  u_engine/u_latch_array/U4017/Y (INVx2_ASAP7_75t_R)     25.60      81.14 f
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[1].bit_gen.u_dlatch/q_reg/D (DHLx1_ASAP7_75t_R)
+                                                          0.00      81.14 f
+  data arrival time                                                 81.14
+
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  clock uncertainty                                     -50.00     -50.00
+  u_engine/u_latch_array/gen_latch_storage.col_gen[0].icg_gen[0].row_gen[1].bit_gen.u_dlatch/q_reg/CLK (DHLx1_ASAP7_75t_R)
+                                                          0.00     -50.00 r
+  time borrowed from endpoint                           131.14      81.14
+  data required time                                                81.14
+  --------------------------------------------------------------------------
+  data required time                                                81.14
+  data arrival time                                                -81.14
+  --------------------------------------------------------------------------
+  slack (VIOLATED: increase significant digits)                      0.00
+
+  Time Borrowing Information
+  --------------------------------------------------------------
+  clk nominal pulse width                              1000.00   
+  library setup time                                    -22.38   
+  --------------------------------------------------------------
+  max time borrow                                       977.62   
+  --------------------------------------------------------------
+  actual time borrow                                    131.14   
+  clock uncertainty                                     -50.00   
+  --------------------------------------------------------------
+  time given to startpoint                               81.14   
+  --------------------------------------------------------------
+
+
+1

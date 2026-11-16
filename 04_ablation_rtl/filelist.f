@@ -15,3 +15,4 @@ cfg2_nvfp4_fp32_ff.sv
 cfg3_nvfp4_int32_lazy_ff.sv
 cfg4_log8_int32_lazy_ff.sv
 cfg5_log8_int32_lazy_latch.sv
+cfg6_log8_fp32_ff.sv

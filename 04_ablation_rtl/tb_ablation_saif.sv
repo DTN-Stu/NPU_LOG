@@ -34,23 +34,99 @@ module tb_ablation_saif;
 `ifdef DUT_CFG1
     logic [NUM_LANES-1:0][31:0] out_vec;
     logic                       out_valid;
-    cfg1_mxfp4_g16_fp32_ff dut (.*, .out_fp32_vec(out_vec));
+    cfg1_mxfp4_g16_fp32_ff dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp32_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
 `elsif DUT_CFG2
     logic [NUM_LANES-1:0][31:0] out_vec;
     logic                       out_valid;
-    cfg2_nvfp4_fp32_ff dut (.*, .out_fp32_vec(out_vec));
+    cfg2_nvfp4_fp32_ff dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp32_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
 `elsif DUT_CFG3
     logic [NUM_LANES-1:0][15:0] out_vec;
     logic                       out_valid;
-    cfg3_nvfp4_int32_lazy_ff dut (.*, .out_fp16_vec(out_vec));
+    cfg3_nvfp4_int32_lazy_ff dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp16_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
 `elsif DUT_CFG4
     logic [NUM_LANES-1:0][15:0] out_vec;
     logic                       out_valid;
-    cfg4_log8_int32_lazy_ff dut (.*, .out_fp16_vec(out_vec));
-`else
+    cfg4_log8_int32_lazy_ff dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp16_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
+`elsif DUT_CFG5
     logic [NUM_LANES-1:0][15:0] out_vec;
     logic                       out_valid;
-    cfg5_log8_int32_lazy_latch dut (.*, .out_fp16_vec(out_vec));
+    cfg5_log8_int32_lazy_latch dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp16_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
+`else
+    logic [NUM_LANES-1:0][31:0] out_vec;
+    logic                       out_valid;
+    cfg6_log8_fp32_ff dut (
+        .clk                 (clk),
+        .reset_n             (reset_n),
+        .lane_valid_in       (lane_valid_in),
+        .lane_acc_idx        (lane_acc_idx),
+        .act_broadcast       (act_broadcast),
+        .wt_in               (wt_in),
+        .tile_drain_req      (tile_drain_req),
+        .tile_drain_acc_idx  (tile_drain_acc_idx),
+        .tile_clear_on_drain (tile_clear_on_drain),
+        .out_fp32_vec        (out_vec),
+        .out_valid           (out_valid)
+    );
 `endif
 
     // Optional real LLM trace memories (72-bit packets)

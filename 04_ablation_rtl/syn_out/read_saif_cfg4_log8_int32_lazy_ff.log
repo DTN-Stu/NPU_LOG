@@ -1,0 +1,94 @@
+
+Warning:  Site Information is not available ... Have you run install_site?
+
+
+                           Design Compiler Graphical 
+                                 DC Ultra (TM)
+                                  DFTMAX (TM)
+                              Power Compiler (TM)
+                                 DesignWare (R)
+                                 DC Expert (TM)
+                               Design Vision (TM)
+                               HDL Compiler (TM)
+                               VHDL Compiler (TM)
+                                  DFT Compiler
+                               Design Compiler(R)
+
+               Version O-2018.06-SP1 for linux64 - Jul 19, 2018 
+
+                    Copyright (c) 1988 - 2018 Synopsys, Inc.
+   This software and the associated documentation are proprietary to Synopsys,
+ Inc. This software may only be used in accordance with the terms and conditions
+ of a written license agreement with Synopsys, Inc. All other use, reproduction,
+            or distribution of this software is strictly prohibited.
+Initializing...
+# =============================================================================
+# read_saif_cfg.tcl - Read gate-level SAIF into DC and report accurate power
+# Usage: dc_shell -f read_saif_cfg.tcl -x "set DESIGN_NAME cfg2_nvfp4_fp32_ff"
+# =============================================================================
+if {![info exists DESIGN_NAME]} { set DESIGN_NAME "cfg2_nvfp4_fp32_ff" }
+set BASE_DIR   [file normalize [file dirname [info script]]]
+/home/ICer/ablation_test
+set REPORT_DIR [file join $BASE_DIR reports]
+/home/ICer/ablation_test/reports
+set OUTPUT_DIR [file join $BASE_DIR output]
+/home/ICer/ablation_test/output
+set SIM_DIR    [file join $BASE_DIR sim]
+/home/ICer/ablation_test/sim
+set DB_ASAP7 "/home/ICer/vsq_syn/syn/libs/db/asap7"
+/home/ICer/vsq_syn/syn/libs/db/asap7
+set CELL_DBS [list     [file join $DB_ASAP7 AO_RVT_TT.db]     [file join $DB_ASAP7 OA_RVT_TT.db]     [file join $DB_ASAP7 SIMPLE_RVT_TT.db]     [file join $DB_ASAP7 INVBUF_RVT_TT.db]     [file join $DB_ASAP7 SEQ_RVT_TT.db]]
+/home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db
+set_app_var search_path [concat [list $DB_ASAP7] [get_app_var search_path]]
+/home/ICer/vsq_syn/syn/libs/db/asap7 . /EDA/Synopsys/syn_v201806/libraries/syn /EDA/Synopsys/syn_v201806/minpower/syn /EDA/Synopsys/syn_v201806/dw/syn_ver /EDA/Synopsys/syn_v201806/dw/sim_ver
+set_app_var target_library $CELL_DBS
+/home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db
+set_app_var link_library   [concat [list "*"] $CELL_DBS]
+* /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db
+read_ddc [file join $OUTPUT_DIR ${DESIGN_NAME}.ddc]
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db'
+Loading db file '/EDA/Synopsys/syn_v201806/libraries/syn/gtech.db'
+Loading db file '/EDA/Synopsys/syn_v201806/libraries/syn/standard.sldb'
+  Loading link library 'asap7sc7p5t_AO_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_OA_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_INVBUF_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SEQ_RVT_TT_nldm_220123'
+  Loading link library 'gtech'
+Reading ddc file '/home/ICer/ablation_test/output/cfg4_log8_int32_lazy_ff.ddc'.
+Information: Checking out the license 'DesignWare'. (SEC-104)
+Loaded 3 designs.
+Current design is 'cfg4_log8_int32_lazy_ff'.
+cfg4_log8_int32_lazy_ff vsq_matmul_engine_16_16_72_16_1_0_0 latch_array_16_512_1
+current_design $DESIGN_NAME
+Current design is 'cfg4_log8_int32_lazy_ff'.
+{cfg4_log8_int32_lazy_ff}
+link
+
+  Linking design 'cfg4_log8_int32_lazy_ff'
+  Using the following designs and libraries:
+  --------------------------------------------------------------------------
+  * (3 designs)               /home/ICer/ablation_test/output/cfg4_log8_int32_lazy_ff.ddc, etc
+  asap7sc7p5t_AO_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db
+  asap7sc7p5t_OA_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db
+  asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db
+  asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db
+  asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db
+
+1
+read_saif -input [file join $SIM_DIR ${DESIGN_NAME}.saif] -instance_name "tb_ablation_saif/dut"
+1
+redirect [file join $REPORT_DIR ${DESIGN_NAME}_power_saif.rpt] { report_power -hierarchy }
+puts "INFO: $DESIGN_NAME SAIF power report written."
+INFO: cfg4_log8_int32_lazy_ff SAIF power report written.
+exit
+
+Memory usage for main task 303 Mbytes.
+Memory usage for this session 303 Mbytes.
+CPU usage for this session 5 seconds ( 0.00 hours ).
+
+Thank you...

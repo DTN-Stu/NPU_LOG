@@ -1,0 +1,752 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 5
+Design : cfg1_mxfp4_g16_fp32_ff
+Version: O-2018.06-SP1
+Date   : Sun Nov 15 20:01:32 2026
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+  Startpoint: lane_acc_idx_q1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_ff_acc/gen_ff_storage.col_gen[0].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  lane_acc_idx_q1_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  lane_acc_idx_q1_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)    64.97      64.97 r
+  U3137/Y (INVx3_ASAP7_75t_R)                            20.60      85.58 f
+  u_ff_acc/raddr1[1] (latch_array_16_512_1)               0.00      85.58 f
+  u_ff_acc/U2055/Y (NAND2xp5_ASAP7_75t_R)                19.17     104.74 r
+  u_ff_acc/U2058/Y (OR2x2_ASAP7_75t_R)                   53.26     158.00 r
+  u_ff_acc/U4363/Y (HB1xp67_ASAP7_75t_R)                161.49     319.48 r
+  u_ff_acc/U5155/Y (OAI22xp33_ASAP7_75t_R)               38.66     358.14 f
+  u_ff_acc/U5158/Y (OR4x1_ASAP7_75t_R)                   41.80     399.94 f
+  u_ff_acc/U5163/Y (OAI31xp33_ASAP7_75t_R)               18.06     418.00 r
+  u_ff_acc/U5164/Y (AND2x2_ASAP7_75t_R)                  25.22     443.22 r
+  u_ff_acc/rdata1[314] (latch_array_16_512_1)             0.00     443.22 r
+  U3862/Y (AND2x2_ASAP7_75t_R)                           23.96     467.18 r
+  GEN_LANE[9].u_fp32_acc/acc_old_fp32_i[26] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00     467.18 r
+  GEN_LANE[9].u_fp32_acc/U277/Y (INVxp33_ASAP7_75t_R)    17.80     484.99 f
+  GEN_LANE[9].u_fp32_acc/U289/Y (NAND2xp5_ASAP7_75t_R)
+                                                         14.78     499.76 r
+  GEN_LANE[9].u_fp32_acc/U288/Y (NAND2xp5_ASAP7_75t_R)
+                                                         11.25     511.01 f
+  GEN_LANE[9].u_fp32_acc/U287/Y (NAND2xp5_ASAP7_75t_R)
+                                                         10.57     521.58 r
+  GEN_LANE[9].u_fp32_acc/U492/Y (AOI211xp5_ASAP7_75t_R)
+                                                         13.27     534.86 f
+  GEN_LANE[9].u_fp32_acc/U15/Y (NOR2xp33_ASAP7_75t_R)    21.79     556.65 r
+  GEN_LANE[9].u_fp32_acc/U167/Y (AND2x6_ASAP7_75t_R)     38.93     595.58 r
+  GEN_LANE[9].u_fp32_acc/U527/Y (NAND2xp33_ASAP7_75t_R)
+                                                         14.50     610.08 f
+  GEN_LANE[9].u_fp32_acc/U528/Y (INVxp67_ASAP7_75t_R)     9.82     619.91 r
+  GEN_LANE[9].u_fp32_acc/U20/Y (NOR2xp33_ASAP7_75t_R)    21.81     641.71 f
+  GEN_LANE[9].u_fp32_acc/U138/Y (NOR2x1_ASAP7_75t_R)     15.70     657.42 r
+  GEN_LANE[9].u_fp32_acc/U23/Y (INVxp33_ASAP7_75t_R)     18.72     676.13 f
+  GEN_LANE[9].u_fp32_acc/U301/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         30.87     707.00 f
+  GEN_LANE[9].u_fp32_acc/U271/Y (BUFx2_ASAP7_75t_R)      36.93     743.93 f
+  GEN_LANE[9].u_fp32_acc/U13/Y (NOR2x1p5_ASAP7_75t_R)    41.49     785.43 r
+  GEN_LANE[9].u_fp32_acc/U641/Y (INVx1_ASAP7_75t_R)      29.22     814.64 f
+  GEN_LANE[9].u_fp32_acc/U686/Y (OAI21xp33_ASAP7_75t_R)
+                                                         30.81     845.46 r
+  GEN_LANE[9].u_fp32_acc/U970/Y (INVxp33_ASAP7_75t_R)    28.51     873.97 f
+  GEN_LANE[9].u_fp32_acc/U1104/Y (AOI222xp33_ASAP7_75t_R)
+                                                         26.73     900.70 r
+  GEN_LANE[9].u_fp32_acc/U1105/Y (OAI22xp33_ASAP7_75t_R)
+                                                         23.39     924.09 f
+  GEN_LANE[9].u_fp32_acc/U1107/Y (INVxp33_ASAP7_75t_R)
+                                                         15.81     939.90 r
+  GEN_LANE[9].u_fp32_acc/U1108/Y (NOR2xp33_ASAP7_75t_R)
+                                                         14.72     954.62 f
+  GEN_LANE[9].u_fp32_acc/U1109/Y (OR2x2_ASAP7_75t_R)     29.00     983.61 f
+  GEN_LANE[9].u_fp32_acc/U1110/Y (AND2x2_ASAP7_75t_R)    21.39    1005.01 f
+  GEN_LANE[9].u_fp32_acc/U312/Y (INVxp67_ASAP7_75t_R)    10.25    1015.26 r
+  GEN_LANE[9].u_fp32_acc/U115/Y (NOR2xp67_ASAP7_75t_R)
+                                                         16.55    1031.81 f
+  GEN_LANE[9].u_fp32_acc/U1407/Y (INVxp67_ASAP7_75t_R)
+                                                         16.54    1048.35 r
+  GEN_LANE[9].u_fp32_acc/U1408/Y (XOR2xp5_ASAP7_75t_R)
+                                                         27.45    1075.81 r
+  GEN_LANE[9].u_fp32_acc/U1409/Y (NOR2xp33_ASAP7_75t_R)
+                                                         29.35    1105.16 f
+  GEN_LANE[9].u_fp32_acc/U106/Y (NOR2xp67_ASAP7_75t_R)
+                                                         26.09    1131.25 r
+  GEN_LANE[9].u_fp32_acc/U1414/Y (NAND2xp5_ASAP7_75t_R)
+                                                         16.84    1148.09 f
+  GEN_LANE[9].u_fp32_acc/U1415/Y (NOR2xp33_ASAP7_75t_R)
+                                                         21.91    1170.00 r
+  GEN_LANE[9].u_fp32_acc/U285/Y (AOI21x1_ASAP7_75t_R)    20.02    1190.02 f
+  GEN_LANE[9].u_fp32_acc/U282/Y (OAI21xp33_ASAP7_75t_R)
+                                                         23.27    1213.29 r
+  GEN_LANE[9].u_fp32_acc/U1486/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         21.62    1234.91 r
+  GEN_LANE[9].u_fp32_acc/U1487/Y (NAND2xp33_ASAP7_75t_R)
+                                                         13.97    1248.88 f
+  GEN_LANE[9].u_fp32_acc/U1488/Y (NAND2xp5_ASAP7_75t_R)
+                                                         12.53    1261.42 r
+  GEN_LANE[9].u_fp32_acc/U96/Y (NOR2xp33_ASAP7_75t_R)    17.19    1278.60 f
+  GEN_LANE[9].u_fp32_acc/U59/Y (INVxp33_ASAP7_75t_R)     20.47    1299.07 r
+  GEN_LANE[9].u_fp32_acc/U1596/Y (NOR2xp33_ASAP7_75t_R)
+                                                         19.73    1318.79 f
+  GEN_LANE[9].u_fp32_acc/U374/Y (NOR2xp33_ASAP7_75t_R)
+                                                         23.93    1342.72 r
+  GEN_LANE[9].u_fp32_acc/U1607/Y (INVx1_ASAP7_75t_R)     21.30    1364.02 f
+  GEN_LANE[9].u_fp32_acc/U60/Y (NAND2xp33_ASAP7_75t_R)
+                                                         27.81    1391.84 r
+  GEN_LANE[9].u_fp32_acc/U1618/Y (NAND4xp25_ASAP7_75t_R)
+                                                         28.48    1420.31 f
+  GEN_LANE[9].u_fp32_acc/U91/Y (NOR2x1_ASAP7_75t_R)      28.87    1449.19 r
+  GEN_LANE[9].u_fp32_acc/U183/Y (NOR2x1_ASAP7_75t_R)     16.69    1465.87 f
+  GEN_LANE[9].u_fp32_acc/U87/Y (INVx1_ASAP7_75t_R)       15.93    1481.80 r
+  GEN_LANE[9].u_fp32_acc/U324/Y (NAND4xp25_ASAP7_75t_R)
+                                                         29.09    1510.89 f
+  GEN_LANE[9].u_fp32_acc/U293/Y (AOI211x1_ASAP7_75t_R)
+                                                         24.21    1535.10 r
+  GEN_LANE[9].u_fp32_acc/U83/Y (NOR2xp67_ASAP7_75t_R)    17.03    1552.13 f
+  GEN_LANE[9].u_fp32_acc/U303/Y (NAND2xp5_ASAP7_75t_R)
+                                                         22.98    1575.11 r
+  GEN_LANE[9].u_fp32_acc/U302/Y (NOR2x1_ASAP7_75t_R)     25.26    1600.37 f
+  GEN_LANE[9].u_fp32_acc/U268/Y (OR3x1_ASAP7_75t_R)      47.12    1647.49 f
+  GEN_LANE[9].u_fp32_acc/U1663/Y (NOR2x1p5_ASAP7_75t_R)
+                                                         25.53    1673.02 r
+  GEN_LANE[9].u_fp32_acc/U1667/Y (NOR2xp33_ASAP7_75t_R)
+                                                         27.51    1700.54 f
+  GEN_LANE[9].u_fp32_acc/U72/Y (INVxp33_ASAP7_75t_R)     31.87    1732.40 r
+  GEN_LANE[9].u_fp32_acc/U1668/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         23.14    1755.54 f
+  GEN_LANE[9].u_fp32_acc/U1686/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         28.81    1784.35 r
+  GEN_LANE[9].u_fp32_acc/U1713/Y (AND2x4_ASAP7_75t_R)    31.79    1816.14 r
+  GEN_LANE[9].u_fp32_acc/U73/Y (INVx5_ASAP7_75t_R)       16.07    1832.21 f
+  GEN_LANE[9].u_fp32_acc/U1842/Y (OAI211xp5_ASAP7_75t_R)
+                                                         14.53    1846.74 r
+  GEN_LANE[9].u_fp32_acc/acc_new_fp32_o[15] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00    1846.74 r
+  U5521/Y (NAND2xp33_ASAP7_75t_R)                        15.49    1862.23 f
+  U3096/Y (OAI21xp5_ASAP7_75t_R)                         49.49    1911.72 r
+  u_ff_acc/wdata[303] (latch_array_16_512_1)              0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[0].icg_gen[9].row_gen[15].bit_gen.u_dff/d (dff_7888)
+                                                          0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[0].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1911.72 r
+  data arrival time                                               1911.72
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_ff_acc/gen_ff_storage.col_gen[0].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -38.23    1911.77
+  data required time                                              1911.77
+  --------------------------------------------------------------------------
+  data required time                                              1911.77
+  data arrival time                                              -1911.72
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+  Startpoint: lane_acc_idx_q1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_ff_acc/gen_ff_storage.col_gen[1].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  lane_acc_idx_q1_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  lane_acc_idx_q1_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)    64.97      64.97 r
+  U3137/Y (INVx3_ASAP7_75t_R)                            20.60      85.58 f
+  u_ff_acc/raddr1[1] (latch_array_16_512_1)               0.00      85.58 f
+  u_ff_acc/U2055/Y (NAND2xp5_ASAP7_75t_R)                19.17     104.74 r
+  u_ff_acc/U2058/Y (OR2x2_ASAP7_75t_R)                   53.26     158.00 r
+  u_ff_acc/U4363/Y (HB1xp67_ASAP7_75t_R)                161.49     319.48 r
+  u_ff_acc/U5155/Y (OAI22xp33_ASAP7_75t_R)               38.66     358.14 f
+  u_ff_acc/U5158/Y (OR4x1_ASAP7_75t_R)                   41.80     399.94 f
+  u_ff_acc/U5163/Y (OAI31xp33_ASAP7_75t_R)               18.06     418.00 r
+  u_ff_acc/U5164/Y (AND2x2_ASAP7_75t_R)                  25.22     443.22 r
+  u_ff_acc/rdata1[314] (latch_array_16_512_1)             0.00     443.22 r
+  U3862/Y (AND2x2_ASAP7_75t_R)                           23.96     467.18 r
+  GEN_LANE[9].u_fp32_acc/acc_old_fp32_i[26] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00     467.18 r
+  GEN_LANE[9].u_fp32_acc/U277/Y (INVxp33_ASAP7_75t_R)    17.80     484.99 f
+  GEN_LANE[9].u_fp32_acc/U289/Y (NAND2xp5_ASAP7_75t_R)
+                                                         14.78     499.76 r
+  GEN_LANE[9].u_fp32_acc/U288/Y (NAND2xp5_ASAP7_75t_R)
+                                                         11.25     511.01 f
+  GEN_LANE[9].u_fp32_acc/U287/Y (NAND2xp5_ASAP7_75t_R)
+                                                         10.57     521.58 r
+  GEN_LANE[9].u_fp32_acc/U492/Y (AOI211xp5_ASAP7_75t_R)
+                                                         13.27     534.86 f
+  GEN_LANE[9].u_fp32_acc/U15/Y (NOR2xp33_ASAP7_75t_R)    21.79     556.65 r
+  GEN_LANE[9].u_fp32_acc/U167/Y (AND2x6_ASAP7_75t_R)     38.93     595.58 r
+  GEN_LANE[9].u_fp32_acc/U527/Y (NAND2xp33_ASAP7_75t_R)
+                                                         14.50     610.08 f
+  GEN_LANE[9].u_fp32_acc/U528/Y (INVxp67_ASAP7_75t_R)     9.82     619.91 r
+  GEN_LANE[9].u_fp32_acc/U20/Y (NOR2xp33_ASAP7_75t_R)    21.81     641.71 f
+  GEN_LANE[9].u_fp32_acc/U138/Y (NOR2x1_ASAP7_75t_R)     15.70     657.42 r
+  GEN_LANE[9].u_fp32_acc/U23/Y (INVxp33_ASAP7_75t_R)     18.72     676.13 f
+  GEN_LANE[9].u_fp32_acc/U301/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         30.87     707.00 f
+  GEN_LANE[9].u_fp32_acc/U271/Y (BUFx2_ASAP7_75t_R)      36.93     743.93 f
+  GEN_LANE[9].u_fp32_acc/U13/Y (NOR2x1p5_ASAP7_75t_R)    41.49     785.43 r
+  GEN_LANE[9].u_fp32_acc/U641/Y (INVx1_ASAP7_75t_R)      29.22     814.64 f
+  GEN_LANE[9].u_fp32_acc/U686/Y (OAI21xp33_ASAP7_75t_R)
+                                                         30.81     845.46 r
+  GEN_LANE[9].u_fp32_acc/U970/Y (INVxp33_ASAP7_75t_R)    28.51     873.97 f
+  GEN_LANE[9].u_fp32_acc/U1104/Y (AOI222xp33_ASAP7_75t_R)
+                                                         26.73     900.70 r
+  GEN_LANE[9].u_fp32_acc/U1105/Y (OAI22xp33_ASAP7_75t_R)
+                                                         23.39     924.09 f
+  GEN_LANE[9].u_fp32_acc/U1107/Y (INVxp33_ASAP7_75t_R)
+                                                         15.81     939.90 r
+  GEN_LANE[9].u_fp32_acc/U1108/Y (NOR2xp33_ASAP7_75t_R)
+                                                         14.72     954.62 f
+  GEN_LANE[9].u_fp32_acc/U1109/Y (OR2x2_ASAP7_75t_R)     29.00     983.61 f
+  GEN_LANE[9].u_fp32_acc/U1110/Y (AND2x2_ASAP7_75t_R)    21.39    1005.01 f
+  GEN_LANE[9].u_fp32_acc/U312/Y (INVxp67_ASAP7_75t_R)    10.25    1015.26 r
+  GEN_LANE[9].u_fp32_acc/U115/Y (NOR2xp67_ASAP7_75t_R)
+                                                         16.55    1031.81 f
+  GEN_LANE[9].u_fp32_acc/U1407/Y (INVxp67_ASAP7_75t_R)
+                                                         16.54    1048.35 r
+  GEN_LANE[9].u_fp32_acc/U1408/Y (XOR2xp5_ASAP7_75t_R)
+                                                         27.45    1075.81 r
+  GEN_LANE[9].u_fp32_acc/U1409/Y (NOR2xp33_ASAP7_75t_R)
+                                                         29.35    1105.16 f
+  GEN_LANE[9].u_fp32_acc/U106/Y (NOR2xp67_ASAP7_75t_R)
+                                                         26.09    1131.25 r
+  GEN_LANE[9].u_fp32_acc/U1414/Y (NAND2xp5_ASAP7_75t_R)
+                                                         16.84    1148.09 f
+  GEN_LANE[9].u_fp32_acc/U1415/Y (NOR2xp33_ASAP7_75t_R)
+                                                         21.91    1170.00 r
+  GEN_LANE[9].u_fp32_acc/U285/Y (AOI21x1_ASAP7_75t_R)    20.02    1190.02 f
+  GEN_LANE[9].u_fp32_acc/U282/Y (OAI21xp33_ASAP7_75t_R)
+                                                         23.27    1213.29 r
+  GEN_LANE[9].u_fp32_acc/U1486/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         21.62    1234.91 r
+  GEN_LANE[9].u_fp32_acc/U1487/Y (NAND2xp33_ASAP7_75t_R)
+                                                         13.97    1248.88 f
+  GEN_LANE[9].u_fp32_acc/U1488/Y (NAND2xp5_ASAP7_75t_R)
+                                                         12.53    1261.42 r
+  GEN_LANE[9].u_fp32_acc/U96/Y (NOR2xp33_ASAP7_75t_R)    17.19    1278.60 f
+  GEN_LANE[9].u_fp32_acc/U59/Y (INVxp33_ASAP7_75t_R)     20.47    1299.07 r
+  GEN_LANE[9].u_fp32_acc/U1596/Y (NOR2xp33_ASAP7_75t_R)
+                                                         19.73    1318.79 f
+  GEN_LANE[9].u_fp32_acc/U374/Y (NOR2xp33_ASAP7_75t_R)
+                                                         23.93    1342.72 r
+  GEN_LANE[9].u_fp32_acc/U1607/Y (INVx1_ASAP7_75t_R)     21.30    1364.02 f
+  GEN_LANE[9].u_fp32_acc/U60/Y (NAND2xp33_ASAP7_75t_R)
+                                                         27.81    1391.84 r
+  GEN_LANE[9].u_fp32_acc/U1618/Y (NAND4xp25_ASAP7_75t_R)
+                                                         28.48    1420.31 f
+  GEN_LANE[9].u_fp32_acc/U91/Y (NOR2x1_ASAP7_75t_R)      28.87    1449.19 r
+  GEN_LANE[9].u_fp32_acc/U183/Y (NOR2x1_ASAP7_75t_R)     16.69    1465.87 f
+  GEN_LANE[9].u_fp32_acc/U87/Y (INVx1_ASAP7_75t_R)       15.93    1481.80 r
+  GEN_LANE[9].u_fp32_acc/U324/Y (NAND4xp25_ASAP7_75t_R)
+                                                         29.09    1510.89 f
+  GEN_LANE[9].u_fp32_acc/U293/Y (AOI211x1_ASAP7_75t_R)
+                                                         24.21    1535.10 r
+  GEN_LANE[9].u_fp32_acc/U83/Y (NOR2xp67_ASAP7_75t_R)    17.03    1552.13 f
+  GEN_LANE[9].u_fp32_acc/U303/Y (NAND2xp5_ASAP7_75t_R)
+                                                         22.98    1575.11 r
+  GEN_LANE[9].u_fp32_acc/U302/Y (NOR2x1_ASAP7_75t_R)     25.26    1600.37 f
+  GEN_LANE[9].u_fp32_acc/U268/Y (OR3x1_ASAP7_75t_R)      47.12    1647.49 f
+  GEN_LANE[9].u_fp32_acc/U1663/Y (NOR2x1p5_ASAP7_75t_R)
+                                                         25.53    1673.02 r
+  GEN_LANE[9].u_fp32_acc/U1667/Y (NOR2xp33_ASAP7_75t_R)
+                                                         27.51    1700.54 f
+  GEN_LANE[9].u_fp32_acc/U72/Y (INVxp33_ASAP7_75t_R)     31.87    1732.40 r
+  GEN_LANE[9].u_fp32_acc/U1668/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         23.14    1755.54 f
+  GEN_LANE[9].u_fp32_acc/U1686/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         28.81    1784.35 r
+  GEN_LANE[9].u_fp32_acc/U1713/Y (AND2x4_ASAP7_75t_R)    31.79    1816.14 r
+  GEN_LANE[9].u_fp32_acc/U73/Y (INVx5_ASAP7_75t_R)       16.07    1832.21 f
+  GEN_LANE[9].u_fp32_acc/U1842/Y (OAI211xp5_ASAP7_75t_R)
+                                                         14.53    1846.74 r
+  GEN_LANE[9].u_fp32_acc/acc_new_fp32_o[15] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00    1846.74 r
+  U5521/Y (NAND2xp33_ASAP7_75t_R)                        15.49    1862.23 f
+  U3096/Y (OAI21xp5_ASAP7_75t_R)                         49.49    1911.72 r
+  u_ff_acc/wdata[303] (latch_array_16_512_1)              0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[1].icg_gen[9].row_gen[15].bit_gen.u_dff/d (dff_7376)
+                                                          0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[1].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1911.72 r
+  data arrival time                                               1911.72
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_ff_acc/gen_ff_storage.col_gen[1].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -38.23    1911.77
+  data required time                                              1911.77
+  --------------------------------------------------------------------------
+  data required time                                              1911.77
+  data arrival time                                              -1911.72
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+  Startpoint: lane_acc_idx_q1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_ff_acc/gen_ff_storage.col_gen[2].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  lane_acc_idx_q1_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  lane_acc_idx_q1_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)    64.97      64.97 r
+  U3137/Y (INVx3_ASAP7_75t_R)                            20.60      85.58 f
+  u_ff_acc/raddr1[1] (latch_array_16_512_1)               0.00      85.58 f
+  u_ff_acc/U2055/Y (NAND2xp5_ASAP7_75t_R)                19.17     104.74 r
+  u_ff_acc/U2058/Y (OR2x2_ASAP7_75t_R)                   53.26     158.00 r
+  u_ff_acc/U4363/Y (HB1xp67_ASAP7_75t_R)                161.49     319.48 r
+  u_ff_acc/U5155/Y (OAI22xp33_ASAP7_75t_R)               38.66     358.14 f
+  u_ff_acc/U5158/Y (OR4x1_ASAP7_75t_R)                   41.80     399.94 f
+  u_ff_acc/U5163/Y (OAI31xp33_ASAP7_75t_R)               18.06     418.00 r
+  u_ff_acc/U5164/Y (AND2x2_ASAP7_75t_R)                  25.22     443.22 r
+  u_ff_acc/rdata1[314] (latch_array_16_512_1)             0.00     443.22 r
+  U3862/Y (AND2x2_ASAP7_75t_R)                           23.96     467.18 r
+  GEN_LANE[9].u_fp32_acc/acc_old_fp32_i[26] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00     467.18 r
+  GEN_LANE[9].u_fp32_acc/U277/Y (INVxp33_ASAP7_75t_R)    17.80     484.99 f
+  GEN_LANE[9].u_fp32_acc/U289/Y (NAND2xp5_ASAP7_75t_R)
+                                                         14.78     499.76 r
+  GEN_LANE[9].u_fp32_acc/U288/Y (NAND2xp5_ASAP7_75t_R)
+                                                         11.25     511.01 f
+  GEN_LANE[9].u_fp32_acc/U287/Y (NAND2xp5_ASAP7_75t_R)
+                                                         10.57     521.58 r
+  GEN_LANE[9].u_fp32_acc/U492/Y (AOI211xp5_ASAP7_75t_R)
+                                                         13.27     534.86 f
+  GEN_LANE[9].u_fp32_acc/U15/Y (NOR2xp33_ASAP7_75t_R)    21.79     556.65 r
+  GEN_LANE[9].u_fp32_acc/U167/Y (AND2x6_ASAP7_75t_R)     38.93     595.58 r
+  GEN_LANE[9].u_fp32_acc/U527/Y (NAND2xp33_ASAP7_75t_R)
+                                                         14.50     610.08 f
+  GEN_LANE[9].u_fp32_acc/U528/Y (INVxp67_ASAP7_75t_R)     9.82     619.91 r
+  GEN_LANE[9].u_fp32_acc/U20/Y (NOR2xp33_ASAP7_75t_R)    21.81     641.71 f
+  GEN_LANE[9].u_fp32_acc/U138/Y (NOR2x1_ASAP7_75t_R)     15.70     657.42 r
+  GEN_LANE[9].u_fp32_acc/U23/Y (INVxp33_ASAP7_75t_R)     18.72     676.13 f
+  GEN_LANE[9].u_fp32_acc/U301/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         30.87     707.00 f
+  GEN_LANE[9].u_fp32_acc/U271/Y (BUFx2_ASAP7_75t_R)      36.93     743.93 f
+  GEN_LANE[9].u_fp32_acc/U13/Y (NOR2x1p5_ASAP7_75t_R)    41.49     785.43 r
+  GEN_LANE[9].u_fp32_acc/U641/Y (INVx1_ASAP7_75t_R)      29.22     814.64 f
+  GEN_LANE[9].u_fp32_acc/U686/Y (OAI21xp33_ASAP7_75t_R)
+                                                         30.81     845.46 r
+  GEN_LANE[9].u_fp32_acc/U970/Y (INVxp33_ASAP7_75t_R)    28.51     873.97 f
+  GEN_LANE[9].u_fp32_acc/U1104/Y (AOI222xp33_ASAP7_75t_R)
+                                                         26.73     900.70 r
+  GEN_LANE[9].u_fp32_acc/U1105/Y (OAI22xp33_ASAP7_75t_R)
+                                                         23.39     924.09 f
+  GEN_LANE[9].u_fp32_acc/U1107/Y (INVxp33_ASAP7_75t_R)
+                                                         15.81     939.90 r
+  GEN_LANE[9].u_fp32_acc/U1108/Y (NOR2xp33_ASAP7_75t_R)
+                                                         14.72     954.62 f
+  GEN_LANE[9].u_fp32_acc/U1109/Y (OR2x2_ASAP7_75t_R)     29.00     983.61 f
+  GEN_LANE[9].u_fp32_acc/U1110/Y (AND2x2_ASAP7_75t_R)    21.39    1005.01 f
+  GEN_LANE[9].u_fp32_acc/U312/Y (INVxp67_ASAP7_75t_R)    10.25    1015.26 r
+  GEN_LANE[9].u_fp32_acc/U115/Y (NOR2xp67_ASAP7_75t_R)
+                                                         16.55    1031.81 f
+  GEN_LANE[9].u_fp32_acc/U1407/Y (INVxp67_ASAP7_75t_R)
+                                                         16.54    1048.35 r
+  GEN_LANE[9].u_fp32_acc/U1408/Y (XOR2xp5_ASAP7_75t_R)
+                                                         27.45    1075.81 r
+  GEN_LANE[9].u_fp32_acc/U1409/Y (NOR2xp33_ASAP7_75t_R)
+                                                         29.35    1105.16 f
+  GEN_LANE[9].u_fp32_acc/U106/Y (NOR2xp67_ASAP7_75t_R)
+                                                         26.09    1131.25 r
+  GEN_LANE[9].u_fp32_acc/U1414/Y (NAND2xp5_ASAP7_75t_R)
+                                                         16.84    1148.09 f
+  GEN_LANE[9].u_fp32_acc/U1415/Y (NOR2xp33_ASAP7_75t_R)
+                                                         21.91    1170.00 r
+  GEN_LANE[9].u_fp32_acc/U285/Y (AOI21x1_ASAP7_75t_R)    20.02    1190.02 f
+  GEN_LANE[9].u_fp32_acc/U282/Y (OAI21xp33_ASAP7_75t_R)
+                                                         23.27    1213.29 r
+  GEN_LANE[9].u_fp32_acc/U1486/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         21.62    1234.91 r
+  GEN_LANE[9].u_fp32_acc/U1487/Y (NAND2xp33_ASAP7_75t_R)
+                                                         13.97    1248.88 f
+  GEN_LANE[9].u_fp32_acc/U1488/Y (NAND2xp5_ASAP7_75t_R)
+                                                         12.53    1261.42 r
+  GEN_LANE[9].u_fp32_acc/U96/Y (NOR2xp33_ASAP7_75t_R)    17.19    1278.60 f
+  GEN_LANE[9].u_fp32_acc/U59/Y (INVxp33_ASAP7_75t_R)     20.47    1299.07 r
+  GEN_LANE[9].u_fp32_acc/U1596/Y (NOR2xp33_ASAP7_75t_R)
+                                                         19.73    1318.79 f
+  GEN_LANE[9].u_fp32_acc/U374/Y (NOR2xp33_ASAP7_75t_R)
+                                                         23.93    1342.72 r
+  GEN_LANE[9].u_fp32_acc/U1607/Y (INVx1_ASAP7_75t_R)     21.30    1364.02 f
+  GEN_LANE[9].u_fp32_acc/U60/Y (NAND2xp33_ASAP7_75t_R)
+                                                         27.81    1391.84 r
+  GEN_LANE[9].u_fp32_acc/U1618/Y (NAND4xp25_ASAP7_75t_R)
+                                                         28.48    1420.31 f
+  GEN_LANE[9].u_fp32_acc/U91/Y (NOR2x1_ASAP7_75t_R)      28.87    1449.19 r
+  GEN_LANE[9].u_fp32_acc/U183/Y (NOR2x1_ASAP7_75t_R)     16.69    1465.87 f
+  GEN_LANE[9].u_fp32_acc/U87/Y (INVx1_ASAP7_75t_R)       15.93    1481.80 r
+  GEN_LANE[9].u_fp32_acc/U324/Y (NAND4xp25_ASAP7_75t_R)
+                                                         29.09    1510.89 f
+  GEN_LANE[9].u_fp32_acc/U293/Y (AOI211x1_ASAP7_75t_R)
+                                                         24.21    1535.10 r
+  GEN_LANE[9].u_fp32_acc/U83/Y (NOR2xp67_ASAP7_75t_R)    17.03    1552.13 f
+  GEN_LANE[9].u_fp32_acc/U303/Y (NAND2xp5_ASAP7_75t_R)
+                                                         22.98    1575.11 r
+  GEN_LANE[9].u_fp32_acc/U302/Y (NOR2x1_ASAP7_75t_R)     25.26    1600.37 f
+  GEN_LANE[9].u_fp32_acc/U268/Y (OR3x1_ASAP7_75t_R)      47.12    1647.49 f
+  GEN_LANE[9].u_fp32_acc/U1663/Y (NOR2x1p5_ASAP7_75t_R)
+                                                         25.53    1673.02 r
+  GEN_LANE[9].u_fp32_acc/U1667/Y (NOR2xp33_ASAP7_75t_R)
+                                                         27.51    1700.54 f
+  GEN_LANE[9].u_fp32_acc/U72/Y (INVxp33_ASAP7_75t_R)     31.87    1732.40 r
+  GEN_LANE[9].u_fp32_acc/U1668/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         23.14    1755.54 f
+  GEN_LANE[9].u_fp32_acc/U1686/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         28.81    1784.35 r
+  GEN_LANE[9].u_fp32_acc/U1713/Y (AND2x4_ASAP7_75t_R)    31.79    1816.14 r
+  GEN_LANE[9].u_fp32_acc/U73/Y (INVx5_ASAP7_75t_R)       16.07    1832.21 f
+  GEN_LANE[9].u_fp32_acc/U1842/Y (OAI211xp5_ASAP7_75t_R)
+                                                         14.53    1846.74 r
+  GEN_LANE[9].u_fp32_acc/acc_new_fp32_o[15] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00    1846.74 r
+  U5521/Y (NAND2xp33_ASAP7_75t_R)                        15.49    1862.23 f
+  U3096/Y (OAI21xp5_ASAP7_75t_R)                         49.49    1911.72 r
+  u_ff_acc/wdata[303] (latch_array_16_512_1)              0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[2].icg_gen[9].row_gen[15].bit_gen.u_dff/d (dff_6864)
+                                                          0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[2].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1911.72 r
+  data arrival time                                               1911.72
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_ff_acc/gen_ff_storage.col_gen[2].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -38.23    1911.77
+  data required time                                              1911.77
+  --------------------------------------------------------------------------
+  data required time                                              1911.77
+  data arrival time                                              -1911.72
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+  Startpoint: lane_acc_idx_q1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_ff_acc/gen_ff_storage.col_gen[3].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  lane_acc_idx_q1_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  lane_acc_idx_q1_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)    64.97      64.97 r
+  U3137/Y (INVx3_ASAP7_75t_R)                            20.60      85.58 f
+  u_ff_acc/raddr1[1] (latch_array_16_512_1)               0.00      85.58 f
+  u_ff_acc/U2055/Y (NAND2xp5_ASAP7_75t_R)                19.17     104.74 r
+  u_ff_acc/U2058/Y (OR2x2_ASAP7_75t_R)                   53.26     158.00 r
+  u_ff_acc/U4363/Y (HB1xp67_ASAP7_75t_R)                161.49     319.48 r
+  u_ff_acc/U5155/Y (OAI22xp33_ASAP7_75t_R)               38.66     358.14 f
+  u_ff_acc/U5158/Y (OR4x1_ASAP7_75t_R)                   41.80     399.94 f
+  u_ff_acc/U5163/Y (OAI31xp33_ASAP7_75t_R)               18.06     418.00 r
+  u_ff_acc/U5164/Y (AND2x2_ASAP7_75t_R)                  25.22     443.22 r
+  u_ff_acc/rdata1[314] (latch_array_16_512_1)             0.00     443.22 r
+  U3862/Y (AND2x2_ASAP7_75t_R)                           23.96     467.18 r
+  GEN_LANE[9].u_fp32_acc/acc_old_fp32_i[26] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00     467.18 r
+  GEN_LANE[9].u_fp32_acc/U277/Y (INVxp33_ASAP7_75t_R)    17.80     484.99 f
+  GEN_LANE[9].u_fp32_acc/U289/Y (NAND2xp5_ASAP7_75t_R)
+                                                         14.78     499.76 r
+  GEN_LANE[9].u_fp32_acc/U288/Y (NAND2xp5_ASAP7_75t_R)
+                                                         11.25     511.01 f
+  GEN_LANE[9].u_fp32_acc/U287/Y (NAND2xp5_ASAP7_75t_R)
+                                                         10.57     521.58 r
+  GEN_LANE[9].u_fp32_acc/U492/Y (AOI211xp5_ASAP7_75t_R)
+                                                         13.27     534.86 f
+  GEN_LANE[9].u_fp32_acc/U15/Y (NOR2xp33_ASAP7_75t_R)    21.79     556.65 r
+  GEN_LANE[9].u_fp32_acc/U167/Y (AND2x6_ASAP7_75t_R)     38.93     595.58 r
+  GEN_LANE[9].u_fp32_acc/U527/Y (NAND2xp33_ASAP7_75t_R)
+                                                         14.50     610.08 f
+  GEN_LANE[9].u_fp32_acc/U528/Y (INVxp67_ASAP7_75t_R)     9.82     619.91 r
+  GEN_LANE[9].u_fp32_acc/U20/Y (NOR2xp33_ASAP7_75t_R)    21.81     641.71 f
+  GEN_LANE[9].u_fp32_acc/U138/Y (NOR2x1_ASAP7_75t_R)     15.70     657.42 r
+  GEN_LANE[9].u_fp32_acc/U23/Y (INVxp33_ASAP7_75t_R)     18.72     676.13 f
+  GEN_LANE[9].u_fp32_acc/U301/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         30.87     707.00 f
+  GEN_LANE[9].u_fp32_acc/U271/Y (BUFx2_ASAP7_75t_R)      36.93     743.93 f
+  GEN_LANE[9].u_fp32_acc/U13/Y (NOR2x1p5_ASAP7_75t_R)    41.49     785.43 r
+  GEN_LANE[9].u_fp32_acc/U641/Y (INVx1_ASAP7_75t_R)      29.22     814.64 f
+  GEN_LANE[9].u_fp32_acc/U686/Y (OAI21xp33_ASAP7_75t_R)
+                                                         30.81     845.46 r
+  GEN_LANE[9].u_fp32_acc/U970/Y (INVxp33_ASAP7_75t_R)    28.51     873.97 f
+  GEN_LANE[9].u_fp32_acc/U1104/Y (AOI222xp33_ASAP7_75t_R)
+                                                         26.73     900.70 r
+  GEN_LANE[9].u_fp32_acc/U1105/Y (OAI22xp33_ASAP7_75t_R)
+                                                         23.39     924.09 f
+  GEN_LANE[9].u_fp32_acc/U1107/Y (INVxp33_ASAP7_75t_R)
+                                                         15.81     939.90 r
+  GEN_LANE[9].u_fp32_acc/U1108/Y (NOR2xp33_ASAP7_75t_R)
+                                                         14.72     954.62 f
+  GEN_LANE[9].u_fp32_acc/U1109/Y (OR2x2_ASAP7_75t_R)     29.00     983.61 f
+  GEN_LANE[9].u_fp32_acc/U1110/Y (AND2x2_ASAP7_75t_R)    21.39    1005.01 f
+  GEN_LANE[9].u_fp32_acc/U312/Y (INVxp67_ASAP7_75t_R)    10.25    1015.26 r
+  GEN_LANE[9].u_fp32_acc/U115/Y (NOR2xp67_ASAP7_75t_R)
+                                                         16.55    1031.81 f
+  GEN_LANE[9].u_fp32_acc/U1407/Y (INVxp67_ASAP7_75t_R)
+                                                         16.54    1048.35 r
+  GEN_LANE[9].u_fp32_acc/U1408/Y (XOR2xp5_ASAP7_75t_R)
+                                                         27.45    1075.81 r
+  GEN_LANE[9].u_fp32_acc/U1409/Y (NOR2xp33_ASAP7_75t_R)
+                                                         29.35    1105.16 f
+  GEN_LANE[9].u_fp32_acc/U106/Y (NOR2xp67_ASAP7_75t_R)
+                                                         26.09    1131.25 r
+  GEN_LANE[9].u_fp32_acc/U1414/Y (NAND2xp5_ASAP7_75t_R)
+                                                         16.84    1148.09 f
+  GEN_LANE[9].u_fp32_acc/U1415/Y (NOR2xp33_ASAP7_75t_R)
+                                                         21.91    1170.00 r
+  GEN_LANE[9].u_fp32_acc/U285/Y (AOI21x1_ASAP7_75t_R)    20.02    1190.02 f
+  GEN_LANE[9].u_fp32_acc/U282/Y (OAI21xp33_ASAP7_75t_R)
+                                                         23.27    1213.29 r
+  GEN_LANE[9].u_fp32_acc/U1486/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         21.62    1234.91 r
+  GEN_LANE[9].u_fp32_acc/U1487/Y (NAND2xp33_ASAP7_75t_R)
+                                                         13.97    1248.88 f
+  GEN_LANE[9].u_fp32_acc/U1488/Y (NAND2xp5_ASAP7_75t_R)
+                                                         12.53    1261.42 r
+  GEN_LANE[9].u_fp32_acc/U96/Y (NOR2xp33_ASAP7_75t_R)    17.19    1278.60 f
+  GEN_LANE[9].u_fp32_acc/U59/Y (INVxp33_ASAP7_75t_R)     20.47    1299.07 r
+  GEN_LANE[9].u_fp32_acc/U1596/Y (NOR2xp33_ASAP7_75t_R)
+                                                         19.73    1318.79 f
+  GEN_LANE[9].u_fp32_acc/U374/Y (NOR2xp33_ASAP7_75t_R)
+                                                         23.93    1342.72 r
+  GEN_LANE[9].u_fp32_acc/U1607/Y (INVx1_ASAP7_75t_R)     21.30    1364.02 f
+  GEN_LANE[9].u_fp32_acc/U60/Y (NAND2xp33_ASAP7_75t_R)
+                                                         27.81    1391.84 r
+  GEN_LANE[9].u_fp32_acc/U1618/Y (NAND4xp25_ASAP7_75t_R)
+                                                         28.48    1420.31 f
+  GEN_LANE[9].u_fp32_acc/U91/Y (NOR2x1_ASAP7_75t_R)      28.87    1449.19 r
+  GEN_LANE[9].u_fp32_acc/U183/Y (NOR2x1_ASAP7_75t_R)     16.69    1465.87 f
+  GEN_LANE[9].u_fp32_acc/U87/Y (INVx1_ASAP7_75t_R)       15.93    1481.80 r
+  GEN_LANE[9].u_fp32_acc/U324/Y (NAND4xp25_ASAP7_75t_R)
+                                                         29.09    1510.89 f
+  GEN_LANE[9].u_fp32_acc/U293/Y (AOI211x1_ASAP7_75t_R)
+                                                         24.21    1535.10 r
+  GEN_LANE[9].u_fp32_acc/U83/Y (NOR2xp67_ASAP7_75t_R)    17.03    1552.13 f
+  GEN_LANE[9].u_fp32_acc/U303/Y (NAND2xp5_ASAP7_75t_R)
+                                                         22.98    1575.11 r
+  GEN_LANE[9].u_fp32_acc/U302/Y (NOR2x1_ASAP7_75t_R)     25.26    1600.37 f
+  GEN_LANE[9].u_fp32_acc/U268/Y (OR3x1_ASAP7_75t_R)      47.12    1647.49 f
+  GEN_LANE[9].u_fp32_acc/U1663/Y (NOR2x1p5_ASAP7_75t_R)
+                                                         25.53    1673.02 r
+  GEN_LANE[9].u_fp32_acc/U1667/Y (NOR2xp33_ASAP7_75t_R)
+                                                         27.51    1700.54 f
+  GEN_LANE[9].u_fp32_acc/U72/Y (INVxp33_ASAP7_75t_R)     31.87    1732.40 r
+  GEN_LANE[9].u_fp32_acc/U1668/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         23.14    1755.54 f
+  GEN_LANE[9].u_fp32_acc/U1686/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         28.81    1784.35 r
+  GEN_LANE[9].u_fp32_acc/U1713/Y (AND2x4_ASAP7_75t_R)    31.79    1816.14 r
+  GEN_LANE[9].u_fp32_acc/U73/Y (INVx5_ASAP7_75t_R)       16.07    1832.21 f
+  GEN_LANE[9].u_fp32_acc/U1842/Y (OAI211xp5_ASAP7_75t_R)
+                                                         14.53    1846.74 r
+  GEN_LANE[9].u_fp32_acc/acc_new_fp32_o[15] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00    1846.74 r
+  U5521/Y (NAND2xp33_ASAP7_75t_R)                        15.49    1862.23 f
+  U3096/Y (OAI21xp5_ASAP7_75t_R)                         49.49    1911.72 r
+  u_ff_acc/wdata[303] (latch_array_16_512_1)              0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[3].icg_gen[9].row_gen[15].bit_gen.u_dff/d (dff_6352)
+                                                          0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[3].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1911.72 r
+  data arrival time                                               1911.72
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_ff_acc/gen_ff_storage.col_gen[3].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -38.23    1911.77
+  data required time                                              1911.77
+  --------------------------------------------------------------------------
+  data required time                                              1911.77
+  data arrival time                                              -1911.72
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+  Startpoint: lane_acc_idx_q1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_ff_acc/gen_ff_storage.col_gen[4].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  lane_acc_idx_q1_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  lane_acc_idx_q1_reg[1]/QN (DFFASRHQNx1_ASAP7_75t_R)    64.97      64.97 r
+  U3137/Y (INVx3_ASAP7_75t_R)                            20.60      85.58 f
+  u_ff_acc/raddr1[1] (latch_array_16_512_1)               0.00      85.58 f
+  u_ff_acc/U2055/Y (NAND2xp5_ASAP7_75t_R)                19.17     104.74 r
+  u_ff_acc/U2058/Y (OR2x2_ASAP7_75t_R)                   53.26     158.00 r
+  u_ff_acc/U4363/Y (HB1xp67_ASAP7_75t_R)                161.49     319.48 r
+  u_ff_acc/U5155/Y (OAI22xp33_ASAP7_75t_R)               38.66     358.14 f
+  u_ff_acc/U5158/Y (OR4x1_ASAP7_75t_R)                   41.80     399.94 f
+  u_ff_acc/U5163/Y (OAI31xp33_ASAP7_75t_R)               18.06     418.00 r
+  u_ff_acc/U5164/Y (AND2x2_ASAP7_75t_R)                  25.22     443.22 r
+  u_ff_acc/rdata1[314] (latch_array_16_512_1)             0.00     443.22 r
+  U3862/Y (AND2x2_ASAP7_75t_R)                           23.96     467.18 r
+  GEN_LANE[9].u_fp32_acc/acc_old_fp32_i[26] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00     467.18 r
+  GEN_LANE[9].u_fp32_acc/U277/Y (INVxp33_ASAP7_75t_R)    17.80     484.99 f
+  GEN_LANE[9].u_fp32_acc/U289/Y (NAND2xp5_ASAP7_75t_R)
+                                                         14.78     499.76 r
+  GEN_LANE[9].u_fp32_acc/U288/Y (NAND2xp5_ASAP7_75t_R)
+                                                         11.25     511.01 f
+  GEN_LANE[9].u_fp32_acc/U287/Y (NAND2xp5_ASAP7_75t_R)
+                                                         10.57     521.58 r
+  GEN_LANE[9].u_fp32_acc/U492/Y (AOI211xp5_ASAP7_75t_R)
+                                                         13.27     534.86 f
+  GEN_LANE[9].u_fp32_acc/U15/Y (NOR2xp33_ASAP7_75t_R)    21.79     556.65 r
+  GEN_LANE[9].u_fp32_acc/U167/Y (AND2x6_ASAP7_75t_R)     38.93     595.58 r
+  GEN_LANE[9].u_fp32_acc/U527/Y (NAND2xp33_ASAP7_75t_R)
+                                                         14.50     610.08 f
+  GEN_LANE[9].u_fp32_acc/U528/Y (INVxp67_ASAP7_75t_R)     9.82     619.91 r
+  GEN_LANE[9].u_fp32_acc/U20/Y (NOR2xp33_ASAP7_75t_R)    21.81     641.71 f
+  GEN_LANE[9].u_fp32_acc/U138/Y (NOR2x1_ASAP7_75t_R)     15.70     657.42 r
+  GEN_LANE[9].u_fp32_acc/U23/Y (INVxp33_ASAP7_75t_R)     18.72     676.13 f
+  GEN_LANE[9].u_fp32_acc/U301/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         30.87     707.00 f
+  GEN_LANE[9].u_fp32_acc/U271/Y (BUFx2_ASAP7_75t_R)      36.93     743.93 f
+  GEN_LANE[9].u_fp32_acc/U13/Y (NOR2x1p5_ASAP7_75t_R)    41.49     785.43 r
+  GEN_LANE[9].u_fp32_acc/U641/Y (INVx1_ASAP7_75t_R)      29.22     814.64 f
+  GEN_LANE[9].u_fp32_acc/U686/Y (OAI21xp33_ASAP7_75t_R)
+                                                         30.81     845.46 r
+  GEN_LANE[9].u_fp32_acc/U970/Y (INVxp33_ASAP7_75t_R)    28.51     873.97 f
+  GEN_LANE[9].u_fp32_acc/U1104/Y (AOI222xp33_ASAP7_75t_R)
+                                                         26.73     900.70 r
+  GEN_LANE[9].u_fp32_acc/U1105/Y (OAI22xp33_ASAP7_75t_R)
+                                                         23.39     924.09 f
+  GEN_LANE[9].u_fp32_acc/U1107/Y (INVxp33_ASAP7_75t_R)
+                                                         15.81     939.90 r
+  GEN_LANE[9].u_fp32_acc/U1108/Y (NOR2xp33_ASAP7_75t_R)
+                                                         14.72     954.62 f
+  GEN_LANE[9].u_fp32_acc/U1109/Y (OR2x2_ASAP7_75t_R)     29.00     983.61 f
+  GEN_LANE[9].u_fp32_acc/U1110/Y (AND2x2_ASAP7_75t_R)    21.39    1005.01 f
+  GEN_LANE[9].u_fp32_acc/U312/Y (INVxp67_ASAP7_75t_R)    10.25    1015.26 r
+  GEN_LANE[9].u_fp32_acc/U115/Y (NOR2xp67_ASAP7_75t_R)
+                                                         16.55    1031.81 f
+  GEN_LANE[9].u_fp32_acc/U1407/Y (INVxp67_ASAP7_75t_R)
+                                                         16.54    1048.35 r
+  GEN_LANE[9].u_fp32_acc/U1408/Y (XOR2xp5_ASAP7_75t_R)
+                                                         27.45    1075.81 r
+  GEN_LANE[9].u_fp32_acc/U1409/Y (NOR2xp33_ASAP7_75t_R)
+                                                         29.35    1105.16 f
+  GEN_LANE[9].u_fp32_acc/U106/Y (NOR2xp67_ASAP7_75t_R)
+                                                         26.09    1131.25 r
+  GEN_LANE[9].u_fp32_acc/U1414/Y (NAND2xp5_ASAP7_75t_R)
+                                                         16.84    1148.09 f
+  GEN_LANE[9].u_fp32_acc/U1415/Y (NOR2xp33_ASAP7_75t_R)
+                                                         21.91    1170.00 r
+  GEN_LANE[9].u_fp32_acc/U285/Y (AOI21x1_ASAP7_75t_R)    20.02    1190.02 f
+  GEN_LANE[9].u_fp32_acc/U282/Y (OAI21xp33_ASAP7_75t_R)
+                                                         23.27    1213.29 r
+  GEN_LANE[9].u_fp32_acc/U1486/Y (XNOR2xp5_ASAP7_75t_R)
+                                                         21.62    1234.91 r
+  GEN_LANE[9].u_fp32_acc/U1487/Y (NAND2xp33_ASAP7_75t_R)
+                                                         13.97    1248.88 f
+  GEN_LANE[9].u_fp32_acc/U1488/Y (NAND2xp5_ASAP7_75t_R)
+                                                         12.53    1261.42 r
+  GEN_LANE[9].u_fp32_acc/U96/Y (NOR2xp33_ASAP7_75t_R)    17.19    1278.60 f
+  GEN_LANE[9].u_fp32_acc/U59/Y (INVxp33_ASAP7_75t_R)     20.47    1299.07 r
+  GEN_LANE[9].u_fp32_acc/U1596/Y (NOR2xp33_ASAP7_75t_R)
+                                                         19.73    1318.79 f
+  GEN_LANE[9].u_fp32_acc/U374/Y (NOR2xp33_ASAP7_75t_R)
+                                                         23.93    1342.72 r
+  GEN_LANE[9].u_fp32_acc/U1607/Y (INVx1_ASAP7_75t_R)     21.30    1364.02 f
+  GEN_LANE[9].u_fp32_acc/U60/Y (NAND2xp33_ASAP7_75t_R)
+                                                         27.81    1391.84 r
+  GEN_LANE[9].u_fp32_acc/U1618/Y (NAND4xp25_ASAP7_75t_R)
+                                                         28.48    1420.31 f
+  GEN_LANE[9].u_fp32_acc/U91/Y (NOR2x1_ASAP7_75t_R)      28.87    1449.19 r
+  GEN_LANE[9].u_fp32_acc/U183/Y (NOR2x1_ASAP7_75t_R)     16.69    1465.87 f
+  GEN_LANE[9].u_fp32_acc/U87/Y (INVx1_ASAP7_75t_R)       15.93    1481.80 r
+  GEN_LANE[9].u_fp32_acc/U324/Y (NAND4xp25_ASAP7_75t_R)
+                                                         29.09    1510.89 f
+  GEN_LANE[9].u_fp32_acc/U293/Y (AOI211x1_ASAP7_75t_R)
+                                                         24.21    1535.10 r
+  GEN_LANE[9].u_fp32_acc/U83/Y (NOR2xp67_ASAP7_75t_R)    17.03    1552.13 f
+  GEN_LANE[9].u_fp32_acc/U303/Y (NAND2xp5_ASAP7_75t_R)
+                                                         22.98    1575.11 r
+  GEN_LANE[9].u_fp32_acc/U302/Y (NOR2x1_ASAP7_75t_R)     25.26    1600.37 f
+  GEN_LANE[9].u_fp32_acc/U268/Y (OR3x1_ASAP7_75t_R)      47.12    1647.49 f
+  GEN_LANE[9].u_fp32_acc/U1663/Y (NOR2x1p5_ASAP7_75t_R)
+                                                         25.53    1673.02 r
+  GEN_LANE[9].u_fp32_acc/U1667/Y (NOR2xp33_ASAP7_75t_R)
+                                                         27.51    1700.54 f
+  GEN_LANE[9].u_fp32_acc/U72/Y (INVxp33_ASAP7_75t_R)     31.87    1732.40 r
+  GEN_LANE[9].u_fp32_acc/U1668/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         23.14    1755.54 f
+  GEN_LANE[9].u_fp32_acc/U1686/Y (A2O1A1Ixp33_ASAP7_75t_R)
+                                                         28.81    1784.35 r
+  GEN_LANE[9].u_fp32_acc/U1713/Y (AND2x4_ASAP7_75t_R)    31.79    1816.14 r
+  GEN_LANE[9].u_fp32_acc/U73/Y (INVx5_ASAP7_75t_R)       16.07    1832.21 f
+  GEN_LANE[9].u_fp32_acc/U1842/Y (OAI211xp5_ASAP7_75t_R)
+                                                         14.53    1846.74 r
+  GEN_LANE[9].u_fp32_acc/acc_new_fp32_o[15] (fp32_norm_add_2in_MAG_W13_EXP_IN_W9_EXP_BIAS_OFFSET0_6)
+                                                          0.00    1846.74 r
+  U5521/Y (NAND2xp33_ASAP7_75t_R)                        15.49    1862.23 f
+  U3096/Y (OAI21xp5_ASAP7_75t_R)                         49.49    1911.72 r
+  u_ff_acc/wdata[303] (latch_array_16_512_1)              0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[4].icg_gen[9].row_gen[15].bit_gen.u_dff/d (dff_5840)
+                                                          0.00    1911.72 r
+  u_ff_acc/gen_ff_storage.col_gen[4].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1911.72 r
+  data arrival time                                               1911.72
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_ff_acc/gen_ff_storage.col_gen[4].icg_gen[9].row_gen[15].bit_gen.u_dff/q_reg/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -38.23    1911.77
+  data required time                                              1911.77
+  --------------------------------------------------------------------------
+  data required time                                              1911.77
+  data arrival time                                              -1911.72
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+1

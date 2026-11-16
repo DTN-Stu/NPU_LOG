@@ -1,0 +1,51 @@
+ 
+****************************************
+Report : area
+Design : cfg5_log8_int32_lazy_latch
+Version: O-2018.06-SP1
+Date   : Sun Nov 15 23:13:23 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Warning: Design 'cfg5_log8_int32_lazy_latch' contains 2 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+Library(s) Used:
+
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+
+Number of ports:                         5352
+Number of nets:                         86074
+Number of cells:                        81763
+Number of combinational cells:          71351
+Number of sequential cells:             10410
+Number of macros/black boxes:               0
+Number of buf/inv:                      11189
+Number of references:                       2
+
+Combinational area:               5788.814054
+Buf/Inv area:                      506.421726
+Noncombinational area:            2629.823809
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                  8418.637862
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area          Local cell area
+                                  ------------------  ---------------------------- 
+Hierarchical cell                 Absolute   Percent  Combi-     Noncombi-  Black-
+                                  Total      Total    national   national   boxes   Design
+--------------------------------  ---------  -------  ---------  ---------  ------  -----------------------------------
+cfg5_log8_int32_lazy_latch        8418.6379    100.0     0.0437     0.0000  0.0000  cfg5_log8_int32_lazy_latch
+u_engine                          8418.5941    100.0  4216.8568   640.6452  0.0000  vsq_matmul_engine_16_16_72_16_0_0_0
+u_engine/u_latch_array            3561.0922     42.3  1571.9136  1989.1786  0.0000  latch_array_16_512_0
+--------------------------------  ---------  -------  ---------  ---------  ------  -----------------------------------
+Total                                                 5788.8141  2629.8238  0.0000
+
+1

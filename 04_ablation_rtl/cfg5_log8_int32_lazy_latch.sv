@@ -28,11 +28,13 @@ module cfg5_log8_int32_lazy_latch #(
 );
 
     vsq_matmul_engine #(
-        .NUM_LANES_P (NUM_LANES_P),
-        .ACC_DEPTH_P (ACC_DEPTH_P),
-        .PKT_W       (PKT_W),
-        .FRAC_BITS   (FRAC_BITS),
-        .ACC_USE_FF  (1'b0)
+        .NUM_LANES_P       (NUM_LANES_P),
+        .ACC_DEPTH_P       (ACC_DEPTH_P),
+        .PKT_W             (PKT_W),
+        .FRAC_BITS         (FRAC_BITS),
+        .ACC_USE_FF        (1'b0),
+        .ENABLE_RESCALE    (1'b0),
+        .ENABLE_PACKED_OUT (1'b0)
     ) u_engine (
         .clk                 (clk),
         .reset_n             (reset_n),

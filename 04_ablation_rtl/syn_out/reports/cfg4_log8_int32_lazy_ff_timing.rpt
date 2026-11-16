@@ -1,0 +1,476 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 5
+Design : cfg4_log8_int32_lazy_ff
+Version: O-2018.06-SP1
+Date   : Sun Nov 15 23:01:28 2026
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+  Startpoint: u_engine/drained_int32_word_q1_reg[289]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/core_vec_out_reg[9][14]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/drained_int32_word_q1_reg[289]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/drained_int32_word_q1_reg[289]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         53.66      53.66 f
+  u_engine/U48983/Y (INVxp33_ASAP7_75t_R)                41.66      95.32 r
+  u_engine/U48984/Y (NOR4xp25_ASAP7_75t_R)               28.67     123.99 f
+  u_engine/U48985/Y (NAND2xp33_ASAP7_75t_R)              32.32     156.30 r
+  u_engine/U48986/Y (NOR2xp33_ASAP7_75t_R)               27.71     184.01 f
+  u_engine/U931/Y (NAND2xp33_ASAP7_75t_R)                33.55     217.56 r
+  u_engine/U1076/Y (NOR2xp33_ASAP7_75t_R)                27.85     245.41 f
+  u_engine/U933/Y (NAND2xp33_ASAP7_75t_R)                32.76     278.17 r
+  u_engine/U1063/Y (NOR2xp33_ASAP7_75t_R)                27.76     305.93 f
+  u_engine/U1058/Y (NAND2xp33_ASAP7_75t_R)               32.73     338.66 r
+  u_engine/U1065/Y (NOR2xp33_ASAP7_75t_R)                27.76     366.42 f
+  u_engine/U1068/Y (NAND2xp33_ASAP7_75t_R)               33.55     399.97 r
+  u_engine/U1064/Y (NOR2xp33_ASAP7_75t_R)                27.85     427.81 f
+  u_engine/U1066/Y (NAND2xp33_ASAP7_75t_R)               33.55     461.36 r
+  u_engine/U1057/Y (NOR2xp33_ASAP7_75t_R)                27.85     489.21 f
+  u_engine/U929/Y (NAND2xp33_ASAP7_75t_R)                33.55     522.76 r
+  u_engine/U1062/Y (NOR2xp33_ASAP7_75t_R)                27.85     550.61 f
+  u_engine/U1060/Y (NAND2xp33_ASAP7_75t_R)               32.73     583.34 r
+  u_engine/U1071/Y (NOR2xp33_ASAP7_75t_R)                27.76     611.10 f
+  u_engine/U1072/Y (NAND2xp33_ASAP7_75t_R)               33.55     644.65 r
+  u_engine/U1070/Y (NOR2xp33_ASAP7_75t_R)                27.85     672.49 f
+  u_engine/U1074/Y (NAND2xp33_ASAP7_75t_R)               33.55     706.04 r
+  u_engine/U1292/Y (NOR2xp33_ASAP7_75t_R)                27.85     733.89 f
+  u_engine/U1288/Y (NAND2xp33_ASAP7_75t_R)               33.55     767.44 r
+  u_engine/U48990/Y (NOR2xp33_ASAP7_75t_R)               27.85     795.29 f
+  u_engine/U1290/Y (NAND2xp33_ASAP7_75t_R)               33.55     828.84 r
+  u_engine/U1553/Y (NOR2xp33_ASAP7_75t_R)                27.85     856.68 f
+  u_engine/U1554/Y (NAND2xp33_ASAP7_75t_R)               33.55     890.23 r
+  u_engine/U48997/Y (NOR2xp33_ASAP7_75t_R)               23.67     913.90 f
+  u_engine/U48999/Y (INVxp33_ASAP7_75t_R)                21.58     935.48 r
+  u_engine/U49000/Y (AOI22xp33_ASAP7_75t_R)              20.96     956.45 f
+  u_engine/U49001/Y (OAI22xp33_ASAP7_75t_R)              28.31     984.75 r
+  u_engine/U49007/Y (NAND3xp33_ASAP7_75t_R)              29.62    1014.37 f
+  u_engine/U251/Y (NOR2xp67_ASAP7_75t_R)                 21.27    1035.64 r
+  u_engine/U81/Y (NAND2xp5_ASAP7_75t_R)                  29.18    1064.82 f
+  u_engine/U49061/Y (INVx2_ASAP7_75t_R)                  19.53    1084.35 r
+  u_engine/U412/Y (NAND2x1_ASAP7_75t_R)                  14.55    1098.91 f
+  u_engine/U92/Y (NOR2xp33_ASAP7_75t_R)                  35.71    1134.62 r
+  u_engine/U5667/Y (NAND2xp33_ASAP7_75t_R)               26.76    1161.38 f
+  u_engine/U49092/Y (OAI22xp33_ASAP7_75t_R)              22.33    1183.71 r
+  u_engine/U49093/Y (O2A1O1Ixp33_ASAP7_75t_R)            20.95    1204.66 f
+  u_engine/U222/Y (NAND2x1p5_ASAP7_75t_R)                45.36    1250.02 r
+  u_engine/U477/Y (INVxp33_ASAP7_75t_R)                  28.88    1278.90 f
+  u_engine/U49137/Y (OAI22xp33_ASAP7_75t_R)              33.14    1312.03 r
+  u_engine/U475/Y (NOR2xp33_ASAP7_75t_R)                 24.59    1336.63 f
+  u_engine/U49138/Y (INVxp33_ASAP7_75t_R)                23.17    1359.80 r
+  u_engine/U49143/Y (OAI21xp33_ASAP7_75t_R)              21.34    1381.13 f
+  u_engine/U49178/Y (AOI222xp33_ASAP7_75t_R)             27.84    1408.97 r
+  u_engine/U49201/Y (NOR2xp33_ASAP7_75t_R)               33.11    1442.08 f
+  u_engine/U2050/Y (NAND2xp33_ASAP7_75t_R)               35.44    1477.52 r
+  u_engine/U49216/Y (NOR2xp33_ASAP7_75t_R)               31.37    1508.89 f
+  u_engine/U2051/Y (NAND2xp33_ASAP7_75t_R)               36.04    1544.93 r
+  u_engine/U2052/Y (NOR2xp33_ASAP7_75t_R)                31.45    1576.38 f
+  u_engine/U2053/Y (NAND2xp33_ASAP7_75t_R)               34.61    1610.99 r
+  u_engine/U2055/Y (NOR2xp33_ASAP7_75t_R)                31.27    1642.26 f
+  u_engine/U2057/Y (NAND2xp33_ASAP7_75t_R)               34.98    1677.24 r
+  u_engine/U2060/Y (NOR2xp33_ASAP7_75t_R)                31.32    1708.56 f
+  u_engine/U2062/Y (NAND2xp33_ASAP7_75t_R)               28.63    1737.19 r
+  u_engine/U2063/Y (INVxp33_ASAP7_75t_R)                 26.10    1763.30 f
+  u_engine/U49238/Y (NOR2xp33_ASAP7_75t_R)               31.75    1795.05 r
+  u_engine/U49239/Y (AND2x2_ASAP7_75t_R)                 26.12    1821.17 r
+  u_engine/U6474/Y (NAND2xp33_ASAP7_75t_R)               23.88    1845.05 f
+  u_engine/U481/Y (INVx2_ASAP7_75t_R)                    17.48    1862.52 r
+  u_engine/U480/Y (AOI21x1_ASAP7_75t_R)                  24.49    1887.01 f
+  u_engine/U452/Y (INVx2_ASAP7_75t_R)                    24.93    1911.94 r
+  u_engine/U52379/Y (OAI32xp33_ASAP7_75t_R)              18.92    1930.86 f
+  u_engine/core_vec_out_reg[9][14]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1930.86 f
+  data arrival time                                               1930.86
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_engine/core_vec_out_reg[9][14]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -19.01    1930.99
+  data required time                                              1930.99
+  --------------------------------------------------------------------------
+  data required time                                              1930.99
+  data arrival time                                              -1930.86
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.13
+
+
+  Startpoint: u_engine/drained_int32_word_q1_reg[289]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/core_vec_out_reg[9][2]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/drained_int32_word_q1_reg[289]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/drained_int32_word_q1_reg[289]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         53.66      53.66 f
+  u_engine/U48983/Y (INVxp33_ASAP7_75t_R)                41.66      95.32 r
+  u_engine/U48984/Y (NOR4xp25_ASAP7_75t_R)               28.67     123.99 f
+  u_engine/U48985/Y (NAND2xp33_ASAP7_75t_R)              32.32     156.30 r
+  u_engine/U48986/Y (NOR2xp33_ASAP7_75t_R)               27.71     184.01 f
+  u_engine/U931/Y (NAND2xp33_ASAP7_75t_R)                33.55     217.56 r
+  u_engine/U1076/Y (NOR2xp33_ASAP7_75t_R)                27.85     245.41 f
+  u_engine/U933/Y (NAND2xp33_ASAP7_75t_R)                32.76     278.17 r
+  u_engine/U1063/Y (NOR2xp33_ASAP7_75t_R)                27.76     305.93 f
+  u_engine/U1058/Y (NAND2xp33_ASAP7_75t_R)               32.73     338.66 r
+  u_engine/U1065/Y (NOR2xp33_ASAP7_75t_R)                27.76     366.42 f
+  u_engine/U1068/Y (NAND2xp33_ASAP7_75t_R)               33.55     399.97 r
+  u_engine/U1064/Y (NOR2xp33_ASAP7_75t_R)                27.85     427.81 f
+  u_engine/U1066/Y (NAND2xp33_ASAP7_75t_R)               33.55     461.36 r
+  u_engine/U1057/Y (NOR2xp33_ASAP7_75t_R)                27.85     489.21 f
+  u_engine/U929/Y (NAND2xp33_ASAP7_75t_R)                33.55     522.76 r
+  u_engine/U1062/Y (NOR2xp33_ASAP7_75t_R)                27.85     550.61 f
+  u_engine/U1060/Y (NAND2xp33_ASAP7_75t_R)               32.73     583.34 r
+  u_engine/U1071/Y (NOR2xp33_ASAP7_75t_R)                27.76     611.10 f
+  u_engine/U1072/Y (NAND2xp33_ASAP7_75t_R)               33.55     644.65 r
+  u_engine/U1070/Y (NOR2xp33_ASAP7_75t_R)                27.85     672.49 f
+  u_engine/U1074/Y (NAND2xp33_ASAP7_75t_R)               33.55     706.04 r
+  u_engine/U1292/Y (NOR2xp33_ASAP7_75t_R)                27.85     733.89 f
+  u_engine/U1288/Y (NAND2xp33_ASAP7_75t_R)               33.55     767.44 r
+  u_engine/U48990/Y (NOR2xp33_ASAP7_75t_R)               27.85     795.29 f
+  u_engine/U1290/Y (NAND2xp33_ASAP7_75t_R)               33.55     828.84 r
+  u_engine/U1553/Y (NOR2xp33_ASAP7_75t_R)                27.85     856.68 f
+  u_engine/U1554/Y (NAND2xp33_ASAP7_75t_R)               33.55     890.23 r
+  u_engine/U48997/Y (NOR2xp33_ASAP7_75t_R)               23.67     913.90 f
+  u_engine/U48999/Y (INVxp33_ASAP7_75t_R)                21.58     935.48 r
+  u_engine/U49000/Y (AOI22xp33_ASAP7_75t_R)              20.96     956.45 f
+  u_engine/U49001/Y (OAI22xp33_ASAP7_75t_R)              28.31     984.75 r
+  u_engine/U49007/Y (NAND3xp33_ASAP7_75t_R)              29.62    1014.37 f
+  u_engine/U251/Y (NOR2xp67_ASAP7_75t_R)                 21.27    1035.64 r
+  u_engine/U81/Y (NAND2xp5_ASAP7_75t_R)                  29.18    1064.82 f
+  u_engine/U49061/Y (INVx2_ASAP7_75t_R)                  19.53    1084.35 r
+  u_engine/U412/Y (NAND2x1_ASAP7_75t_R)                  14.55    1098.91 f
+  u_engine/U92/Y (NOR2xp33_ASAP7_75t_R)                  35.71    1134.62 r
+  u_engine/U5667/Y (NAND2xp33_ASAP7_75t_R)               26.76    1161.38 f
+  u_engine/U49092/Y (OAI22xp33_ASAP7_75t_R)              22.33    1183.71 r
+  u_engine/U49093/Y (O2A1O1Ixp33_ASAP7_75t_R)            20.95    1204.66 f
+  u_engine/U222/Y (NAND2x1p5_ASAP7_75t_R)                45.36    1250.02 r
+  u_engine/U477/Y (INVxp33_ASAP7_75t_R)                  28.88    1278.90 f
+  u_engine/U49137/Y (OAI22xp33_ASAP7_75t_R)              33.14    1312.03 r
+  u_engine/U475/Y (NOR2xp33_ASAP7_75t_R)                 24.59    1336.63 f
+  u_engine/U49138/Y (INVxp33_ASAP7_75t_R)                23.17    1359.80 r
+  u_engine/U49143/Y (OAI21xp33_ASAP7_75t_R)              21.34    1381.13 f
+  u_engine/U49178/Y (AOI222xp33_ASAP7_75t_R)             27.84    1408.97 r
+  u_engine/U49201/Y (NOR2xp33_ASAP7_75t_R)               33.11    1442.08 f
+  u_engine/U2050/Y (NAND2xp33_ASAP7_75t_R)               35.44    1477.52 r
+  u_engine/U49216/Y (NOR2xp33_ASAP7_75t_R)               31.37    1508.89 f
+  u_engine/U2051/Y (NAND2xp33_ASAP7_75t_R)               36.04    1544.93 r
+  u_engine/U2052/Y (NOR2xp33_ASAP7_75t_R)                31.45    1576.38 f
+  u_engine/U2053/Y (NAND2xp33_ASAP7_75t_R)               34.61    1610.99 r
+  u_engine/U2055/Y (NOR2xp33_ASAP7_75t_R)                31.27    1642.26 f
+  u_engine/U2057/Y (NAND2xp33_ASAP7_75t_R)               34.98    1677.24 r
+  u_engine/U2060/Y (NOR2xp33_ASAP7_75t_R)                31.32    1708.56 f
+  u_engine/U2062/Y (NAND2xp33_ASAP7_75t_R)               28.63    1737.19 r
+  u_engine/U2063/Y (INVxp33_ASAP7_75t_R)                 26.10    1763.30 f
+  u_engine/U49238/Y (NOR2xp33_ASAP7_75t_R)               31.75    1795.05 r
+  u_engine/U49239/Y (AND2x2_ASAP7_75t_R)                 26.12    1821.17 r
+  u_engine/U6474/Y (NAND2xp33_ASAP7_75t_R)               23.88    1845.05 f
+  u_engine/U481/Y (INVx2_ASAP7_75t_R)                    17.48    1862.52 r
+  u_engine/U480/Y (AOI21x1_ASAP7_75t_R)                  24.49    1887.01 f
+  u_engine/U452/Y (INVx2_ASAP7_75t_R)                    24.93    1911.94 r
+  u_engine/U52400/Y (OAI32xp33_ASAP7_75t_R)              18.92    1930.86 f
+  u_engine/core_vec_out_reg[9][2]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1930.86 f
+  data arrival time                                               1930.86
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_engine/core_vec_out_reg[9][2]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -19.01    1930.99
+  data required time                                              1930.99
+  --------------------------------------------------------------------------
+  data required time                                              1930.99
+  data arrival time                                              -1930.86
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.13
+
+
+  Startpoint: u_engine/drained_int32_word_q1_reg[289]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/core_vec_out_reg[9][4]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/drained_int32_word_q1_reg[289]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/drained_int32_word_q1_reg[289]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         53.66      53.66 f
+  u_engine/U48983/Y (INVxp33_ASAP7_75t_R)                41.66      95.32 r
+  u_engine/U48984/Y (NOR4xp25_ASAP7_75t_R)               28.67     123.99 f
+  u_engine/U48985/Y (NAND2xp33_ASAP7_75t_R)              32.32     156.30 r
+  u_engine/U48986/Y (NOR2xp33_ASAP7_75t_R)               27.71     184.01 f
+  u_engine/U931/Y (NAND2xp33_ASAP7_75t_R)                33.55     217.56 r
+  u_engine/U1076/Y (NOR2xp33_ASAP7_75t_R)                27.85     245.41 f
+  u_engine/U933/Y (NAND2xp33_ASAP7_75t_R)                32.76     278.17 r
+  u_engine/U1063/Y (NOR2xp33_ASAP7_75t_R)                27.76     305.93 f
+  u_engine/U1058/Y (NAND2xp33_ASAP7_75t_R)               32.73     338.66 r
+  u_engine/U1065/Y (NOR2xp33_ASAP7_75t_R)                27.76     366.42 f
+  u_engine/U1068/Y (NAND2xp33_ASAP7_75t_R)               33.55     399.97 r
+  u_engine/U1064/Y (NOR2xp33_ASAP7_75t_R)                27.85     427.81 f
+  u_engine/U1066/Y (NAND2xp33_ASAP7_75t_R)               33.55     461.36 r
+  u_engine/U1057/Y (NOR2xp33_ASAP7_75t_R)                27.85     489.21 f
+  u_engine/U929/Y (NAND2xp33_ASAP7_75t_R)                33.55     522.76 r
+  u_engine/U1062/Y (NOR2xp33_ASAP7_75t_R)                27.85     550.61 f
+  u_engine/U1060/Y (NAND2xp33_ASAP7_75t_R)               32.73     583.34 r
+  u_engine/U1071/Y (NOR2xp33_ASAP7_75t_R)                27.76     611.10 f
+  u_engine/U1072/Y (NAND2xp33_ASAP7_75t_R)               33.55     644.65 r
+  u_engine/U1070/Y (NOR2xp33_ASAP7_75t_R)                27.85     672.49 f
+  u_engine/U1074/Y (NAND2xp33_ASAP7_75t_R)               33.55     706.04 r
+  u_engine/U1292/Y (NOR2xp33_ASAP7_75t_R)                27.85     733.89 f
+  u_engine/U1288/Y (NAND2xp33_ASAP7_75t_R)               33.55     767.44 r
+  u_engine/U48990/Y (NOR2xp33_ASAP7_75t_R)               27.85     795.29 f
+  u_engine/U1290/Y (NAND2xp33_ASAP7_75t_R)               33.55     828.84 r
+  u_engine/U1553/Y (NOR2xp33_ASAP7_75t_R)                27.85     856.68 f
+  u_engine/U1554/Y (NAND2xp33_ASAP7_75t_R)               33.55     890.23 r
+  u_engine/U48997/Y (NOR2xp33_ASAP7_75t_R)               23.67     913.90 f
+  u_engine/U48999/Y (INVxp33_ASAP7_75t_R)                21.58     935.48 r
+  u_engine/U49000/Y (AOI22xp33_ASAP7_75t_R)              20.96     956.45 f
+  u_engine/U49001/Y (OAI22xp33_ASAP7_75t_R)              28.31     984.75 r
+  u_engine/U49007/Y (NAND3xp33_ASAP7_75t_R)              29.62    1014.37 f
+  u_engine/U251/Y (NOR2xp67_ASAP7_75t_R)                 21.27    1035.64 r
+  u_engine/U81/Y (NAND2xp5_ASAP7_75t_R)                  29.18    1064.82 f
+  u_engine/U49061/Y (INVx2_ASAP7_75t_R)                  19.53    1084.35 r
+  u_engine/U412/Y (NAND2x1_ASAP7_75t_R)                  14.55    1098.91 f
+  u_engine/U92/Y (NOR2xp33_ASAP7_75t_R)                  35.71    1134.62 r
+  u_engine/U5667/Y (NAND2xp33_ASAP7_75t_R)               26.76    1161.38 f
+  u_engine/U49092/Y (OAI22xp33_ASAP7_75t_R)              22.33    1183.71 r
+  u_engine/U49093/Y (O2A1O1Ixp33_ASAP7_75t_R)            20.95    1204.66 f
+  u_engine/U222/Y (NAND2x1p5_ASAP7_75t_R)                45.36    1250.02 r
+  u_engine/U477/Y (INVxp33_ASAP7_75t_R)                  28.88    1278.90 f
+  u_engine/U49137/Y (OAI22xp33_ASAP7_75t_R)              33.14    1312.03 r
+  u_engine/U475/Y (NOR2xp33_ASAP7_75t_R)                 24.59    1336.63 f
+  u_engine/U49138/Y (INVxp33_ASAP7_75t_R)                23.17    1359.80 r
+  u_engine/U49143/Y (OAI21xp33_ASAP7_75t_R)              21.34    1381.13 f
+  u_engine/U49178/Y (AOI222xp33_ASAP7_75t_R)             27.84    1408.97 r
+  u_engine/U49201/Y (NOR2xp33_ASAP7_75t_R)               33.11    1442.08 f
+  u_engine/U2050/Y (NAND2xp33_ASAP7_75t_R)               35.44    1477.52 r
+  u_engine/U49216/Y (NOR2xp33_ASAP7_75t_R)               31.37    1508.89 f
+  u_engine/U2051/Y (NAND2xp33_ASAP7_75t_R)               36.04    1544.93 r
+  u_engine/U2052/Y (NOR2xp33_ASAP7_75t_R)                31.45    1576.38 f
+  u_engine/U2053/Y (NAND2xp33_ASAP7_75t_R)               34.61    1610.99 r
+  u_engine/U2055/Y (NOR2xp33_ASAP7_75t_R)                31.27    1642.26 f
+  u_engine/U2057/Y (NAND2xp33_ASAP7_75t_R)               34.98    1677.24 r
+  u_engine/U2060/Y (NOR2xp33_ASAP7_75t_R)                31.32    1708.56 f
+  u_engine/U2062/Y (NAND2xp33_ASAP7_75t_R)               28.63    1737.19 r
+  u_engine/U2063/Y (INVxp33_ASAP7_75t_R)                 26.10    1763.30 f
+  u_engine/U49238/Y (NOR2xp33_ASAP7_75t_R)               31.75    1795.05 r
+  u_engine/U49239/Y (AND2x2_ASAP7_75t_R)                 26.12    1821.17 r
+  u_engine/U6474/Y (NAND2xp33_ASAP7_75t_R)               23.88    1845.05 f
+  u_engine/U481/Y (INVx2_ASAP7_75t_R)                    17.48    1862.52 r
+  u_engine/U480/Y (AOI21x1_ASAP7_75t_R)                  24.49    1887.01 f
+  u_engine/U452/Y (INVx2_ASAP7_75t_R)                    24.93    1911.94 r
+  u_engine/U52397/Y (OAI32xp33_ASAP7_75t_R)              18.92    1930.86 f
+  u_engine/core_vec_out_reg[9][4]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1930.86 f
+  data arrival time                                               1930.86
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_engine/core_vec_out_reg[9][4]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -18.96    1931.04
+  data required time                                              1931.04
+  --------------------------------------------------------------------------
+  data required time                                              1931.04
+  data arrival time                                              -1930.86
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.18
+
+
+  Startpoint: act_broadcast[53]
+              (input port clocked by clk)
+  Endpoint: u_engine/dot_out_q1_reg[6][11]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  input external delay                                  400.00     400.00 r
+  act_broadcast[53] (in)                                 38.80     438.80 r
+  u_engine/act_broadcast[53] (vsq_matmul_engine_16_16_72_16_1_0_0)
+                                                          0.00     438.80 r
+  u_engine/U7990/Y (INVxp33_ASAP7_75t_R)                 72.54     511.33 f
+  u_engine/U7997/Y (NOR3xp33_ASAP7_75t_R)                29.86     541.20 r
+  u_engine/U8025/Y (INVxp67_ASAP7_75t_R)                 63.08     604.28 f
+  u_engine/U8026/Y (INVxp33_ASAP7_75t_R)                178.82     783.10 r
+  u_engine/U23155/Y (NAND2xp33_ASAP7_75t_R)              35.07     818.17 f
+  u_engine/U23156/Y (INVxp33_ASAP7_75t_R)                23.71     841.88 r
+  u_engine/U23158/Y (OAI22xp33_ASAP7_75t_R)              17.31     859.19 f
+  u_engine/U23159/Y (OAI211xp5_ASAP7_75t_R)              28.14     887.33 r
+  u_engine/U23160/Y (NOR2xp33_ASAP7_75t_R)               27.75     915.08 f
+  u_engine/U23161/Y (NOR2xp33_ASAP7_75t_R)               29.11     944.18 r
+  u_engine/U23176/Y (NOR2xp33_ASAP7_75t_R)               34.59     978.78 f
+  u_engine/U23177/Y (NOR2xp33_ASAP7_75t_R)               30.89    1009.66 r
+  u_engine/U23185/Y (NOR2xp33_ASAP7_75t_R)               20.80    1030.46 f
+  u_engine/U23186/Y (NOR2xp33_ASAP7_75t_R)               26.02    1056.48 r
+  u_engine/U23193/Y (NOR2xp33_ASAP7_75t_R)               20.79    1077.27 f
+  u_engine/U23194/Y (NOR2xp33_ASAP7_75t_R)               26.02    1103.30 r
+  u_engine/U23197/Y (NOR2xp33_ASAP7_75t_R)               20.79    1124.08 f
+  u_engine/U23198/Y (NOR2xp33_ASAP7_75t_R)               56.53    1180.62 r
+  u_engine/U23250/SN (FAx1_ASAP7_75t_R)                  86.12    1266.73 f
+  u_engine/U23251/SN (HAxp5_ASAP7_75t_R)                 91.20    1357.93 f
+  u_engine/U23253/SN (HAxp5_ASAP7_75t_R)                 44.15    1402.09 f
+  u_engine/U23258/Y (NAND2xp33_ASAP7_75t_R)              21.37    1423.46 r
+  u_engine/U23259/Y (INVxp33_ASAP7_75t_R)                19.08    1442.53 f
+  u_engine/U23261/Y (NOR2xp33_ASAP7_75t_R)               32.20    1474.74 r
+  u_engine/U23265/SN (FAx1_ASAP7_75t_R)                  94.07    1568.81 r
+  u_engine/U23266/Y (INVxp33_ASAP7_75t_R)                48.72    1617.53 f
+  u_engine/U23269/SN (HAxp5_ASAP7_75t_R)                 41.22    1658.75 f
+  u_engine/U23270/Y (INVxp33_ASAP7_75t_R)                20.90    1679.65 r
+  u_engine/U23299/Y (NAND2xp33_ASAP7_75t_R)              13.16    1692.81 f
+  u_engine/U23300/Y (NAND2xp33_ASAP7_75t_R)              28.50    1721.31 r
+  u_engine/U23301/SN (FAx1_ASAP7_75t_R)                  60.09    1781.40 f
+  u_engine/U23334/Y (NAND2xp33_ASAP7_75t_R)              32.99    1814.39 r
+  u_engine/U23964/Y (OA21x2_ASAP7_75t_R)                 30.45    1844.83 r
+  u_engine/U46151/SN (HAxp5_ASAP7_75t_R)                 28.48    1873.31 r
+  u_engine/U46152/SN (HAxp5_ASAP7_75t_R)                 25.02    1898.34 r
+  u_engine/U46153/Y (NAND2xp33_ASAP7_75t_R)              11.65    1909.98 f
+  u_engine/U46154/Y (OAI21xp33_ASAP7_75t_R)              17.79    1927.78 r
+  u_engine/dot_out_q1_reg[6][11]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1927.78 r
+  data arrival time                                               1927.78
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_engine/dot_out_q1_reg[6][11]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -22.03    1927.97
+  data required time                                              1927.97
+  --------------------------------------------------------------------------
+  data required time                                              1927.97
+  data arrival time                                              -1927.78
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.20
+
+
+  Startpoint: u_engine/drained_int32_word_q1_reg[352]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: u_engine/core_vec_out_reg[11][4]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  u_engine/drained_int32_word_q1_reg[352]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00 #     0.00 r
+  u_engine/drained_int32_word_q1_reg[352]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         63.18      63.18 f
+  u_engine/U48020/Y (INVxp33_ASAP7_75t_R)                36.26      99.44 r
+  u_engine/U48021/Y (NOR4xp25_ASAP7_75t_R)               25.72     125.16 f
+  u_engine/U48022/Y (NAND2xp33_ASAP7_75t_R)              32.29     157.45 r
+  u_engine/U48035/Y (NOR2xp33_ASAP7_75t_R)               29.60     187.05 f
+  u_engine/U48036/Y (NAND2xp5_ASAP7_75t_R)               24.06     211.11 r
+  u_engine/U48039/Y (NOR2xp33_ASAP7_75t_R)               22.97     234.08 f
+  u_engine/U1094/Y (NAND2xp33_ASAP7_75t_R)               33.55     267.63 r
+  u_engine/U1098/Y (NOR2xp33_ASAP7_75t_R)                27.85     295.48 f
+  u_engine/U1096/Y (NAND2xp33_ASAP7_75t_R)               33.55     329.03 r
+  u_engine/U1086/Y (NOR2xp33_ASAP7_75t_R)                27.85     356.87 f
+  u_engine/U1087/Y (NAND2xp33_ASAP7_75t_R)               37.77     394.65 r
+  u_engine/U328/Y (NOR2xp67_ASAP7_75t_R)                 23.35     418.00 f
+  u_engine/U556/Y (NAND2xp5_ASAP7_75t_R)                 24.32     442.32 r
+  u_engine/U326/Y (NOR2xp67_ASAP7_75t_R)                 17.54     459.86 f
+  u_engine/U1082/Y (NAND2xp33_ASAP7_75t_R)               30.99     490.85 r
+  u_engine/U48040/Y (NOR2xp33_ASAP7_75t_R)               27.57     518.42 f
+  u_engine/U1092/Y (NAND2xp33_ASAP7_75t_R)               33.55     551.97 r
+  u_engine/U1089/Y (NOR2xp33_ASAP7_75t_R)                27.85     579.82 f
+  u_engine/U1090/Y (NAND2xp33_ASAP7_75t_R)               33.55     613.37 r
+  u_engine/U1316/Y (NOR2xp33_ASAP7_75t_R)                27.85     641.21 f
+  u_engine/U1084/Y (NAND2xp33_ASAP7_75t_R)               33.55     674.76 r
+  u_engine/U1312/Y (NOR2xp33_ASAP7_75t_R)                29.74     704.51 f
+  u_engine/U377/Y (NAND2xp5_ASAP7_75t_R)                 24.79     729.30 r
+  u_engine/U1314/Y (NOR2xp33_ASAP7_75t_R)                23.14     752.43 f
+  u_engine/U1315/Y (NAND2xp33_ASAP7_75t_R)               33.55     785.98 r
+  u_engine/U5410/Y (NOR2xp33_ASAP7_75t_R)                27.85     813.83 f
+  u_engine/U1566/Y (NAND2xp33_ASAP7_75t_R)               33.55     847.38 r
+  u_engine/U48057/Y (NOR2xp33_ASAP7_75t_R)               28.07     875.45 f
+  u_engine/U48059/Y (AOI22xp33_ASAP7_75t_R)              22.69     898.14 r
+  u_engine/U257/Y (AOI22xp33_ASAP7_75t_R)                19.69     917.83 f
+  u_engine/U1318/Y (NAND2xp33_ASAP7_75t_R)               35.31     953.15 r
+  u_engine/U248/Y (NOR2xp67_ASAP7_75t_R)                 21.62     974.77 f
+  u_engine/U84/Y (NAND2xp33_ASAP7_75t_R)                 46.73    1021.50 r
+  u_engine/U240/Y (INVx1_ASAP7_75t_R)                    22.94    1044.44 f
+  u_engine/U236/Y (NAND2xp5_ASAP7_75t_R)                 22.15    1066.59 r
+  u_engine/U2091/Y (INVxp33_ASAP7_75t_R)                 45.56    1112.15 f
+  u_engine/U48115/Y (AND2x2_ASAP7_75t_R)                 40.25    1152.40 f
+  u_engine/U48116/Y (NAND2xp33_ASAP7_75t_R)              17.91    1170.31 r
+  u_engine/U48122/Y (NOR2xp33_ASAP7_75t_R)               26.99    1197.30 f
+  u_engine/U48153/Y (A2O1A1Ixp33_ASAP7_75t_R)            17.62    1214.92 r
+  u_engine/U466/Y (AND4x2_ASAP7_75t_R)                   67.74    1282.66 r
+  u_engine/U14/Y (INVx3_ASAP7_75t_R)                     36.11    1318.77 f
+  u_engine/U48220/Y (AOI22xp33_ASAP7_75t_R)              29.74    1348.51 r
+  u_engine/U48225/Y (AOI22xp33_ASAP7_75t_R)              31.64    1380.14 f
+  u_engine/U48240/Y (AOI222xp33_ASAP7_75t_R)             36.80    1416.94 r
+  u_engine/U48242/Y (OR2x2_ASAP7_75t_R)                  34.30    1451.24 r
+  u_engine/U48243/Y (NOR2xp33_ASAP7_75t_R)               20.66    1471.90 f
+  u_engine/U2075/Y (NAND2xp33_ASAP7_75t_R)               36.77    1508.67 r
+  u_engine/U2077/Y (NOR2xp33_ASAP7_75t_R)                31.58    1540.25 f
+  u_engine/U2078/Y (NAND2xp33_ASAP7_75t_R)               34.66    1574.91 r
+  u_engine/U2080/Y (NOR2xp33_ASAP7_75t_R)                31.28    1606.19 f
+  u_engine/U2081/Y (NAND2xp33_ASAP7_75t_R)               34.55    1640.74 r
+  u_engine/U2084/Y (NOR2xp33_ASAP7_75t_R)                31.26    1672.00 f
+  u_engine/U2085/Y (NAND2xp33_ASAP7_75t_R)               36.41    1708.41 r
+  u_engine/U2087/Y (NOR2xp33_ASAP7_75t_R)                37.09    1745.50 f
+  u_engine/U2088/Y (NOR2xp33_ASAP7_75t_R)                28.15    1773.65 r
+  u_engine/U2090/Y (NAND2xp33_ASAP7_75t_R)               24.34    1797.99 f
+  u_engine/U2089/Y (NOR2xp33_ASAP7_75t_R)                32.88    1830.87 r
+  u_engine/U137/Y (AO21x1_ASAP7_75t_R)                   41.82    1872.69 r
+  u_engine/U409/Y (INVx1_ASAP7_75t_R)                    25.27    1897.96 f
+  u_engine/U52315/Y (OAI211xp5_ASAP7_75t_R)              17.66    1915.61 r
+  u_engine/U52316/Y (OAI21xp33_ASAP7_75t_R)              16.48    1932.10 f
+  u_engine/core_vec_out_reg[11][4]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1932.10 f
+  data arrival time                                               1932.10
+
+  clock clk (rise edge)                                2000.00    2000.00
+  clock network delay (ideal)                             0.00    2000.00
+  clock uncertainty                                     -50.00    1950.00
+  u_engine/core_vec_out_reg[11][4]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                          0.00    1950.00 r
+  library setup time                                    -17.61    1932.39
+  data required time                                              1932.39
+  --------------------------------------------------------------------------
+  data required time                                              1932.39
+  data arrival time                                              -1932.10
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.30
+
+
+1

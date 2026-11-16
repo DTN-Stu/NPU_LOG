@@ -1,0 +1,51 @@
+ 
+****************************************
+Report : area
+Design : cfg4_log8_int32_lazy_ff
+Version: O-2018.06-SP1
+Date   : Sun Nov 15 23:01:23 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Warning: Design 'cfg4_log8_int32_lazy_ff' contains 3 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+Library(s) Used:
+
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+
+Number of ports:                         5352
+Number of nets:                         92352
+Number of cells:                        88041
+Number of combinational cells:          78141
+Number of sequential cells:              9898
+Number of macros/black boxes:               0
+Number of buf/inv:                      18475
+Number of references:                       3
+
+Combinational area:               6060.366557
+Buf/Inv area:                      821.947510
+Noncombinational area:            3749.567736
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                  9809.934293
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area          Local cell area
+                                  ------------------  ---------------------------- 
+Hierarchical cell                 Absolute   Percent  Combi-     Noncombi-  Black-
+                                  Total      Total    national   national   boxes   Design
+--------------------------------  ---------  -------  ---------  ---------  ------  -----------------------------------
+cfg4_log8_int32_lazy_ff           9809.9343    100.0     0.1021     0.0000  0.0000  cfg4_log8_int32_lazy_ff
+u_engine                          9809.8322    100.0  4218.7667   640.6452  0.0000  vsq_matmul_engine_16_16_72_16_1_0_0
+u_engine/u_latch_array            4950.4203     50.5  1841.4978  3108.9225  0.0000  latch_array_16_512_1
+--------------------------------  ---------  -------  ---------  ---------  ------  -----------------------------------
+Total                                                 6060.3666  3749.5677  0.0000
+
+1

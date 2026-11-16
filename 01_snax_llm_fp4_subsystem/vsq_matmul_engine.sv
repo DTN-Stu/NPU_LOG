@@ -315,7 +315,9 @@ module vsq_matmul_engine #(
     parameter int ACC_DEPTH_P = ACCUMULATOR_DEPTH,   
     parameter int PKT_W       = PACKET_WIDTH,      // 72 bits (64b FP4 + 8b Exp)
     parameter int FRAC_BITS   = 16,
-    parameter bit ACC_USE_FF  = 1'b0               // 0: D-latch (DHL), 1: Flip-flop (DFF)
+    parameter bit ACC_USE_FF  = 1'b0,              // 0: D-latch (DHL), 1: Flip-flop (DFF)
+    parameter bit ENABLE_RESCALE    = 1'b1,        // 1: include FlashAttention online rescaler
+    parameter bit ENABLE_PACKED_OUT = 1'b1         // 1: include redundant core_vec_packed register
 )
 (
     input logic                            clk, 
@@ -375,24 +377,51 @@ module vsq_matmul_engine #(
     logic signed [NUM_LANES_P-1:0][5:0]  q_array_q1;
     logic        [NUM_LANES_P-1:0][2:0]  r_array_q1;
 
+    logic                   acc_rescale_req_q1;
+    logic signed [7:0]      resc_q_q1;
+    logic        [2:0]      resc_r_q1;
+
+    generate
+        if (ENABLE_RESCALE) begin : GEN_RESCALE_REGS
+            always_ff @(posedge clk or negedge reset_n) begin
+                if (!reset_n) begin
+                    acc_rescale_req_s1a <= 1'b0;
+                    resc_q_s1a          <= 8'sd0;
+                    resc_r_s1a          <= 3'd0;
+                    acc_rescale_req_q1  <= 1'b0;
+                    resc_q_q1           <= 8'sd0;
+                    resc_r_q1           <= 3'd0;
+                end else begin
+                    acc_rescale_req_s1a <= acc_rescale_req;
+                    resc_q_s1a          <= resc_q;
+                    resc_r_s1a          <= resc_r;
+                    acc_rescale_req_q1  <= acc_rescale_req_s1a;
+                    resc_q_q1           <= resc_q_s1a;
+                    resc_r_q1           <= resc_r_s1a;
+                end
+            end
+        end else begin : GEN_NO_RESCALE_REGS
+            assign acc_rescale_req_s1a = 1'b0;
+            assign resc_q_s1a          = 8'sd0;
+            assign resc_r_s1a          = 3'd0;
+            assign acc_rescale_req_q1  = 1'b0;
+            assign resc_q_q1           = 8'sd0;
+            assign resc_r_q1           = 3'd0;
+        end
+    endgenerate
+
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            lane_valid_s1a      <= '0;
-            lane_acc_idx_s1a    <= '0;
-            acc_rescale_req_s1a <= 1'b0;
-            resc_q_s1a          <= 8'sd0;
-            resc_r_s1a          <= 3'd0;
+            lane_valid_s1a   <= '0;
+            lane_acc_idx_s1a <= '0;
             for (mm_l_s1a = 0; mm_l_s1a < NUM_LANES_P; mm_l_s1a++) begin
                 dot_out_q1[mm_l_s1a] <= 16'sd0;
                 q_array_q1[mm_l_s1a] <= 6'sd0;
                 r_array_q1[mm_l_s1a] <= 3'd0;
             end
         end else begin
-            lane_valid_s1a      <= lane_valid_in;
-            lane_acc_idx_s1a    <= lane_acc_idx;
-            acc_rescale_req_s1a <= acc_rescale_req;
-            resc_q_s1a          <= resc_q;
-            resc_r_s1a          <= resc_r;
+            lane_valid_s1a   <= lane_valid_in;
+            lane_acc_idx_s1a <= lane_acc_idx;
             for (mm_l_s1a = 0; mm_l_s1a < NUM_LANES_P; mm_l_s1a++) begin
                 if (lane_valid_in[mm_l_s1a]) begin
                     dot_out_q1[mm_l_s1a] <= dot_out_array[mm_l_s1a];
@@ -410,29 +439,16 @@ module vsq_matmul_engine #(
     logic [SLOT_AW-1:0]     lane_acc_idx_q1;
     logic signed [NUM_LANES_P-1:0][31:0] aligned_prod_q1;
 
-    // Online-rescale sideband travels with the P block through Stage 1 so
-    // Stage 2 rescales the O accumulator in the same cycle it adds the P
-    // product.  The core drives these directly from the P-FIFO head.
-    logic                   acc_rescale_req_q1;
-    logic signed [7:0]      resc_q_q1;
-    logic        [2:0]      resc_r_q1;
-
         always_ff @(posedge clk or negedge reset_n) begin
             if (!reset_n) begin
-                lane_valid_q1      <= '0;
-                lane_acc_idx_q1    <= '0;
-                acc_rescale_req_q1 <= 1'b0;
-                resc_q_q1          <= 8'sd0;
-                resc_r_q1          <= 3'd0;
+                lane_valid_q1   <= '0;
+                lane_acc_idx_q1 <= '0;
                 for (mm_l_s1b = 0; mm_l_s1b < NUM_LANES_P; mm_l_s1b++) begin
                     aligned_prod_q1[mm_l_s1b] <= 32'sd0;
                 end
             end else begin
-                lane_valid_q1      <= lane_valid_s1a;
-                lane_acc_idx_q1    <= lane_acc_idx_s1a;
-                acc_rescale_req_q1 <= acc_rescale_req_s1a;
-                resc_q_q1          <= resc_q_s1a;
-                resc_r_q1          <= resc_r_s1a;
+                lane_valid_q1   <= lane_valid_s1a;
+                lane_acc_idx_q1 <= lane_acc_idx_s1a;
                 for (mm_l_s1b = 0; mm_l_s1b < NUM_LANES_P; mm_l_s1b++) begin
                     if (lane_valid_s1a[mm_l_s1b]) begin
                         aligned_prod_q1[mm_l_s1b] <= fe_aligned_prod[mm_l_s1b];
@@ -488,18 +504,20 @@ module vsq_matmul_engine #(
             assign old_res[i] = slot_cleared[lane_acc_idx_q1] ? 32'sd0
                                                        : signed'(rdata1[i*32 +: 32]);
 
-            logic signed [31:0] rescaled_old_res;
             logic signed [31:0] effective_old_res;
 
-            vsq_rescaler_32b u_rescaler (
-                // .val_in     (old_res[i]),
-                .val_in(acc_rescale_req_q1 ? old_res[i] : 32'sd0), 
-                .resc_q     (resc_q_q1),
-                .resc_r     (resc_r_q1),
-                .scaled_out (rescaled_old_res)
-            );
-
-            assign effective_old_res = acc_rescale_req_q1 ? rescaled_old_res : old_res[i];
+            if (ENABLE_RESCALE) begin : GEN_RESCALE
+                logic signed [31:0] rescaled_old_res;
+                vsq_rescaler_32b u_rescaler (
+                    .val_in     (acc_rescale_req_q1 ? old_res[i] : 32'sd0),
+                    .resc_q     (resc_q_q1),
+                    .resc_r     (resc_r_q1),
+                    .scaled_out (rescaled_old_res)
+                );
+                assign effective_old_res = acc_rescale_req_q1 ? rescaled_old_res : old_res[i];
+            end else begin : GEN_NO_RESCALE
+                assign effective_old_res = old_res[i];
+            end
 
             accum_adder u_accum_adder(
                 .a         (aligned_prod_q1[i]),  
@@ -607,20 +625,32 @@ module vsq_matmul_engine #(
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            core_vec_valid  <= 1'b0;
-            core_vec_packed <= '0;
+            core_vec_valid <= 1'b0;
             for (mm_l_out = 0; mm_l_out < NUM_LANES_P; mm_l_out++) begin
                 core_vec_out[mm_l_out] <= 16'h0000;
             end
         end else begin
             core_vec_valid <= drain_req_q1;
             if (drain_req_q1) begin
-                core_vec_packed <= drained_fp16_packed;
                 for (mm_l_out = 0; mm_l_out < NUM_LANES_P; mm_l_out++) begin
                     core_vec_out[mm_l_out] <= drained_fp16[mm_l_out];
                 end
             end
         end
     end
+
+    generate
+        if (ENABLE_PACKED_OUT) begin : GEN_PACKED_OUT
+            always_ff @(posedge clk or negedge reset_n) begin
+                if (!reset_n) begin
+                    core_vec_packed <= '0;
+                end else if (drain_req_q1) begin
+                    core_vec_packed <= drained_fp16_packed;
+                end
+            end
+        end else begin : GEN_NO_PACKED_OUT
+            assign core_vec_packed = '0;
+        end
+    endgenerate
 
 endmodule

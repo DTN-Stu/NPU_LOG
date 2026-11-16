@@ -1,0 +1,11 @@
+Notice: timing checks disabled with +notimingcheck at compile-time
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Nov 16 01:45 2026
+[tb_ablation_saif] Completed 4000 capture cycles cleanly.
+$finish called from file "tb_ablation_saif.sv", line 230.
+$finish at simulation time               813400
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 8134000 ps
+CPU Time:     58.710 seconds;       Data structure size:  12.2Mb
+Mon Nov 16 01:46:26 2026
