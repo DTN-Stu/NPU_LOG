@@ -117,6 +117,8 @@ module tb_snax_attention;
         .out_vec_fp16_packed_o (out_vec_fp16_packed_o),
         .out_vec_fp16_lanes_o  (out_vec_fp16_lanes_o),
         .out_vec_fp16_valid_o  (out_vec_fp16_valid_o),
+        .out_vec_fp16_ready_i  (1'b1),
+        .out_fifo_ready_o      (),
         .out_vec_fp4_packet_o  (out_vec_fp4_packet_o),
         .out_vec_fp4_valid_o   (out_vec_fp4_valid_o),
         .p_fifo_full_o         (p_fifo_full_o),
@@ -256,7 +258,7 @@ module tb_snax_attention;
         wt_valid_i          = 1'b1;
         for (int l = 0; l < NUM_LANES_P; l++) wt_in_i[l] = mem_k[l];
         lane_valid_i          = 16'hFFFF;
-        lane_acc_idx_i        = '0;
+        lane_acc_idx_i        = 4'd8;
         tile_clear_on_drain_i = 1'b1;
         tile_drain_req_i      = 1'b0;
 
@@ -267,21 +269,22 @@ module tb_snax_attention;
         @(posedge clk);         // T+1: stage 2 commits QK block 0
         @(negedge clk);
         // T+1.5: drain block 0 and start block 1.
+        cfg_row_start_i       = 1'b1;
         tile_drain_req_i      = 1'b1;
-        tile_drain_idx_i      = '0;
+        tile_drain_idx_i      = 4'd8;
         tile_clear_on_drain_i = 1'b1;
         lane_valid_i          = 16'hFFFF;
-        lane_acc_idx_i        = '0;
+        lane_acc_idx_i        = 4'd8;
         for (int l = 0; l < NUM_LANES_P; l++) wt_in_i[l] = mem_k[BLOCK_SIZE + l];
 
         @(posedge clk);         // T+2: drain block 0; stage 1 block 1
         @(negedge clk);
         tile_drain_req_i      = 1'b0;
         tile_clear_on_drain_i = 1'b0;
+        cfg_row_start_i       = 1'b0;
         lane_valid_i          = '0;
 
-        // T+2.5: row_start and mask for the first softmax block.
-        cfg_row_start_i = 1'b1;
+        // T+2.5: mask for the first softmax block.
         cfg_key_mask_i  = mem_key_masks[0];
 
         @(posedge clk);         // T+3: raw score block 0 -> softmax input
@@ -290,7 +293,7 @@ module tb_snax_attention;
 
         // T+3.5: drain block 1.
         tile_drain_req_i      = 1'b1;
-        tile_drain_idx_i      = '0;
+        tile_drain_idx_i      = 4'd8;
         tile_clear_on_drain_i = 1'b1;
 
         @(posedge clk);         // T+4: drain block 1

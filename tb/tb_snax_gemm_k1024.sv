@@ -38,8 +38,8 @@ module tb_snax_gemm_k1024;
     localparam logic [11:0] A_RING_BASE = 12'd41;
     localparam logic [11:0] A_Q_BASE    = 12'd42;
     localparam logic [11:0] A_OUT_BASE  = 12'd43;
-    localparam logic [11:0] A_START     = 12'd47;
-    localparam logic [11:0] A_RO_ID     = 12'd55;
+    localparam logic [11:0] A_START     = 12'd53;
+    localparam logic [11:0] A_RO_ID     = 12'd61;
     localparam logic [31:0] CSR_ID_VALUE= 32'h534E_4146;
 
     localparam int JOB_TIMEOUT    = 500000;

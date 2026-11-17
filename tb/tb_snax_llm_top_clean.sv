@@ -70,11 +70,11 @@ module tb_snax_llm_top_clean;
     localparam logic [11:0] A_OUT_BASE  = 12'd43;
     localparam logic [11:0] A_DRAM_KV   = 12'd44;
     localparam logic [11:0] A_TILE_ST   = 12'd45;
-    localparam logic [11:0] A_START     = 12'd47;
+    localparam logic [11:0] A_START     = 12'd53;
 
-    localparam logic [11:0] A_RO_SEQ    = 12'd48;
-    localparam logic [11:0] A_RO_WO     = 12'd51;
-    localparam logic [11:0] A_RO_ID     = 12'd55;
+    localparam logic [11:0] A_RO_SEQ    = 12'd54;
+    localparam logic [11:0] A_RO_WO     = 12'd57;
+    localparam logic [11:0] A_RO_ID     = 12'd61;
 
     localparam logic [31:0] CSR_ID_VALUE = 32'h534E_4146;
 
@@ -862,9 +862,9 @@ module tb_snax_llm_top_clean;
             end
             if (dut.tile_drain_req && !dut.tile_drain_idx[3]) begin
                 t_drain_o = cyc;
-                $display("  [DRAIN_O] cyc=%0d idx=%0d (m=%0d) inv_l_mant_q[m]=0x%04X",
+                $display("  [DRAIN_O] cyc=%0d idx=%0d (m=%0d) inv_l_mant=0x%04X",
                          cyc, dut.tile_drain_idx, dut.tile_drain_idx[2:0],
-                         dut.u_core.inv_l_mant_q[dut.tile_drain_idx[2:0]]);
+                         dut.u_core.inv_l_mant);
             end
             if (dut.u_core.raw_drained_valid)
                 $display("      raw_drained  cyc=%0d  (+%0d from S drain) drain_query_idx=%0d",
@@ -957,7 +957,7 @@ module tb_snax_llm_top_clean;
             if (dut.u_seq.qk_compute_fire)                      n_qk_fire = n_qk_fire + 1;
             if (dut.u_core.raw_drained_valid)                   n_raw = n_raw + 1;
             if (dut.u_core.norm_vec_valid)                      n_norm = n_norm + 1;
-            if (dut.u_core.gemm_vec_valid)                      n_gemm = n_gemm + 1;
+            if (dut.u_core.norm_vec_valid)                      n_gemm = n_gemm + 1;
             if (dut.core_fp16_valid)                            n_fp16_valid = n_fp16_valid + 1;
             if (dut.core_fp16_ready)                            n_fp16_ready = n_fp16_ready + 1;
             if (dut.u_core.out_hold_q)                          n_hold = n_hold + 1;

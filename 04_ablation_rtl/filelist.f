@@ -4,6 +4,7 @@
 ../01_snax_llm_fp4_subsystem/compressor_4to2.sv
 ../01_snax_llm_fp4_subsystem/dot_product_16.sv
 ../01_snax_llm_fp4_subsystem/latch_array.sv
+../01_snax_llm_fp4_subsystem/log8_fp4_arith_units.sv
 ../01_snax_llm_fp4_subsystem/vsq_rescaler_32b.sv
 ../01_snax_llm_fp4_subsystem/vsq_matmul_engine.sv
 ../01_snax_llm_fp4_subsystem/nvfp4_scale_mac_lane.sv

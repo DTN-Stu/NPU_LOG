@@ -118,8 +118,8 @@ module tb_snax_llm_layer_smoke;
     localparam logic [11:0] A_OUT_BASE  = 12'd43;
     localparam logic [11:0] A_DRAM_KV   = 12'd44;
     localparam logic [11:0] A_TILE_ST   = 12'd45;
-    localparam logic [11:0] A_START     = 12'd47;
-    localparam logic [11:0] A_RO_ID     = 12'd55;
+    localparam logic [11:0] A_START     = 12'd53;
+    localparam logic [11:0] A_RO_ID     = 12'd61;
     localparam logic [31:0] CSR_ID_VALUE= 32'h534E_4146;
 
     localparam int JOB_TIMEOUT   = 60000;
@@ -785,11 +785,11 @@ module tb_snax_llm_layer_smoke;
                 $display("[PV ] t=%0t m=%0d acc=%0d pfifo_cnt=%0d pkt=%018X",
                          $time, dut.u_seq.cnt_m_q, dut.lane_acc_idx,
                          dut.u_core.p_fifo_count, dut.u_core.p_fifo_packet);
-            if (dut.u_core.u_matmul_engine.raw_drained_valid)
+            if (dut.u_core.raw_drained_valid)
                 $display("[DWORD] t=%0t l0=%08X l1=%08X",
                          $time,
-                         dut.u_core.u_matmul_engine.raw_drained_word[31:0],
-                         dut.u_core.u_matmul_engine.raw_drained_word[63:32]);
+                         dut.u_core.raw_drained_word[31:0],
+                         dut.u_core.raw_drained_word[63:32]);
         end
     end
 

@@ -42,7 +42,8 @@ module snax_llm_top_clean #(
     parameter int unsigned NUM_BANKS   = 32,
     parameter int unsigned BANK_DEPTH  = 1024,
     parameter int unsigned NUM_LANES   = 16,
-    parameter int unsigned ACC_DEPTH   = 16
+    parameter int unsigned ACC_DEPTH   = 16,
+    parameter int unsigned SFU_ALU_LANES = 8
 )(
     input  logic                    clk,
     input  logic                    rst_n,
@@ -96,10 +97,10 @@ module snax_llm_top_clean #(
     output logic                    subsystem_done_irq_o
 );
 
-    localparam int NUM_MASTERS = 21;
+    localparam int NUM_MASTERS = 22;
 
     // -------------------------------------------------------------------------
-    // Tín hiệu nội bộ Interconnect (21 Masters -> 32 Banks)
+    // Tín hiệu nội bộ Interconnect (22 Masters -> 32 Banks)
     // -------------------------------------------------------------------------
     logic [NUM_MASTERS-1:0]          m_req_valid;
     logic [NUM_MASTERS-1:0]          m_req_ready;
@@ -170,6 +171,27 @@ module snax_llm_top_clean #(
     logic        rd_m_rsp_valid;
     logic [255:0] rd_fp16_data;
     logic         rd_fp16_valid, rd_fp16_ready;
+
+    // SFU / second FP16 read stream (Master 21)
+    logic        rd_b_start, rd_b_busy, rd_b_done;
+    logic [31:0] rd_b_base, rd_b_num_vectors, rd_b_line_stride;
+    logic        rd_b_m_req_valid, rd_b_m_req_write, rd_b_m_req_ready;
+    logic [31:0] rd_b_m_req_addr;
+    logic [71:0] rd_b_m_req_wdata;
+    logic [8:0]  rd_b_m_req_strb;
+    logic [71:0] rd_b_m_rsp_rdata;
+    logic        rd_b_m_rsp_valid;
+    logic [255:0] rd_b_fp16_data;
+    logic         rd_b_fp16_valid, rd_b_fp16_ready;
+
+    logic        sfu_start, sfu_en, sfu_out_dst;
+    logic [2:0]  sfu_op;
+    logic [15:0] sfu_num_vecs;
+    logic [31:0] sfu_inv_n_fp32, sfu_eps_fp32;
+    logic        sfu_busy, sfu_done;
+    logic [255:0] sfu_out_data;
+    logic         sfu_out_valid, sfu_out_ready;
+    logic         sfu_in_a_ready, sfu_in_b_ready;
 
     // Core Interface Signals
     logic [1:0]  cfg_mode;
@@ -331,6 +353,16 @@ module snax_llm_top_clean #(
     assign rd_m_rsp_valid       = m_rsp_valid[20];
     assign rd_m_rsp_rdata       = m_rsp_rdata[20];
 
+    // Master 21: SFU TCDM FP16 Read Streamer B
+    assign m_req_valid[21]      = rd_b_m_req_valid;
+    assign m_req_addr[21]       = rd_b_m_req_addr;
+    assign m_req_write[21]      = rd_b_m_req_write;
+    assign m_req_wdata[21]      = rd_b_m_req_wdata;
+    assign m_req_strb[21]       = rd_b_m_req_strb;
+    assign rd_b_m_req_ready     = m_req_ready[21];
+    assign rd_b_m_rsp_valid     = m_rsp_valid[21];
+    assign rd_b_m_rsp_rdata     = m_rsp_rdata[21];
+
     // Crossbar Interconnect
     interleaved_interconnect_72b #(
         .NUM_MASTERS   (NUM_MASTERS),
@@ -405,6 +437,8 @@ module snax_llm_top_clean #(
         .p_fifo_almost_full       (p_fifo_almost_full),
         .l_ready                  (l_ready),
         .core_fp16_valid          (core_fp16_valid),
+        .sfu_busy                 (sfu_busy),
+        .sfu_done                 (sfu_done),
         .start_pulse              (csr_start_pulse),
         .src_sel                  (csr_src_sel),
         .act_ready_force          (csr_act_ready),
@@ -443,6 +477,17 @@ module snax_llm_top_clean #(
         .rd_base                  (csr_rd_base),
         .rd_num_vectors           (csr_rd_num_vectors),
         .rd_line_stride           (csr_rd_line_stride),
+        .sfu_start                (sfu_start),
+        .sfu_en                   (sfu_en),
+        .sfu_out_dst              (sfu_out_dst),
+        .sfu_op                   (sfu_op),
+        .sfu_num_vecs             (sfu_num_vecs),
+        .sfu_inv_n_fp32           (sfu_inv_n_fp32),
+        .sfu_eps_fp32             (sfu_eps_fp32),
+        .rd_b_start               (rd_b_start),
+        .rd_b_base                (rd_b_base),
+        .rd_b_num_vectors         (rd_b_num_vectors),
+        .rd_b_line_stride         (rd_b_line_stride),
         .quant_src_sel            (cfg_quant_src_sel),
 
         .seq_op_mode              (csr_seq_op_mode),
@@ -627,7 +672,7 @@ module snax_llm_top_clean #(
 
     assign csr_cfg_ready = !seq_busy && !act_busy && !wt_busy &&
                            !wo_busy && !v_busy && !rd_busy &&
-                           !wo_fp4_valid;
+                           !rd_b_busy && !wo_fp4_valid;
 
     // =========================================================================
     // 4. TRANSPOSE BUFFER & LOG-QUANTIZER (LUỒNG CHUẨN 1 CHIỀU)
@@ -693,7 +738,7 @@ module snax_llm_top_clean #(
     // busy until its last vector has been accepted, which is exactly the cycle
     // the mux must still select the readback source.
     wire src_v_sel    = v_active || (cfg_quant_src_sel == 2'b01);
-    wire src_rd_sel   = !v_active && (rd_busy || (cfg_quant_src_sel == 2'b10));
+    wire src_rd_sel   = !v_active && !sfu_en && (rd_busy || (cfg_quant_src_sel == 2'b10));
     wire src_core_sel = !src_v_sel && !src_rd_sel;
 
     // Module Log-Quantizer chuẩn (Thuần túy chuyển đổi FP16 -> FP4 72b)
@@ -710,8 +755,13 @@ module snax_llm_top_clean #(
             quant_fp16_in  = rd_fp16_data;
             quant_in_valid = rd_fp16_valid && quant_accept;
         end else if (src_core_sel) begin
-            quant_fp16_in  = core_fp16_packed;
-            quant_in_valid = core_fp16_valid && quant_accept && !wo_mode_fp16;
+            if (sfu_en && sfu_out_dst == 1'b0) begin
+                quant_fp16_in  = sfu_out_data;
+                quant_in_valid = sfu_out_valid && quant_accept && !wo_mode_fp16;
+            end else begin
+                quant_fp16_in  = core_fp16_packed;
+                quant_in_valid = core_fp16_valid && quant_accept && !wo_mode_fp16;
+            end
         end
     end
 
@@ -738,12 +788,15 @@ module snax_llm_top_clean #(
     assign rd_num_vectors = csr_rd_num_vectors;
     assign rd_line_stride = csr_rd_line_stride;
 
-    assign rd_fp16_ready   = src_rd_sel && quant_accept;
+    assign rd_fp16_ready   = sfu_en ? sfu_in_a_ready : (src_rd_sel && quant_accept);
 
-    // The core output feeds exactly one consumer at a time.  `core_fp16_ready`
-    // must follow the same selection as the quantizer mux, otherwise a word
-    // accepted here would never be taken by any downstream block.
-    assign core_fp16_ready = v_active ? v_row_ready : wo_mode_fp16 ? wo_fp16_ready : src_core_sel ? quant_accept : 1'b0;
+    // The core output feeds exactly one consumer at a time.  During SFU jobs the
+    // core output is parked; SFU inputs/outputs own the read/write paths.
+    assign core_fp16_ready = sfu_en ? 1'b0 : v_active ? v_row_ready : wo_mode_fp16 ? wo_fp16_ready : src_core_sel ? quant_accept : 1'b0;
+
+    assign rd_b_fp16_ready = sfu_in_b_ready;
+    assign sfu_out_ready   = sfu_out_dst ? (wo_mode_fp16 ? wo_fp16_ready : 1'b0)
+                                         : (src_core_sel ? quant_accept : 1'b0);
 
     // =========================================================================
     // 5. CÁC MODULE STREAMERS & HARDWARE CORE
@@ -817,7 +870,10 @@ module snax_llm_top_clean #(
     // between the sequencer (autonomous mode) and the CSR file (direct mode);
     // it never derives mode/address/count from the running engine.
     // -------------------------------------------------------------------------
-    wire wo_job_start = wo_start | v_start | rd_start;
+    // In SFU mode, read A pass 1 must not start the write-out; the SFU output
+    // only reaches write-out after pass 2 starts.  Normal readback keeps the
+    // legacy rd_start behavior.
+    wire wo_job_start = wo_start | v_start | (rd_start && !sfu_en);
 
     wire [1:0]  wo_mode_sel = wo_cfg_mode;
     wire [31:0] wo_base_sel = wo_cfg_base;
@@ -842,8 +898,8 @@ module snax_llm_top_clean #(
         .cfg_batch_stride_i    (wo_bs_sel),
 
         // LUỒNG FP16 (Nối trực tiếp từ Core ra ngoài TCDM cho CPU RoPE/RMSNorm)
-        .core_out_fp16_data_i  (core_fp16_packed),
-        .core_out_fp16_valid_i (core_fp16_valid && wo_mode_fp16 && !v_active),
+        .core_out_fp16_data_i  ((sfu_en && sfu_out_dst) ? sfu_out_data : core_fp16_packed),
+        .core_out_fp16_valid_i (((sfu_en && sfu_out_dst) ? sfu_out_valid : core_fp16_valid) && wo_mode_fp16 && !v_active),
         .core_out_fp16_ready_o (wo_fp16_ready),
 
         // LUỒNG FP4 (Từ Log-Quantizer ghi xuống TCDM)
@@ -883,6 +939,57 @@ module snax_llm_top_clean #(
         .fp16_data_o        (rd_fp16_data),
         .fp16_valid_o       (rd_fp16_valid),
         .fp16_ready_i       (rd_fp16_ready)
+    );
+
+    // D2. Second TCDM FP16 Read Streamer for SFU operand B (Master 21)
+    snax_stream_read_fp16 #(
+        .DATA_WIDTH (72), .ADDR_WIDTH (32), .STRB_WIDTH (9)
+    ) u_read_fp16_b (
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .csr_start_i        (rd_b_start),
+        .busy_o             (rd_b_busy),
+        .done_irq_o         (rd_b_done),
+        .cfg_base_addr_i    (rd_b_base),
+        .cfg_num_vectors_i  (rd_b_num_vectors),
+        .cfg_line_stride_i  (rd_b_line_stride),
+        .m_tcdm_req_valid_o (rd_b_m_req_valid),
+        .m_tcdm_req_write_o (rd_b_m_req_write),
+        .m_tcdm_req_addr_o  (rd_b_m_req_addr),
+        .m_tcdm_req_wdata_o (rd_b_m_req_wdata),
+        .m_tcdm_req_strb_o  (rd_b_m_req_strb),
+        .m_tcdm_req_ready_i (rd_b_m_req_ready),
+        .m_tcdm_rsp_rdata_i (rd_b_m_rsp_rdata),
+        .m_tcdm_rsp_valid_i (rd_b_m_rsp_valid),
+        .fp16_data_o        (rd_b_fp16_data),
+        .fp16_valid_o       (rd_b_fp16_valid),
+        .fp16_ready_i       (rd_b_fp16_ready)
+    );
+
+    // D3. SFU engine: both operands come from TCDM; output is muxed into
+    // logq (FP4) or write-out (FP16).
+    snax_llm_sfu_opt #(
+        .NUM_LANES (16),
+        .ALU_LANES (SFU_ALU_LANES)
+    ) u_sfu (
+        .clk              (clk),
+        .rst_n            (rst_n),
+        .start_i          (sfu_start),
+        .cfg_op_i         (sfu_op),
+        .cfg_num_vecs_i   (sfu_num_vecs),
+        .cfg_inv_n_fp32_i (sfu_inv_n_fp32),
+        .cfg_eps_fp32_i   (sfu_eps_fp32),
+        .busy_o           (sfu_busy),
+        .done_o           (sfu_done),
+        .in_a_fp16_i      (rd_fp16_data),
+        .in_a_valid_i     (rd_fp16_valid),
+        .in_a_ready_o     (sfu_in_a_ready),
+        .in_b_fp16_i      (rd_b_fp16_data),
+        .in_b_valid_i     (rd_b_fp16_valid),
+        .in_b_ready_o     (sfu_in_b_ready),
+        .out_fp16_o       (sfu_out_data),
+        .out_valid_o      (sfu_out_valid),
+        .out_ready_i      (sfu_out_ready)
     );
 
     // E. Hardware Core (SNAX Fused LLM Core)
@@ -928,7 +1035,7 @@ module snax_llm_top_clean #(
     // -------------------------------------------------------------------------
     // `p_fifo_almost_full` is exposed by the core so a future scheduler can stop
     // issuing drains before the P FIFO overflows; no consumer needs it yet.
-    assign subsystem_busy_o     = csr_src_sel ? (act_busy | wt_busy | wo_busy | v_busy | rd_busy | wo_fp4_valid) : (seq_busy | v_busy | wo_busy | rd_busy | wo_fp4_valid);
-    assign subsystem_done_irq_o = (seq_done | v_done | rd_done | wo_done) && !wo_busy && !wo_fp4_valid;
+    assign subsystem_busy_o     = csr_src_sel ? (act_busy | wt_busy | wo_busy | v_busy | rd_busy | rd_b_busy | sfu_busy | wo_fp4_valid) : (seq_busy | v_busy | wo_busy | rd_busy | rd_b_busy | sfu_busy | wo_fp4_valid);
+    assign subsystem_done_irq_o = (seq_done | v_done | rd_done | rd_b_done | wo_done | sfu_done) && !wo_busy && !wo_fp4_valid;
 
 endmodule

@@ -33,17 +33,22 @@ module final_normalizer #(
     logic signed [NUM_LANES_P-1:0][31:0] s1_norm_data_q;
     logic                                s1_valid_q;
 
+    // Operand isolation for Stage 1 32x16 multipliers (active only on Attention drain)
+    wire mult_active = drain_req && !bypass_inv_l;
+
     genvar i;
     generate
         for (i = 0; i < NUM_LANES_P; i++) begin : GEN_LANE_NORM
-            // Stage 1 Multiplier: 32-bit signed * 16-bit unsigned
+            // Stage 1 Multiplier: 32-bit signed * 16-bit unsigned (operand-isolated)
+            wire signed [31:0] accum_gated   = mult_active ? accum_in[i] : 32'sd0;
+            wire        [15:0] inv_mant_gated = mult_active ? inv_l_mant  : 16'd0;
             logic signed [47:0] raw_mult;
             logic signed [63:0] raw_mult_64;
             logic signed [63:0] scaled_wide;
             logic signed [31:0] scaled_div_l;
 
             always_comb begin
-                raw_mult = $signed(accum_in[i]) * $signed({1'b0, inv_l_mant});
+                raw_mult = $signed(accum_gated) * $signed({1'b0, inv_mant_gated});
                 raw_mult_64 = $signed(raw_mult);
 
                 // inv_l_mant = 2^15/(1+f), inv_l_exp = leading-zero count (lzc).

@@ -115,6 +115,8 @@ module tb_snax_core_flash_tiling;
         .out_vec_fp16_packed_o (out_vec_fp16_packed_o),
         .out_vec_fp16_lanes_o  (out_vec_fp16_lanes_o),
         .out_vec_fp16_valid_o  (out_vec_fp16_valid_o),
+        .out_vec_fp16_ready_i  (1'b1),
+        .out_fifo_ready_o      (),
         .out_vec_fp4_packet_o  (out_vec_fp4_packet_o),
         .out_vec_fp4_valid_o   (out_vec_fp4_valid_o),
         .p_fifo_full_o         (p_fifo_full_o),
@@ -280,17 +282,17 @@ module tb_snax_core_flash_tiling;
                         dbg_phase = PH_SOFTMAX;
                         for (int m = 0; m < M_Q; m++) begin
                             dbg_m = m;
+                            // row_start must be present on the drain-request edge;
+                            // the core registers it and aligns it with softmax/l.
+                            if (kj == 0) cfg_row_start_i = 1'b1;
                             tile_drain_req_i      = 1'b1;
                             tile_drain_idx_i      = 4'd8 + m[2:0];
                             tile_clear_on_drain_i = 1'b1;
                             @(posedge clk);
                             tile_drain_req_i      = 1'b0;
                             tile_clear_on_drain_i = 1'b0;
-
-                            // row_start in the cycle the raw score enters softmax
-                            if (kj == 0) cfg_row_start_i = 1'b1;
-                            @(posedge clk);
                             cfg_row_start_i       = 1'b0;
+                            @(posedge clk);
                         end
 
                         wait_cycles(4);

@@ -1,12 +1,13 @@
 // =============================================================================
 // Module: snax_fused_llm_core.sv
-// Description: Core tính toán Fused LLM Engine tích hợp:
-//              - vsq_matmul_engine: 16 Lanes x 16-element FP4 DotProduct
-//              - softmax_requantizer: Exp-free FP4 Requantization
-//              - p_fifo: Transient Ring Buffer cho ma trận P
-//              - l_accumulator: Online Sum và sinh 1/l
-//              - final_normalizer: Chuẩn hóa O với 1/l và xuất IEEE 754 FP16
-//              - slq_encoder: Log Quantizer (FP16 -> 72-bit FP4)
+// Description: Core tính toán Fused LLM Engine (7-Block Clean Architecture):
+//              1. u_mac_array      (log8_fp4_mac_array)     : Pure 256-MAC/cyc Compute
+//              2. u_acc_buffer     (rmw_latch_acc_buffer)   : 1W2R D-Latch Storage
+//              3. u_attn_rescaler  (attn_o_rescaler_bank)   : Online O-Rescaling (P*V)
+//              4. u_softmax_req    (softmax_requantizer)    : Exp-free FP4 Requantization
+//              5. u_p_fifo         (p_fifo)                 : Transient Ring Buffer cho P
+//              6. u_l_accumulator  (l_accumulator)          : Online Sum và sinh 1/l
+//              7. u_final_norm     (final_normalizer)       : Unified FP16 Drain (GEMM & Attn)
 // =============================================================================
 `timescale 1ns/1ps
 `include "pe_defines.svh"
@@ -197,49 +198,74 @@ module snax_fused_llm_core #(
     end
 
     // =========================================================================
-    // 2. KHỐI MATMUL ENGINE (vsq_matmul_engine)
+    // 2. DECOUPLED COMPUTE, STORAGE & RESCALE SUBSYSTEM
+    //    - u_mac_array     (log8_fp4_mac_array)
+    //    - u_acc_buffer    (rmw_latch_acc_buffer)
+    //    - u_attn_rescaler (attn_o_rescaler_bank)
     // =========================================================================
-    logic                            engine_tile_drain;
-    logic [SLOT_AW-1:0]              engine_drain_idx;
-    logic                            engine_clear_on_drain;
+    logic                                acc_rescale_req;
+    logic signed [7:0]                   resc_q;
+    logic        [2:0]                   resc_r;
 
-    logic                            acc_rescale_req;
-    logic signed [7:0]               resc_q;
-    logic        [2:0]               resc_r;
+    logic [NUM_LANES_P-1:0]              mac_lane_valid_q1;
+    logic [SLOT_AW-1:0]                  mac_acc_waddr;
+    logic [NUM_LANES_P*32-1:0]           mac_acc_wdata;
 
-    logic [NUM_LANES_P*32-1:0]       raw_drained_word;
-    logic                            raw_drained_valid;
-    logic [NUM_LANES_P*16-1:0]       gemm_vec_packed;
-    logic [NUM_LANES_P-1:0][15:0]    gemm_vec_out;
-    logic                            gemm_vec_valid;
+    logic signed [NUM_LANES_P-1:0][31:0] acc_old_res;
+    logic signed [NUM_LANES_P-1:0][31:0] acc_effective_old_res;
+    logic                                acc_rescale_req_q1;
 
-    assign engine_tile_drain     = tile_drain_req_i;
-    assign engine_drain_idx      = tile_drain_idx_i;
-    assign engine_clear_on_drain = tile_clear_on_drain_i;
+    logic [NUM_LANES_P*32-1:0]           raw_drained_word;
+    logic                                raw_drained_valid;
 
-    vsq_matmul_engine #(
+    log8_fp4_mac_array #(
         .NUM_LANES_P (NUM_LANES_P),
         .ACC_DEPTH_P (ACC_DEPTH_P),
         .PKT_W       (PKT_W),
         .FRAC_BITS   (FRAC_BITS)
-    ) u_matmul_engine (
+    ) u_mac_array (
         .clk                 (clk),
         .reset_n             (rst_n),
-        .lane_valid_in       (matmul_lane_valid),
-        .lane_acc_idx        (lane_acc_idx_i),
-        .act_broadcast       (act_broadcast_selected),
-        .wt_in               (wt_in_i),
-        .tile_drain_req      (engine_tile_drain),
-        .tile_drain_acc_idx  (engine_drain_idx),
-        .tile_clear_on_drain (engine_clear_on_drain),
-        .acc_rescale_req     (acc_rescale_req),
-        .resc_q              (resc_q),
-        .resc_r              (resc_r),
-        .raw_drained_word    (raw_drained_word),
-        .raw_drained_valid   (raw_drained_valid),
-        .core_vec_out        (gemm_vec_out),
-        .core_vec_packed     (gemm_vec_packed),
-        .core_vec_valid      (gemm_vec_valid)
+        .lane_valid_i        (matmul_lane_valid),
+        .lane_acc_idx_i      (lane_acc_idx_i),
+        .act_broadcast_i     (act_broadcast_selected),
+        .wt_in_i             (wt_in_i),
+        .effective_old_res_i (acc_effective_old_res),
+        .lane_valid_q1_o     (mac_lane_valid_q1),
+        .acc_waddr_o         (mac_acc_waddr),
+        .acc_wdata_o         (mac_acc_wdata)
+    );
+
+    rmw_latch_acc_buffer #(
+        .NUM_LANES_P (NUM_LANES_P),
+        .ACC_DEPTH_P (ACC_DEPTH_P),
+        .ACC_USE_FF  (1'b0)
+    ) u_acc_buffer (
+        .clk                   (clk),
+        .reset_n               (rst_n),
+        .lane_valid_q1_i       (mac_lane_valid_q1),
+        .acc_rescale_req_q1_i  (acc_rescale_req_q1),
+        .acc_addr_q1_i         (mac_acc_waddr),
+        .acc_wdata_i           (mac_acc_wdata),
+        .old_res_o             (acc_old_res),
+        .tile_drain_req_i      (tile_drain_req_i),
+        .tile_drain_acc_idx_i  (tile_drain_idx_i),
+        .tile_clear_on_drain_i (tile_clear_on_drain_i),
+        .raw_drained_word_o    (raw_drained_word),
+        .raw_drained_valid_o   (raw_drained_valid)
+    );
+
+    attn_o_rescaler_bank #(
+        .NUM_LANES_P (NUM_LANES_P)
+    ) u_attn_rescaler (
+        .clk                  (clk),
+        .reset_n              (rst_n),
+        .acc_rescale_req_i    (acc_rescale_req),
+        .resc_q_i             (resc_q),
+        .resc_r_i             (resc_r),
+        .old_res_i            (acc_old_res),
+        .acc_rescale_req_q1_o (acc_rescale_req_q1),
+        .effective_old_res_o  (acc_effective_old_res)
     );
 
     // Bóc tách raw 32-bit drained scores thành mảng
@@ -250,34 +276,6 @@ module snax_fused_llm_core #(
             assign score_array[l] = signed'(raw_drained_word[l*32 +: 32]);
         end
     endgenerate
-
-    // Convert the exp-free base-2 score to the standard base-e score:
-    //   s' = s * ln(2)
-    // so softmax_requantizer's 2^(s'-m') becomes exp(s-m).
-    int core_i;
-    logic signed [63:0] score_scaled_prod;
-
-    logic signed [NUM_LANES_P-1:0][31:0] score_for_softmax;
-    always_comb begin
-        for (core_i = 0; core_i < NUM_LANES_P; core_i++) begin
-            score_scaled_prod = $signed({{32{score_array[core_i][31]}}, score_array[core_i]}) *
-                                $signed({{32{LN2_Q16[31]}}, LN2_Q16});
-            score_for_softmax[core_i] = sat32(score_scaled_prod >>> 16);
-        end
-    end
-
-    // =========================================================================
-    // 3. KHỐI SOFTMAX REQUANTIZER (Exp-free Softmax)
-    // =========================================================================
-    logic                         sm_out_valid;
-    logic [4*NUM_LANES_P-1:0]     sm_code_out;
-    logic signed [7:0]            sm_p_blk_out;
-    logic signed [31:0]           sm_l_contrib_out;
-    logic                         sm_resc_valid;
-    logic signed [7:0]            sm_resc_q;
-    logic        [2:0]            sm_resc_r;
-    logic                         sm_m_valid;
-    logic signed [31:0]           sm_m_out;
 
     // Softmax accepts a drained score only when the P FIFO can take the
     // resulting block.  The shell must also gate tile_drain_req_i with
@@ -295,6 +293,43 @@ module snax_fused_llm_core #(
 
     wire sm_in_valid = (cfg_mode_i == 2'b01) && raw_drained_valid &&
                        !p_fifo_almost_full && !drain_is_o_q;
+
+    // Convert the exp-free base-2 score to the standard base-e score:
+    //   s' = s * ln(2)   (LN2_Q16 = 45426 = 2^16 - 2^14 - 2^12 + 2^8 + 2^7 - 2^4 + 2^1)
+    // Multiplier-free 7-term CSD, exact in 64-bit two's complement.
+    int core_i;
+    logic signed [63:0] score_ext_64;
+    logic signed [63:0] score_scaled_prod;
+
+    logic signed [NUM_LANES_P-1:0][31:0] score_for_softmax;
+    always_comb begin
+        for (core_i = 0; core_i < NUM_LANES_P; core_i++) begin
+            score_ext_64 = sm_in_valid
+                         ? {{32{score_array[core_i][31]}}, score_array[core_i]}
+                         : 64'sd0;
+            score_scaled_prod = (score_ext_64 <<< 16)
+                              - (score_ext_64 <<< 14)
+                              - (score_ext_64 <<< 12)
+                              + (score_ext_64 <<< 8)
+                              + (score_ext_64 <<< 7)
+                              - (score_ext_64 <<< 4)
+                              + (score_ext_64 <<< 1);
+            score_for_softmax[core_i] = sat32(score_scaled_prod >>> 16);
+        end
+    end
+
+    // =========================================================================
+    // 3. KHỐI SOFTMAX REQUANTIZER (Exp-free Softmax)
+    // =========================================================================
+    logic                         sm_out_valid;
+    logic [4*NUM_LANES_P-1:0]     sm_code_out;
+    logic signed [7:0]            sm_p_blk_out;
+    logic signed [31:0]           sm_l_contrib_out;
+    logic                         sm_resc_valid;
+    logic signed [7:0]            sm_resc_q;
+    logic        [2:0]            sm_resc_r;
+    logic                         sm_m_valid;
+    logic signed [31:0]           sm_m_out;
 
     // Pipeline registers to isolate LN2 multiplier from softmax_requantizer
     logic signed [NUM_LANES_P-1:0][31:0] score_for_softmax_q;
@@ -410,29 +445,26 @@ module snax_fused_llm_core #(
 
     assign l_ready_o = l_accum_ready;
 
-    logic [NUM_QUERIES-1:0][15:0] inv_l_mant_q;
-    logic [NUM_QUERIES-1:0][4:0]  inv_l_exp_q;
-
     l_accumulator #(
         .SCORE_FRAC  (FRAC_BITS),
         .NUM_QUERIES (NUM_QUERIES)
     ) u_l_accumulator (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        .query_idx      (sm_query_idx_d3),
-        .row_start      (row_start_d3),
-        .clear          (1'b0),
-        .l_valid        (sm_out_valid),
-        .resc_valid     (sm_resc_valid_d1),
-        .resc_q         (sm_resc_q_d1),
-        .resc_r         (sm_resc_r_d1),
-        .l_contrib_in   (sm_l_contrib_out),
-        .l_total_out    (),
-        .l_ready        (l_accum_ready),
-        .inv_l_mant     (inv_l_mant),
-        .inv_l_exp      (inv_l_exp),
-        .inv_l_mant_q   (inv_l_mant_q),
-        .inv_l_exp_q    (inv_l_exp_q)
+        .clk             (clk),
+        .rst_n           (rst_n),
+        .query_idx       (sm_query_idx_d3),
+        .drain_query_idx (tile_drain_idx_i[QW-1:0]),
+        .drain_req       (tile_drain_req_i),
+        .row_start       (row_start_d3),
+        .clear           (1'b0),
+        .l_valid         (sm_out_valid),
+        .resc_valid      (sm_resc_valid_d1),
+        .resc_q          (sm_resc_q_d1),
+        .resc_r          (sm_resc_r_d1),
+        .l_contrib_in    (sm_l_contrib_out),
+        .l_total_out     (),
+        .l_ready         (l_accum_ready),
+        .inv_l_mant      (inv_l_mant),
+        .inv_l_exp       (inv_l_exp)
     );
 
     // =========================================================================
@@ -452,17 +484,11 @@ module snax_fused_llm_core #(
     // accumulator while the next group's QK fills the S slots, which happens in
     // attention mode.  An S-slot drain feeds softmax and must not come here.
     assign norm_drain_req    = raw_drained_valid &&
-                               ((cfg_mode_i == 2'b10) || drain_is_o_q);
+                               ((cfg_mode_i != 2'b01) || drain_is_o_q);
     assign norm_bypass_inv_l = (cfg_mode_i == 2'b00);
 
-    // The O-drain slot selects which query's reciprocal is used.
-    logic [QW-1:0] norm_query;
-    logic [15:0]   norm_inv_l_mant;
-    logic [4:0]    norm_inv_l_exp;
-    assign norm_query      = drain_query_idx;
-    assign norm_inv_l_mant = inv_l_mant_q[norm_query];
-    assign norm_inv_l_exp  = inv_l_exp_q[norm_query];
-
+    // inv_l_mant / inv_l_exp are registered inside u_l_accumulator on tile_drain_req_i
+    // so they arrive at u_final_normalizer on the exact same cycle as raw_drained_word.
     final_normalizer #(
         .NUM_LANES_P (NUM_LANES_P),
         .FRAC_BITS   (FRAC_BITS)
@@ -472,8 +498,8 @@ module snax_fused_llm_core #(
         .drain_req    (norm_drain_req),
         .bypass_inv_l (norm_bypass_inv_l),
         .accum_in     (score_array),
-        .inv_l_mant   (norm_inv_l_mant),
-        .inv_l_exp    (norm_inv_l_exp),
+        .inv_l_mant   (inv_l_mant),
+        .inv_l_exp    (inv_l_exp),
         .vec_valid    (norm_vec_valid),
         .vec_out      (norm_vec_lanes),
         .vec_packed   (norm_vec_packed)
@@ -482,15 +508,8 @@ module snax_fused_llm_core #(
     logic [NUM_LANES_P*16-1:0] src_packed;
     logic                      src_valid;
 
-    always_comb begin
-        if (cfg_mode_i == 2'b00) begin
-            src_packed = gemm_vec_packed;
-            src_valid  = gemm_vec_valid;
-        end else begin
-            src_packed = norm_vec_packed;
-            src_valid  = norm_vec_valid;
-        end
-    end
+    assign src_packed = norm_vec_packed;
+    assign src_valid  = norm_vec_valid;
 
     // Output skid register: hold one FP16 vector while the downstream consumer
     // is not ready, and capture a new vector that arrives in the same cycle the

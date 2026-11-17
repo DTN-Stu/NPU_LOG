@@ -30,6 +30,8 @@ module snax_flash_csr_snax (
     input  logic        p_fifo_almost_full,
     input  logic        l_ready,
     input  logic        core_fp16_valid,
+    input  logic        sfu_busy,
+    input  logic        sfu_done,
 
     output logic        start_pulse,
     output logic        src_sel,
@@ -76,6 +78,19 @@ module snax_flash_csr_snax (
     output logic [31:0] rd_num_vectors,
     output logic [31:0] rd_line_stride,
 
+    // SFU control/status and second read stream
+    output logic        sfu_start,
+    output logic        sfu_en,
+    output logic        sfu_out_dst,     // 0: logq FP4, 1: write-out FP16
+    output logic [2:0]  sfu_op,
+    output logic [15:0] sfu_num_vecs,
+    output logic [31:0] sfu_inv_n_fp32,
+    output logic [31:0] sfu_eps_fp32,
+    output logic        rd_b_start,
+    output logic [31:0] rd_b_base,
+    output logic [31:0] rd_b_num_vectors,
+    output logic [31:0] rd_b_line_stride,
+
     output logic [1:0]  quant_src_sel,
 
     // Sequencer descriptor (all CPU-programmable)
@@ -99,8 +114,8 @@ module snax_flash_csr_snax (
     output logic [31:0] seq_stride_tile
 );
 
-    localparam int NUM_RW         = 48;
-    localparam int NUM_RO         = 9;
+    localparam int NUM_RW         = 54;
+    localparam int NUM_RO         = 10;
 
     localparam int RW_CTRL        = 0;
     localparam int RW_ACT_BASE    = 1;
@@ -151,7 +166,14 @@ module snax_flash_csr_snax (
     localparam int RW_SEQ_DRAM_KV = 44;
     localparam int RW_SEQ_TILE_ST = 45;
 
-    localparam int RW_START       = 47;
+    localparam int RW_SFU_CTRL    = 46;   // [0] en, [1] out_dst, [4:2] op, [20:5] num_vecs
+    localparam int RW_SFU_INV_N   = 47;
+    localparam int RW_SFU_EPS     = 48;
+    localparam int RW_SFU_B_BASE  = 49;
+    localparam int RW_SFU_B_NV    = 50;
+    localparam int RW_SFU_B_LS    = 51;
+    // The CSR manager reserves the last RW slot as START.
+    localparam int RW_START       = 53;
 
     logic [NUM_RW-1:0][31:0] cfg_rw;
     logic [31:0]             start_mask;
@@ -168,6 +190,7 @@ module snax_flash_csr_snax (
     assign ro[6] = {28'd0, core_fp16_valid, l_ready, p_fifo_empty, p_fifo_full};
     assign ro[7] = 32'h534E_4146;
     assign ro[8] = {31'd0, p_fifo_almost_full};
+    assign ro[9] = {30'd0, sfu_done, sfu_busy};
 
     snax_csr_manager #(
         .NUM_RW     (NUM_RW),
@@ -205,6 +228,8 @@ module snax_flash_csr_snax (
     assign wo_start    = cfg_commit && start_mask[4];
     assign v_start     = cfg_commit && start_mask[5];
     assign rd_start    = cfg_commit && start_mask[6];
+    assign sfu_start   = cfg_commit && start_mask[7];
+    assign rd_b_start  = cfg_commit && start_mask[8];
 
     assign act_base         = cfg_rw[RW_ACT_BASE];
     assign act_k_blocks     = cfg_rw[RW_ACT_KB];
@@ -239,6 +264,17 @@ module snax_flash_csr_snax (
     assign rd_base       = cfg_rw[RW_RD_BASE];
     assign rd_num_vectors= cfg_rw[RW_RD_NV];
     assign rd_line_stride= cfg_rw[RW_RD_LS];
+
+    assign sfu_en          = cfg_rw[RW_SFU_CTRL][0];
+    assign sfu_out_dst     = cfg_rw[RW_SFU_CTRL][1];
+    assign sfu_op          = cfg_rw[RW_SFU_CTRL][4:2];
+    assign sfu_num_vecs    = cfg_rw[RW_SFU_CTRL][20:5];
+    assign sfu_inv_n_fp32  = cfg_rw[RW_SFU_INV_N];
+    assign sfu_eps_fp32    = cfg_rw[RW_SFU_EPS];
+    assign rd_b_base       = cfg_rw[RW_SFU_B_BASE];
+    assign rd_b_num_vectors= cfg_rw[RW_SFU_B_NV];
+    assign rd_b_line_stride= cfg_rw[RW_SFU_B_LS];
+
     assign quant_src_sel = cfg_rw[RW_QUANT][1:0];
 
     // Sequencer descriptor

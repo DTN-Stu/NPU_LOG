@@ -53,11 +53,11 @@ module tb_snax_llm_top_llama;
     localparam logic [11:0] A_OUT_BASE  = 12'd43;
     localparam logic [11:0] A_DRAM_KV   = 12'd44;
     localparam logic [11:0] A_TILE_ST   = 12'd45;
-    localparam logic [11:0] A_START     = 12'd47;
+    localparam logic [11:0] A_START     = 12'd53;
 
-    localparam logic [11:0] A_RO_SEQ    = 12'd48;
-    localparam logic [11:0] A_RO_WO     = 12'd51;
-    localparam logic [11:0] A_RO_ID     = 12'd55;
+    localparam logic [11:0] A_RO_SEQ    = 12'd54;
+    localparam logic [11:0] A_RO_WO     = 12'd57;
+    localparam logic [11:0] A_RO_ID     = 12'd61;
 
     localparam logic [31:0] CSR_ID_VALUE = 32'h534E_4146;
 
