@@ -184,14 +184,24 @@ module snax_llm_top_clean #(
     logic [255:0] rd_b_fp16_data;
     logic         rd_b_fp16_valid, rd_b_fp16_ready;
 
-    logic        sfu_start, sfu_en, sfu_out_dst;
+    logic        sfu_start, sfu_en, sfu_out_dst, sfu_in_a_src;
     logic [2:0]  sfu_op;
     logic [15:0] sfu_num_vecs;
     logic [31:0] sfu_inv_n_fp32, sfu_eps_fp32;
     logic        sfu_busy, sfu_done;
+    logic [255:0] sfu_in_a_fp16;
+    logic         sfu_in_a_valid;
     logic [255:0] sfu_out_data;
     logic         sfu_out_valid, sfu_out_ready;
     logic         sfu_in_a_ready, sfu_in_b_ready;
+
+    // 4-entry FIFO decoupling u_core (2-cycle drain) from u_sfu (multi-chunk)
+    logic [3:0][255:0] fused_fifo_mem;
+    logic [1:0]        fused_wptr, fused_rptr;
+    logic [2:0]        fused_cnt;
+    wire               fused_fifo_full      = (fused_cnt == 3'd4);
+    wire               fused_fifo_empty     = (fused_cnt == 3'd0);
+    wire               fused_fifo_can_drain = (fused_cnt <= 3'd1);
 
     // Core Interface Signals
     logic [1:0]  cfg_mode;
@@ -268,6 +278,8 @@ module snax_llm_top_clean #(
     logic [1:0]  seq_wo_mode;
     logic [31:0] seq_wo_base, seq_wo_num_vectors, seq_wo_line_stride;
     logic [31:0] seq_wo_num_batches, seq_wo_batch_stride;
+    logic [31:0] seq_wo_dim2_cnt, seq_wo_dim2_stride;
+    logic [31:0] seq_wo_dim3_cnt, seq_wo_dim3_stride;
     logic        seq_v_start, seq_rd_start;
     logic        seq_busy, seq_done;
     logic        csr_cfg_ready;
@@ -480,6 +492,7 @@ module snax_llm_top_clean #(
         .sfu_start                (sfu_start),
         .sfu_en                   (sfu_en),
         .sfu_out_dst              (sfu_out_dst),
+        .sfu_in_a_src             (sfu_in_a_src),
         .sfu_op                   (sfu_op),
         .sfu_num_vecs             (sfu_num_vecs),
         .sfu_inv_n_fp32           (sfu_inv_n_fp32),
@@ -590,6 +603,10 @@ module snax_llm_top_clean #(
         .wo_line_stride_o      (seq_wo_line_stride),
         .wo_num_batches_o      (seq_wo_num_batches),
         .wo_batch_stride_o     (seq_wo_batch_stride),
+        .wo_dim2_cnt_o         (seq_wo_dim2_cnt),
+        .wo_dim2_stride_o      (seq_wo_dim2_stride),
+        .wo_dim3_cnt_o         (seq_wo_dim3_cnt),
+        .wo_dim3_stride_o      (seq_wo_dim3_stride),
         .wo_busy_i             (wo_busy),
         .wo_done_i             (wo_done),
 
@@ -612,7 +629,7 @@ module snax_llm_top_clean #(
         .p_fifo_empty_i        (p_fifo_empty),
         .p_fifo_almost_full_i  (p_fifo_almost_full),
         .core_fp16_valid_i     (core_fp16_valid),
-        .core_out_fifo_ready_i (core_fp16_ready)
+        .core_out_fifo_ready_i ((sfu_en && sfu_in_a_src) ? fused_fifo_can_drain : core_fp16_ready)
     );
 
     // -------------------------------------------------------------------------
@@ -788,11 +805,16 @@ module snax_llm_top_clean #(
     assign rd_num_vectors = csr_rd_num_vectors;
     assign rd_line_stride = csr_rd_line_stride;
 
-    assign rd_fp16_ready   = sfu_en ? sfu_in_a_ready : (src_rd_sel && quant_accept);
+    assign rd_fp16_ready   = (sfu_en && !sfu_in_a_src) ? sfu_in_a_ready : (src_rd_sel && quant_accept);
 
-    // The core output feeds exactly one consumer at a time.  During SFU jobs the
-    // core output is parked; SFU inputs/outputs own the read/write paths.
-    assign core_fp16_ready = sfu_en ? 1'b0 : v_active ? v_row_ready : wo_mode_fp16 ? wo_fp16_ready : src_core_sel ? quant_accept : 1'b0;
+    // The core output feeds one consumer at a time:
+    //   - sfu_en & sfu_in_a_src : fused Core -> 4-entry FIFO -> SFU (in_a)
+    //   - sfu_en & !sfu_in_a_src: parked while SFU reads from TCDM
+    assign core_fp16_ready = (sfu_en && sfu_in_a_src) ? !fused_fifo_full :
+                             sfu_en                   ? 1'b0 :
+                             v_active                 ? v_row_ready :
+                             wo_mode_fp16             ? wo_fp16_ready :
+                             src_core_sel             ? quant_accept : 1'b0;
 
     assign rd_b_fp16_ready = sfu_in_b_ready;
     assign sfu_out_ready   = sfu_out_dst ? (wo_mode_fp16 ? wo_fp16_ready : 1'b0)
@@ -896,6 +918,10 @@ module snax_llm_top_clean #(
         .cfg_line_stride_i     (wo_line_sel),
         .cfg_num_batches_i     (wo_nb_sel),
         .cfg_batch_stride_i    (wo_bs_sel),
+        .cfg_dim2_cnt_i        (csr_src_sel ? 32'd1 : seq_wo_dim2_cnt),
+        .cfg_dim2_stride_i     (csr_src_sel ? 32'd0 : seq_wo_dim2_stride),
+        .cfg_dim3_cnt_i        (csr_src_sel ? 32'd1 : seq_wo_dim3_cnt),
+        .cfg_dim3_stride_i     (csr_src_sel ? 32'd0 : seq_wo_dim3_stride),
 
         // LUỒNG FP16 (Nối trực tiếp từ Core ra ngoài TCDM cho CPU RoPE/RMSNorm)
         .core_out_fp16_data_i  ((sfu_en && sfu_out_dst) ? sfu_out_data : core_fp16_packed),
@@ -966,8 +992,36 @@ module snax_llm_top_clean #(
         .fp16_ready_i       (rd_b_fp16_ready)
     );
 
-    // D3. SFU engine: both operands come from TCDM; output is muxed into
-    // logq (FP4) or write-out (FP16).
+    // D3. SFU engine: operand A muxes between TCDM readback (0, e.g. 2-pass RMSNorm)
+    //     and direct Core FP16 output via 4-entry FIFO (1, fused 1-pass RoPE/Residual/SwiGLU);
+    //     operand B comes from TCDM; output goes to logq (FP4) or write-out (FP16).
+    wire fused_push = (sfu_en && sfu_in_a_src) && core_fp16_valid && !fused_fifo_full;
+    wire fused_pop  = (sfu_en && sfu_in_a_src) && !fused_fifo_empty && sfu_in_a_ready;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            fused_wptr <= 2'd0;
+            fused_rptr <= 2'd0;
+            fused_cnt  <= 3'd0;
+        end else if (!(sfu_en && sfu_in_a_src)) begin
+            fused_wptr <= 2'd0;
+            fused_rptr <= 2'd0;
+            fused_cnt  <= 3'd0;
+        end else begin
+            if (fused_push) begin
+                fused_fifo_mem[fused_wptr] <= core_fp16_packed;
+                fused_wptr <= fused_wptr + 2'd1;
+            end
+            if (fused_pop) begin
+                fused_rptr <= fused_rptr + 2'd1;
+            end
+            fused_cnt <= fused_cnt + {2'd0, fused_push} - {2'd0, fused_pop};
+        end
+    end
+
+    assign sfu_in_a_fp16  = sfu_in_a_src ? fused_fifo_mem[fused_rptr] : rd_fp16_data;
+    assign sfu_in_a_valid = sfu_in_a_src ? !fused_fifo_empty          : rd_fp16_valid;
+
     snax_llm_sfu_opt #(
         .NUM_LANES (16),
         .ALU_LANES (SFU_ALU_LANES)
@@ -981,8 +1035,8 @@ module snax_llm_top_clean #(
         .cfg_eps_fp32_i   (sfu_eps_fp32),
         .busy_o           (sfu_busy),
         .done_o           (sfu_done),
-        .in_a_fp16_i      (rd_fp16_data),
-        .in_a_valid_i     (rd_fp16_valid),
+        .in_a_fp16_i      (sfu_in_a_fp16),
+        .in_a_valid_i     (sfu_in_a_valid),
         .in_a_ready_o     (sfu_in_a_ready),
         .in_b_fp16_i      (rd_b_fp16_data),
         .in_b_valid_i     (rd_b_fp16_valid),

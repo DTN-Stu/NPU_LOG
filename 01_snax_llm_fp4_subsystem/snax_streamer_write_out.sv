@@ -6,6 +6,7 @@
 //   2'd0 : FP4 linear   - one 72b packet per vector
 //   2'd1 : FP16 linear  - one 256b FP16 vector -> 4 x 72b words
 //   2'd2 : V FP4 batch  - cfg_num_vectors channel packets per batch
+//   2'd3 : FP4 4D       - 4-D nested loop FP4 write-out (dim0..dim3)
 //
 // V mode address:
 //   addr = cfg_base_addr_i + batch * cfg_batch_stride_i
@@ -40,12 +41,16 @@ module snax_streamer_write_out #(
     output logic                            busy_o,
     output logic                            done_irq_o,
 
-    input  logic [1:0]                      cfg_mode_i,          // 0 FP4, 1 FP16, 2 V FP4
+    input  logic [1:0]                      cfg_mode_i,          // 0 FP4, 1 FP16, 2 V FP4, 3 FP4 4D
     input  logic [ADDR_WIDTH-1:0]           cfg_base_addr_i,
-    input  logic [31:0]                     cfg_num_vectors_i,   // packets per batch / linear vectors
-    input  logic [31:0]                     cfg_line_stride_i,    // per packet / per FP16 word / per channel
-    input  logic [31:0]                     cfg_num_batches_i,    // V mode batches
-    input  logic [31:0]                     cfg_batch_stride_i,   // V mode batch stride
+    input  logic [31:0]                     cfg_num_vectors_i,   // dim0 count
+    input  logic [31:0]                     cfg_line_stride_i,   // dim0 stride
+    input  logic [31:0]                     cfg_num_batches_i,   // dim1 count (V / 4D)
+    input  logic [31:0]                     cfg_batch_stride_i,  // dim1 stride (V / 4D)
+    input  logic [31:0]                     cfg_dim2_cnt_i,      // dim2 count (4D)
+    input  logic [31:0]                     cfg_dim2_stride_i,   // dim2 stride (4D)
+    input  logic [31:0]                     cfg_dim3_cnt_i,      // dim3 count (4D)
+    input  logic [31:0]                     cfg_dim3_stride_i,   // dim3 stride (4D)
 
     input  logic [NUM_LANES*16-1:0]         core_out_fp16_data_i,
     input  logic                            core_out_fp16_valid_i,
@@ -63,25 +68,31 @@ module snax_streamer_write_out #(
     input  logic                            m_tcdm_req_ready_i
 );
 
-    localparam logic [1:0] MODE_FP4  = 2'd0;
-    localparam logic [1:0] MODE_FP16 = 2'd1;
-    localparam logic [1:0] MODE_V    = 2'd2;
+    localparam logic [1:0] MODE_FP4    = 2'd0;
+    localparam logic [1:0] MODE_FP16   = 2'd1;
+    localparam logic [1:0] MODE_V      = 2'd2;
+    localparam logic [1:0] MODE_FP4_4D = 2'd3;
 
     localparam int VEC_W = NUM_LANES * 16;   // 256b full FP16 vector
 
-    typedef enum logic [1:0] {
+    typedef enum logic [2:0] {
         IDLE,
         WRITE_FP4,
         WRITE_FP16,
-        WRITE_V
+        WRITE_V,
+        WRITE_FP4_4D
     } state_t;
 
     state_t state_q, state_d;
 
     logic [31:0]           vec_cnt_q,    vec_cnt_d;
     logic [31:0]           batch_cnt_q,  batch_cnt_d;
+    logic [31:0]           d2_cnt_q,     d2_cnt_d;
+    logic [31:0]           d3_cnt_q,     d3_cnt_d;
     logic [ADDR_WIDTH-1:0] write_addr_q, write_addr_d;
     logic [ADDR_WIDTH-1:0] batch_base_q, batch_base_d;
+    logic [ADDR_WIDTH-1:0] d2_base_q,    d2_base_d;
+    logic [ADDR_WIDTH-1:0] d3_base_q,    d3_base_d;
     logic [1:0]            word_cnt_q,   word_cnt_d;
     logic                  start_q;
 
@@ -94,6 +105,8 @@ module snax_streamer_write_out #(
     logic [31:0]           lstride_q;
     logic [31:0]           nbatch_q;
     logic [31:0]           bstride_q;
+    logic [31:0]           d2_cnt_max_q, d2_stride_q;
+    logic [31:0]           d3_cnt_max_q, d3_stride_q;
 
     wire tcdm_fire   = m_tcdm_req_valid_o && m_tcdm_req_ready_i;
     wire start_pulse = csr_start_i && !start_q;
@@ -106,6 +119,8 @@ module snax_streamer_write_out #(
     wire [31:0]           lstride = (state_q == IDLE) ? cfg_line_stride_i  : lstride_q;
     wire [31:0]           nbatch  = (state_q == IDLE) ? cfg_num_batches_i  : nbatch_q;
     wire [31:0]           bstride = (state_q == IDLE) ? cfg_batch_stride_i : bstride_q;
+    wire [31:0]           d2_max  = (state_q == IDLE) ? cfg_dim2_cnt_i     : d2_cnt_max_q;
+    wire [31:0]           d3_max  = (state_q == IDLE) ? cfg_dim3_cnt_i     : d3_cnt_max_q;
 
     // -------------------------------------------------------------------------
     // Input vector FIFO: decouples the producer from the 4-word TCDM burst.
@@ -158,8 +173,12 @@ module snax_streamer_write_out #(
         state_d       = state_q;
         vec_cnt_d     = vec_cnt_q;
         batch_cnt_d   = batch_cnt_q;
+        d2_cnt_d      = d2_cnt_q;
+        d3_cnt_d      = d3_cnt_q;
         write_addr_d  = write_addr_q;
         batch_base_d  = batch_base_q;
+        d2_base_d     = d2_base_q;
+        d3_base_d     = d3_base_q;
         word_cnt_d    = word_cnt_q;
         done_irq_o    = 1'b0;
         in_fifo_pop   = 1'b0;
@@ -174,18 +193,24 @@ module snax_streamer_write_out #(
             IDLE: begin
                 if (start_pulse) begin
                     if ((nvec == 0) ||
-                        ((mode == MODE_V) && (nbatch == 0))) begin
+                        ((mode == MODE_V) && (nbatch == 0)) ||
+                        ((mode == MODE_FP4_4D) && ((nbatch == 0) || (d2_max == 0) || (d3_max == 0)))) begin
                         done_irq_o = 1'b1;
                     end else begin
                         vec_cnt_d     = '0;
                         batch_cnt_d   = '0;
+                        d2_cnt_d      = '0;
+                        d3_cnt_d      = '0;
                         write_addr_d  = base;
                         batch_base_d  = base;
+                        d2_base_d     = base;
+                        d3_base_d     = base;
                         word_cnt_d    = '0;
                         case (mode)
-                            MODE_FP16: state_d = WRITE_FP16;
-                            MODE_V:    state_d = WRITE_V;
-                            default:   state_d = WRITE_FP4;
+                            MODE_FP16:   state_d = WRITE_FP16;
+                            MODE_V:      state_d = WRITE_V;
+                            MODE_FP4_4D: state_d = WRITE_FP4_4D;
+                            default:     state_d = WRITE_FP4;
                         endcase
                     end
                 end
@@ -272,6 +297,51 @@ module snax_streamer_write_out #(
                 end
             end
 
+            // -------------------------------------------------------------
+            // FP4 4D: 4 nested loops (dim0..dim3) for zero-copy layout reorder
+            // -------------------------------------------------------------
+            WRITE_FP4_4D: begin
+                if (in_fifo_valid) begin
+                    m_tcdm_req_valid_o = 1'b1;
+                    m_tcdm_req_wdata_o = in_fifo_rdata[DATA_WIDTH-1:0];
+
+                    if (tcdm_fire) begin
+                        in_fifo_pop = 1'b1;
+                        if (vec_cnt_q < nvec - 1'b1) begin
+                            vec_cnt_d    = vec_cnt_q + 1'b1;
+                            write_addr_d = write_addr_q + lstride;
+                        end else begin
+                            vec_cnt_d = '0;
+                            if (batch_cnt_q < nbatch - 1'b1) begin
+                                batch_cnt_d  = batch_cnt_q + 1'b1;
+                                batch_base_d = batch_base_q + bstride;
+                                write_addr_d = batch_base_q + bstride;
+                            end else begin
+                                batch_cnt_d = '0;
+                                if (d2_cnt_q < d2_max - 1'b1) begin
+                                    d2_cnt_d     = d2_cnt_q + 1'b1;
+                                    d2_base_d    = d2_base_q + d2_stride_q;
+                                    batch_base_d = d2_base_q + d2_stride_q;
+                                    write_addr_d = d2_base_q + d2_stride_q;
+                                end else begin
+                                    d2_cnt_d = '0;
+                                    if (d3_cnt_q < d3_max - 1'b1) begin
+                                        d3_cnt_d     = d3_cnt_q + 1'b1;
+                                        d3_base_d    = d3_base_q + d3_stride_q;
+                                        d2_base_d    = d3_base_q + d3_stride_q;
+                                        batch_base_d = d3_base_q + d3_stride_q;
+                                        write_addr_d = d3_base_q + d3_stride_q;
+                                    end else begin
+                                        done_irq_o = 1'b1;
+                                        state_d    = IDLE;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
             default: state_d = IDLE;
         endcase
     end
@@ -281,28 +351,40 @@ module snax_streamer_write_out #(
             state_q       <= IDLE;
             vec_cnt_q     <= '0;
             batch_cnt_q   <= '0;
+            d2_cnt_q      <= '0;
+            d3_cnt_q      <= '0;
             write_addr_q  <= '0;
             batch_base_q  <= '0;
+            d2_base_q     <= '0;
+            d3_base_q     <= '0;
             word_cnt_q    <= '0;
             start_q       <= 1'b0;
         end else begin
             state_q       <= state_d;
             vec_cnt_q     <= vec_cnt_d;
             batch_cnt_q   <= batch_cnt_d;
+            d2_cnt_q      <= d2_cnt_d;
+            d3_cnt_q      <= d3_cnt_d;
             write_addr_q  <= write_addr_d;
             batch_base_q  <= batch_base_d;
+            d2_base_q     <= d2_base_d;
+            d3_base_q     <= d3_base_d;
             word_cnt_q    <= word_cnt_d;
             start_q       <= csr_start_i;
 
             // Sample the whole descriptor on the launch edge; it stays valid for
             // the entire job even if the producer changes it afterwards.
             if (start_pulse) begin
-                mode_q    <= cfg_mode_i;
-                base_q    <= cfg_base_addr_i;
-                nvec_q    <= cfg_num_vectors_i;
-                lstride_q <= cfg_line_stride_i;
-                nbatch_q  <= cfg_num_batches_i;
-                bstride_q <= cfg_batch_stride_i;
+                mode_q       <= cfg_mode_i;
+                base_q       <= cfg_base_addr_i;
+                nvec_q       <= cfg_num_vectors_i;
+                lstride_q    <= cfg_line_stride_i;
+                nbatch_q     <= cfg_num_batches_i;
+                bstride_q    <= cfg_batch_stride_i;
+                d2_cnt_max_q <= cfg_dim2_cnt_i;
+                d2_stride_q  <= cfg_dim2_stride_i;
+                d3_cnt_max_q <= cfg_dim3_cnt_i;
+                d3_stride_q  <= cfg_dim3_stride_i;
             end
         end
     end

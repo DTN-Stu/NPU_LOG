@@ -83,10 +83,10 @@ module snax_fused_llm_core #(
     localparam int P_SB_W   = 12 + QW;         // query + resc_valid + q + r
     localparam int P_FIFO_W = PKT_W + P_SB_W;
 
-    // ln(2) in Q16.16.  Multiplying the QK score by this before the base-2
-    // softmax makes 2^(s' - m') equal to exp(s - m), i.e. converts the
-    // exp-free base-2 softmax to the standard base-e softmax.
-    localparam logic signed [31:0] LN2_Q16 = 32'sd45426;
+    // 1/ln(2) = log2(e) in Q16.16.  Multiplying the QK score by this before the
+    // base-2 softmax makes 2^(s' - m') equal to exp(s - m), i.e. converts the
+    // natural-log QK score to the exp-free base-2 softmax domain.
+    localparam logic signed [31:0] LOG2E_Q16 = 32'sd94548;
 
     function automatic logic signed [31:0] sat32(input logic signed [63:0] v);
         if (v > 64'sd2147483647)
@@ -294,8 +294,9 @@ module snax_fused_llm_core #(
     wire sm_in_valid = (cfg_mode_i == 2'b01) && raw_drained_valid &&
                        !p_fifo_almost_full && !drain_is_o_q;
 
-    // Convert the exp-free base-2 score to the standard base-e score:
-    //   s' = s * ln(2)   (LN2_Q16 = 45426 = 2^16 - 2^14 - 2^12 + 2^8 + 2^7 - 2^4 + 2^1)
+    // Convert the base-e QK score to base-2 for exp-free softmax:
+    //   s' = s / ln(2) = s * log2(e)
+    //   (LOG2E_Q16 = 94548 = 2^16 + 2^15 - 2^12 + 2^8 + 2^6 + 2^4 + 2^2)
     // Multiplier-free 7-term CSD, exact in 64-bit two's complement.
     int core_i;
     logic signed [63:0] score_ext_64;
@@ -308,12 +309,12 @@ module snax_fused_llm_core #(
                          ? {{32{score_array[core_i][31]}}, score_array[core_i]}
                          : 64'sd0;
             score_scaled_prod = (score_ext_64 <<< 16)
-                              - (score_ext_64 <<< 14)
+                              + (score_ext_64 <<< 15)
                               - (score_ext_64 <<< 12)
                               + (score_ext_64 <<< 8)
-                              + (score_ext_64 <<< 7)
-                              - (score_ext_64 <<< 4)
-                              + (score_ext_64 <<< 1);
+                              + (score_ext_64 <<< 6)
+                              + (score_ext_64 <<< 4)
+                              + (score_ext_64 <<< 2);
             score_for_softmax[core_i] = sat32(score_scaled_prod >>> 16);
         end
     end

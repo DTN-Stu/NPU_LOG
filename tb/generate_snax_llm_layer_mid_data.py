@@ -54,6 +54,8 @@ import os
 import sys
 import math
 import csv
+import struct
+import argparse
 
 import numpy as np
 
@@ -158,6 +160,11 @@ def gemm_golden_m(a_codes, a_scales, w_codes, w_scales, n_tiles, k_blocks):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--real-slice", type=str, default=None,
+                        help="Path to .npz containing real LLM layer slice (x_real, g1, g2, wq, wk, wv, wo, wgu, wd)")
+    args = parser.parse_args()
+
     np.random.seed(2029)
     os.makedirs(HEX, exist_ok=True)
     os.makedirs(CSV, exist_ok=True)
@@ -167,23 +174,40 @@ def main():
           f"d_k={D_K} d_v={D_V} n_kv={N_KV} "
           f"Q_TILES={Q_TILES} KV_TILES={KV_TILES} DV_TILES={DV_TILES}")
 
-    # ------------------------------------------------------------ input ----
-    x_real = np.random.normal(0.0, 1.0, (M_TOKENS, D_MODEL))
-    x_hex = np.vectorize(real_to_fp16_hex)(x_real).astype(np.uint16)
-    gamma1_hex = np.vectorize(real_to_fp16_hex)(
-        np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
-    gamma2_hex = np.vectorize(real_to_fp16_hex)(
-        np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
+    qk_scale = D_K ** -0.25  # Fuse 1/sqrt(D_K) evenly into W_Q and W_K
+    if args.real_slice:
+        print(f"Loading REAL LLM slice: {args.real_slice}")
+        npz = np.load(args.real_slice)
+        x_real = npz["x_real"].astype(np.float64)
+        x_hex = np.vectorize(real_to_fp16_hex)(x_real).astype(np.uint16)
+        gamma1_hex = np.vectorize(real_to_fp16_hex)(npz["g1"].astype(np.float64)).astype(np.uint16)
+        gamma2_hex = np.vectorize(real_to_fp16_hex)(npz["g2"].astype(np.float64)).astype(np.uint16)
+        weights = {
+            "q": npz["wq"].astype(np.float64) * qk_scale,
+            "k": npz["wk"].astype(np.float64) * qk_scale,
+            "v": npz["wv"].astype(np.float64),
+            "o": npz["wo"].astype(np.float64),
+            "gu": npz["wgu"].astype(np.float64),
+            "d": npz["wd"].astype(np.float64),
+        }
+    else:
+        # ------------------------------------------------------------ input ----
+        x_real = np.random.normal(0.0, 1.0, (M_TOKENS, D_MODEL))
+        x_hex = np.vectorize(real_to_fp16_hex)(x_real).astype(np.uint16)
+        gamma1_hex = np.vectorize(real_to_fp16_hex)(
+            np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
+        gamma2_hex = np.vectorize(real_to_fp16_hex)(
+            np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
 
-    # ---------------------------------------------------------- weights ----
-    weights = {
-        "q": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)),
-        "k": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)),
-        "v": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)),
-        "o": np.random.normal(0.0, 0.6, (D_MODEL, H * D_V)),
-        "gu": np.random.normal(0.0, 0.6, (2 * D_FF, D_MODEL)),
-        "d": np.random.normal(0.0, 0.6, (D_MODEL, D_FF)),
-    }
+        # ---------------------------------------------------------- weights ----
+        weights = {
+            "q": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)) * qk_scale,
+            "k": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)) * qk_scale,
+            "v": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)),
+            "o": np.random.normal(0.0, 0.6, (D_MODEL, H * D_V)),
+            "gu": np.random.normal(0.0, 0.6, (2 * D_FF, D_MODEL)),
+            "d": np.random.normal(0.0, 0.6, (D_MODEL, D_FF)),
+        }
 
     w_codes, w_scales, w_packets = {}, {}, {}
     for name, mat in weights.items():
@@ -358,7 +382,7 @@ def main():
                             aligned = shifter_py(
                                 csd_scaler_py(dot, r_exp), q_exp, 16)
                             acc = sat_add32(acc, aligned)
-                        nat = sat32((acc * LN2_Q16) >> 16)
+                        nat = sat32((acc * 94548) >> 16)  # LOG2E_Q16 = round(65536 / ln(2))
                         visible = (key <= q) if CAUSAL else True
                         visible_mask.append(1 if visible else 0)
                         score_nat.append(nat if visible else S_MIN)
@@ -539,6 +563,70 @@ def main():
     write_hex(os.path.join(HEX, "layer_h_fp16.hex"), h_hex.flatten(), 4)
     write_hex(os.path.join(HEX, "layer_down_fp16.hex"), down_hex.flatten(), 4)
     write_hex(os.path.join(HEX, "layer_final_fp16.hex"), final_hex.flatten(), 4)
+
+    # ------------------------------------------------- Pure FP32 reference --
+    x_fp32 = np.vectorize(fp16_hex_to_real)(x_hex).astype(np.float64)
+    g1_fp32 = np.array([fp16_hex_to_real(h) for h in gamma1_hex], dtype=np.float64)
+    g2_fp32 = np.array([fp16_hex_to_real(h) for h in gamma2_hex], dtype=np.float64)
+
+    def rmsnorm_fp32(x, g):
+        rms = np.sqrt(np.mean(x * x, axis=1, keepdims=True))
+        return (x / rms) * g[None, :]
+
+    xn_fp32 = rmsnorm_fp32(x_fp32, g1_fp32)
+    q_fp32 = xn_fp32 @ weights["q"].T
+    k_fp32 = xn_fp32 @ weights["k"].T
+    v_fp32 = xn_fp32 @ weights["v"].T
+
+    cos_fp32 = np.vectorize(fp16_hex_to_real)(cos_hex).astype(np.float64)
+    sin_fp32 = np.vectorize(fp16_hex_to_real)(sin_hex).astype(np.float64)
+
+    def rope_fp32(mat):
+        out = mat.reshape(M_TOKENS, H, D_K).copy()
+        x0 = out[:, :, :half].copy()
+        x1 = out[:, :, half:].copy()
+        c = cos_fp32[:, None, :]
+        s = sin_fp32[:, None, :]
+        out[:, :, :half] = x0 * c - x1 * s
+        out[:, :, half:] = x0 * s + x1 * c
+        return out.reshape(M_TOKENS, H * D_K)
+
+    q_fp32 = rope_fp32(q_fp32).reshape(M_TOKENS, H, D_K)
+    k_fp32 = rope_fp32(k_fp32).reshape(M_TOKENS, H, D_K)
+    v_fp32 = v_fp32.reshape(M_TOKENS, H, D_V)
+
+    attn_fp32 = np.zeros((M_TOKENS, H, D_V), dtype=np.float64)
+    causal_mask = np.triu(np.full((M_TOKENS, M_TOKENS), -1e30), k=1) if CAUSAL else 0.0
+    for hh in range(H):
+        # Standard base-e softmax: hardware multiplies by LOG2E_Q16 so 2^(s*log2(e)) = e^s
+        scores = (q_fp32[:, hh, :] @ k_fp32[:, hh, :].T) + causal_mask
+        scores -= np.max(scores, axis=1, keepdims=True)
+        probs = np.exp(scores)
+        probs /= np.sum(probs, axis=1, keepdims=True)
+        attn_fp32[:, hh, :] = probs @ v_fp32[:, hh, :]
+    attn_fp32 = attn_fp32.reshape(M_TOKENS, H * D_V)
+
+    o_fp32 = attn_fp32 @ weights["o"].T
+    res1_fp32 = o_fp32 + x_fp32
+    n2_fp32 = rmsnorm_fp32(res1_fp32, g2_fp32)
+    gu_fp32 = n2_fp32 @ weights["gu"].T
+    gate_fp32 = gu_fp32[:, :D_FF]
+    up_fp32 = gu_fp32[:, D_FF:]
+    h_fp32 = (gate_fp32 / (1.0 + np.exp(-gate_fp32))) * up_fp32
+    down_fp32 = h_fp32 @ weights["d"].T
+    final_fp32 = down_fp32 + res1_fp32
+
+    final_fq = np.vectorize(fp16_hex_to_real)(final_hex).astype(np.float64)
+    ref_flat = final_fp32.flatten()
+    fq_flat = final_fq.flatten()
+    sig_pow = float(np.sum(ref_flat ** 2))
+    err_pow = float(np.sum((fq_flat - ref_flat) ** 2))
+    py_sqnr_db = 10.0 * math.log10(sig_pow / err_pow) if err_pow > 0 else float("inf")
+    py_cos = float(np.dot(fq_flat, ref_flat) / (np.linalg.norm(fq_flat) * np.linalg.norm(ref_flat)))
+    print(f"[PY-FAKE-QUANT vs FP32] SQNR = {py_sqnr_db:.2f} dB, CosineSim = {py_cos:.6f}")
+
+    fp32_u32 = [int.from_bytes(struct.pack(">f", float(v)), "big") for v in ref_flat]
+    write_hex(os.path.join(HEX, "layer_final_fp32.hex"), fp32_u32, 8)
     write_hex(os.path.join(HEX, "layer_xn_packets.hex"),
               [xn_packets[m, kb] for m in range(M_TOKENS)
                for kb in range(K_GEMM)], 18)

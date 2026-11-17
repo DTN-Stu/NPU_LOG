@@ -249,6 +249,7 @@ module tb_snax_llm_layer_mid;
     logic [15:0] g_o     [0:NUM_FP16-1];
     logic [15:0] g_down  [0:NUM_FP16-1];
     logic [15:0] g_final [0:NUM_FP16-1];
+    logic [31:0] g_final_fp32 [0:NUM_FP16-1];
     logic [15:0] g_h     [0:NUM_H-1];
     logic [15:0] g_attn_fp16 [0:NUM_FP16-1];
     localparam int NUM_LQ = N_HEADS * Q_TILES * M_Q;   // 128
@@ -1278,7 +1279,7 @@ module tb_snax_llm_layer_mid;
     task automatic run_attn(input string name);
         begin
             cpu_csr_write(A_CTRL,      32'h0);
-            cpu_csr_write(A_SEQ_CTRL,  32'h15);         // op 01, causal, FP4 out
+            cpu_csr_write(A_SEQ_CTRL,  32'h25);         // op 01, causal, FP4 4D token-major out
             cpu_csr_write(A_ATTN_H,    N_HEADS);
             cpu_csr_write(A_ATTN_QT,   Q_TILES);
             cpu_csr_write(A_ATTN_MQ,   M_Q);
@@ -1286,11 +1287,9 @@ module tb_snax_llm_layer_mid;
             cpu_csr_write(A_ATTN_KV,   KV_TILES);
             cpu_csr_write(A_ATTN_KB,   K_PACKETS_QK);
             cpu_csr_write(A_RING_BASE, RING_BASE);
-            cpu_csr_write(A_Q_BASE,    Q_BASE_ADDR);
-            // Attention output must NOT alias the Q packet bank: the sequencer
-            // re-reads Q for every dvi slice, so the dvi=0 output would clobber
-            // Q[0..M_Q/2-1] before the dvi=1 QK pass.  Use the free packet bank.
-            cpu_csr_write(A_OUT_BASE,  tcdm_addr(0, PKT_BANK));
+            cpu_csr_write(A_Q_BASE,    tcdm_addr(0, QPKT_BANK));
+            // 4D write-out writes directly in token-major layout to O_ACT_BANK.
+            cpu_csr_write(A_OUT_BASE,  tcdm_addr(O_ACT_WORD, O_ACT_BANK));
             cpu_csr_write(A_DRAM_KV,   32'h0);
             cpu_csr_write(A_TILE_ST,   32'h200);
             snap_mix();
@@ -1344,7 +1343,37 @@ module tb_snax_llm_layer_mid;
         end
     endtask
 
+    task automatic run_requant_4d(input int rd_word, input int rd_bank,
+                                   input int nvec, input int wo_word, input int wo_bank,
+                                   input int d0_n, input logic [31:0] d0_s,
+                                   input int d1_n, input logic [31:0] d1_s,
+                                   input int d2_n, input logic [31:0] d2_s,
+                                   input int d3_n, input logic [31:0] d3_s,
+                                   input string name);
+        begin
+            cpu_csr_write(A_CTRL,      32'h0);
+            cpu_csr_write(A_SEQ_CTRL,  32'h33);         // op 11 readback-requant + 4D write-out
+            cpu_csr_write(A_RD_BASE,   tcdm_addr(rd_word, rd_bank));
+            cpu_csr_write(A_RD_NV,     nvec);
+            cpu_csr_write(A_RD_LS,     32'h200);
+            cpu_csr_write(A_WO_BASE,   tcdm_addr(wo_word, wo_bank));
+            cpu_csr_write(A_ATTN_QT,   d0_n);
+            cpu_csr_write(A_RING_BASE, d0_s);
+            cpu_csr_write(A_ATTN_DV,   d1_n);
+            cpu_csr_write(A_Q_BASE,    d1_s);
+            cpu_csr_write(A_ATTN_KV,   d2_n);
+            cpu_csr_write(A_OUT_BASE,  d2_s);
+            cpu_csr_write(A_ATTN_KB,   d3_n);
+            cpu_csr_write(A_DRAM_KV,   d3_s);
+            snap_mix();
+            cpu_csr_write(A_START,     32'h0000_0003);
+            wait_job(name);
+            print_mix();
+        end
+    endtask
+
     // Simple cycle counters.
+    int cyc_sfu, cyc_sfu_pipe, phase_t0, check_t0, cyc_tb_check;
     always @(posedge clk) begin
         if (rst_n) begin
             cyc_total        = cyc_total + 1;
@@ -1353,6 +1382,9 @@ module tb_snax_llm_layer_mid;
             if (cpu_mem_req_valid || csr_req_valid) cyc_cpu = cyc_cpu + 1;
             if (dma_mem_req_valid)     cyc_dma          = cyc_dma + 1;
             if (dut.seq_busy)          cyc_seq          = cyc_seq + 1;
+            if (dut.sfu_busy)          cyc_sfu          = cyc_sfu + 1;
+            if (!dut.seq_busy && (dut.sfu_busy || dut.wo_busy || dut.u_read_fp16.busy_o || dut.u_read_fp16_b.busy_o))
+                cyc_sfu_pipe = cyc_sfu_pipe + 1;
             if (dut.tile_drain_req)    cyc_drain_req    = cyc_drain_req + 1;
             if (dut.wo_busy)           cyc_wo_busy      = cyc_wo_busy + 1;
             if (dut.u_seq.state_q == 5'd11) cyc_gemm_launch = cyc_gemm_launch + 1;
@@ -1380,6 +1412,7 @@ module tb_snax_llm_layer_mid;
         cyc_cpu = 0; cyc_dma = 0; cyc_seq = 0;
         cyc_drain_req = 0; cyc_wo_busy = 0; cyc_gemm_run = 0;
         cyc_gemm_launch = 0; cyc_wait = 0; cyc_v_busy = 0; cyc_nrm_busy = 0;
+        cyc_sfu = 0; cyc_sfu_pipe = 0; cyc_tb_check = 0;
         wt_start_cnt = 0; wt_req_cnt = 0;
 
         $readmemh("sim_snax_llm_layer_mid/hex/tcdm_preload_addr.hex", pre_addr);
@@ -1394,6 +1427,7 @@ module tb_snax_llm_layer_mid;
         $readmemh("sim_snax_llm_layer_mid/hex/layer_h_fp16.hex", g_h);
         $readmemh("sim_snax_llm_layer_mid/hex/layer_attn_fp16.hex", g_attn_fp16);
         $readmemh("sim_snax_llm_layer_mid/hex/layer_final_fp16.hex", g_final);
+        $readmemh("sim_snax_llm_layer_mid/hex/layer_final_fp32.hex", g_final_fp32);
         $readmemh("sim_snax_llm_layer_mid/hex/layer_q_packets.hex", g_qpkt);
         $readmemh("sim_snax_llm_layer_mid/hex/layer_k_packets.hex", g_kpkt);
         $readmemh("sim_snax_llm_layer_mid/hex/layer_v_packets.hex", g_vpkt);
@@ -1416,43 +1450,78 @@ module tb_snax_llm_layer_mid;
         $display("========================================================================\n");
 
         $display("[1] DMA preloading TCDM (%0d words) ...", NUM_PRELOAD);
+        phase_t0 = cyc_total;
         for (i = 0; i < NUM_PRELOAD; i++)
             if (pre_addr[i] !== 32'bx)
                 dma_write(pre_addr[i], pre_data[i]);
 
         cpu_csr_read(A_RO_ID, rd32);
         check(rd32 == CSR_ID_VALUE, "CSR ID (SNAF)");
+        $display("    [phase] [1] DMA preload        wall_cycles=%0d", cyc_total - phase_t0);
 
         // ------------------------------------------------------- RMSNorm (1) --
         $display("[2] SFU RMSNorm 1 ...");
+        phase_t0 = cyc_total;
         sfu_rms_tokens(X_BANK, GAMMA1_WORD, XN_BANK);
+        $display("    [phase] [2] SFU RMSNorm 1      wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
         check_rows(XN_BANK, g_xnorm, "SFU RMS1");
+        cyc_tb_check += (cyc_total - check_t0);
 
         // ------------------------------------------- activation quant (Xn) ---
         $display("[3] HW requant Xn -> activation packets ...");
+        phase_t0 = cyc_total;
         run_requant(0, XN_BANK, NUM_VEC_XN, 0, ACT_BANK, "requant Xn");
+        $display("    [phase] [3] Requant Xn         wall_cycles=%0d", cyc_total - phase_t0);
 
         // --------------------------------------------------- GEMM Q, K, V ---
         $display("[4] HW GEMM Q (M=2,N=8,K=8) ...");
+        phase_t0 = cyc_total;
         run_gemm(N_TILES_MODEL, M_TOKENS/16, K_PACKETS_QKV, W_W_Q,
                  Q_BASE_ADDR, "GEMM Q");
+        $display("    [phase] [4] GEMM Q             wall_cycles=%0d", cyc_total - phase_t0);
         $display("[5] SFU RoPE Q ...");
+        phase_t0 = cyc_total;
         sfu_rope(0, OUT_BANK);
+        $display("    [phase] [5] SFU RoPE Q         wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
         check_gemm_out_tol(OUT_BANK, N_TILES_MODEL, g_q, "SFU RoPE Q");
-        $display("[6] HW requant Q -> packet staging ...");
-        run_requant(0, OUT_BANK, NUM_QVEC, 0, QPKT_BANK, "requant Q");
+        cyc_tb_check += (cyc_total - check_t0);
+        $display("[6] HW requant Q -> 4D direct to attention Q layout (QPKT_BANK) ...");
+        phase_t0 = cyc_total;
+        run_requant_4d(0, OUT_BANK, NUM_QVEC, 0, QPKT_BANK,
+                       M_TOKENS,     K_PACKETS_QK * 32'h200,
+                       K_PACKETS_QK, 32'h200,
+                       N_HEADS,      M_TOKENS * K_PACKETS_QK * 32'h200,
+                       1,            32'd0,
+                       "requant Q 4D");
+        $display("    [phase] [6] Requant Q 4D       wall_cycles=%0d", cyc_total - phase_t0);
 
         $display("[7] HW GEMM K (M=2,N=8,K=8) ...");
+        phase_t0 = cyc_total;
         run_gemm(N_TILES_MODEL, M_TOKENS/16, K_PACKETS_QKV, W_W_K,
                  Q_BASE_ADDR, "GEMM K");
+        $display("    [phase] [7] GEMM K             wall_cycles=%0d", cyc_total - phase_t0);
         $display("[8] SFU RoPE K ...");
+        phase_t0 = cyc_total;
         sfu_rope(0, OUT_BANK);
+        $display("    [phase] [8] SFU RoPE K         wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
         check_gemm_out_tol(OUT_BANK, N_TILES_MODEL, g_k, "SFU RoPE K");
-        $display("[9] HW requant K -> packet staging ...");
-        run_requant(0, OUT_BANK, NUM_QVEC, 0, KPKT_BANK, "requant K");
+        cyc_tb_check += (cyc_total - check_t0);
+        $display("[9] HW requant K -> 4D direct to attention K banks 0..15 ...");
+        phase_t0 = cyc_total;
+        run_requant_4d(0, OUT_BANK, NUM_QVEC, 0, 0,
+                       16,           32'd16,
+                       KV_TILES,     K_PACKETS_QK * 32'h200,
+                       K_PACKETS_QK, 32'h200,
+                       N_HEADS,      KV_TILES * K_PACKETS_QK * 32'h200,
+                       "requant K 4D");
+        $display("    [phase] [9] Requant K 4D       wall_cycles=%0d", cyc_total - phase_t0);
 
         // --------------------------------------------------- V fused jobs ----
         $display("[10] Fused V + transpose, one (h,dvi,kj) job at a time ...");
+        phase_t0 = cyc_total;
         for (h = 0; h < N_HEADS; h++)
             for (dvi = 0; dvi < DV_TILES; dvi++)
                 for (int kj = 0; kj < KV_TILES; kj++) begin
@@ -1460,15 +1529,15 @@ module tb_snax_llm_layer_mid;
                                V_BASE_BLOCK + h*DV_TILES*KV_TILES +
                                dvi*KV_TILES + kj, "GEMM V + transpose");
                 end
+        $display("    [phase] [10] Fused V (16 jobs) wall_cycles=%0d", cyc_total - phase_t0);
         // -------------------------------------- Q/K -> attention layout -----
-        $display("[11] Reorder Q/K packets into attention layout ...");
-        cpu_reorder_k();
-        cpu_reorder_q();
+        $display("[11] Q/K already in attention layout via 4D write-out (0 CPU cycles) ...");
 
         // ------------------------------------------------------ attention ----
-        $display("[12] HW causal FlashAttention H=4, KV=2, DV=2 ...");
+        $display("[12] HW causal FlashAttention H=4, KV=2, DV=2 (4D token-major out) ...");
+        phase_t0 = cyc_total;
         run_attn("FlashAttention");
-        cpu_reorder_attn_o();
+        $display("    [phase] [12] FlashAttention 4D wall_cycles=%0d", cyc_total - phase_t0);
 
         if ($test$plusargs("ATTN_FP16")) begin
             int dbg_bad;
@@ -1499,21 +1568,34 @@ module tb_snax_llm_layer_mid;
 
         // ------------------------------------------------------ GEMM O ------
         $display("[13] GEMM O from attention packets ...");
+        phase_t0 = cyc_total;
         run_gemm(N_TILES_MODEL, M_TOKENS/16, N_TILES_O,
                  W_W_O, tcdm_addr(O_ACT_WORD, O_ACT_BANK), "GEMM O");
+        $display("    [phase] [13] GEMM O            wall_cycles=%0d", cyc_total - phase_t0);
 
         // ------------------------------------------ residual + RMSNorm 2 ----
         $display("[14] SFU residual 1 and RMSNorm 2 ...");
+        phase_t0 = cyc_total;
         sfu_residual_rows(0, OUT_BANK, 0, X_BANK, 0, RES1_BANK);
+        $display("    [phase] [14a] SFU Residual 1   wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
         check_rows(RES1_BANK, g_res1, "SFU residual 1");
+        cyc_tb_check += (cyc_total - check_t0);
+        phase_t0 = cyc_total;
         sfu_rms_tokens(RES1_BANK, GAMMA2_WORD, XN_BANK);
+        $display("    [phase] [14b] SFU RMSNorm 2    wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
         check_rows(XN_BANK, g_n2, "SFU RMS2");
+        cyc_tb_check += (cyc_total - check_t0);
 
         $display("[15] Requant norm2 -> FFN activation ...");
+        phase_t0 = cyc_total;
         run_requant(0, XN_BANK, NUM_VEC_XN, 0, ACT_BANK, "requant norm2");
+        $display("    [phase] [15] Requant norm2     wall_cycles=%0d", cyc_total - phase_t0);
 
         // ------------------------------------------------- gate/up chunks ---
         $display("[16] GEMM gate/up in 2 N-chunks ...");
+        phase_t0 = cyc_total;
         for (c = 0; c < 2; c++) begin
             run_gemm(8, M_TOKENS/16, K_PACKETS_QKV,
                      W_W_GU + c*8*K_PACKETS_QKV, Q_BASE_ADDR, "GEMM gate chunk");
@@ -1522,43 +1604,91 @@ module tb_snax_llm_layer_mid;
                      W_W_GU + (16 + c*8)*K_PACKETS_QKV, Q_BASE_ADDR, "GEMM up chunk");
             sfu_silu_chunk(c);
         end
+        $display("    [phase] [16] FFN Gate/Up+SiLU  wall_cycles=%0d", cyc_total - phase_t0);
 
         $display("[17] Requant FFN activation (2 x 256 vectors) ...");
+        phase_t0 = cyc_total;
         run_requant(0, FF1_BANK, NUM_VEC_XN, 0, ACT_BANK, "requant ffn lo");
         run_requant(0, FF2_BANK, NUM_VEC_XN, 256, ACT_BANK, "requant ffn hi");
+        $display("    [phase] [17] Requant FFN       wall_cycles=%0d", cyc_total - phase_t0);
 
         // ------------------------------------------------------ GEMM down ---
         $display("[18] GEMM down (M=2,N=8,K=16) ...");
+        phase_t0 = cyc_total;
         run_gemm(N_TILES_MODEL, M_TOKENS/16, K_PACKETS_DOWN,
                  W_W_D, Q_BASE_ADDR, "GEMM down");
+        $display("    [phase] [18] GEMM down         wall_cycles=%0d", cyc_total - phase_t0);
 
         // -------------------------------------------------- residual 2 ------
         $display("[19] SFU residual 2 and final check ...");
+        phase_t0 = cyc_total;
         sfu_residual_final(0, OUT_BANK, 0, RES1_BANK, 0, FIN_BANK);
+        $display("    [phase] [19] SFU Residual 2    wall_cycles=%0d", cyc_total - phase_t0);
+        check_t0 = cyc_total;
 
         stage_match = 0; stage_mismatch = 0;
         tol_reset();
-        for (token = 0; token < M_TOKENS; token++)
-            for (w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_read(tcdm_addr(token*ROW_WORDS + w, FIN_BANK), rw);
-                for (e = 0; e < 4; e++) begin
-                    a16 = rw[16*e +: 16];
-                    e16 = g_final[token*D_MODEL + 4*w + e];
-                    tol_add(fp16_to_real(a16), fp16_to_real(e16));
-                    if (a16 === e16) stage_match++;
+        begin
+            real sum_ref2, sum_rtl2, sum_fq2;
+            real sum_err_rtl_fp32, sum_err_fq_fp32, sum_err_rtl_fq;
+            real dot_rtl_fp32, dot_fq_fp32, dot_rtl_fq;
+            real v_rtl, v_fq, v_fp32;
+            real sqnr_rtl_fp32, sqnr_fq_fp32, sqnr_rtl_fq;
+            real cos_rtl_fp32, cos_fq_fp32, cos_rtl_fq;
+            sum_ref2 = 0.0; sum_rtl2 = 0.0; sum_fq2 = 0.0;
+            sum_err_rtl_fp32 = 0.0; sum_err_fq_fp32 = 0.0; sum_err_rtl_fq = 0.0;
+            dot_rtl_fp32 = 0.0; dot_fq_fp32 = 0.0; dot_rtl_fq = 0.0;
+
+            for (token = 0; token < M_TOKENS; token++)
+                for (w = 0; w < ROW_WORDS; w++) begin
+                    cpu_mem_read(tcdm_addr(token*ROW_WORDS + w, FIN_BANK), rw);
+                    for (e = 0; e < 4; e++) begin
+                        a16 = rw[16*e +: 16];
+                        e16 = g_final[token*D_MODEL + 4*w + e];
+                        v_rtl  = fp16_to_real(a16);
+                        v_fq   = fp16_to_real(e16);
+                        v_fp32 = $itor($bitstoshortreal(g_final_fp32[token*D_MODEL + 4*w + e]));
+                        tol_add(v_rtl, v_fq);
+                        if (a16 === e16) stage_match++;
+
+                        sum_ref2         += v_fp32 * v_fp32;
+                        sum_rtl2         += v_rtl  * v_rtl;
+                        sum_fq2          += v_fq   * v_fq;
+                        sum_err_rtl_fp32 += (v_rtl - v_fp32) * (v_rtl - v_fp32);
+                        sum_err_fq_fp32  += (v_fq  - v_fp32) * (v_fq  - v_fp32);
+                        sum_err_rtl_fq   += (v_rtl - v_fq)   * (v_rtl - v_fq);
+                        dot_rtl_fp32     += v_rtl * v_fp32;
+                        dot_fq_fp32      += v_fq  * v_fp32;
+                        dot_rtl_fq       += v_rtl * v_fq;
+                    end
                 end
-            end
-        $display("    Final layer output: %0d/%0d exact (SFU approximate path)",
-                 stage_match, NUM_FP16);
-        tol_report("CPU tolerance: final residual", NUM_FP16);
+
+            sqnr_rtl_fp32 = (sum_err_rtl_fp32 > 0.0) ? (10.0 * $log10(sum_ref2 / sum_err_rtl_fp32)) : 999.0;
+            sqnr_fq_fp32  = (sum_err_fq_fp32  > 0.0) ? (10.0 * $log10(sum_ref2 / sum_err_fq_fp32))  : 999.0;
+            sqnr_rtl_fq   = (sum_err_rtl_fq   > 0.0) ? (10.0 * $log10(sum_fq2  / sum_err_rtl_fq))   : 999.0;
+            cos_rtl_fp32  = dot_rtl_fp32 / ($sqrt(sum_rtl2) * $sqrt(sum_ref2));
+            cos_fq_fp32   = dot_fq_fp32  / ($sqrt(sum_fq2)  * $sqrt(sum_ref2));
+            cos_rtl_fq    = dot_rtl_fq   / ($sqrt(sum_rtl2) * $sqrt(sum_fq2));
+
+            $display("    Final layer output: %0d/%0d exact (SFU approximate path)",
+                     stage_match, NUM_FP16);
+            tol_report("CPU tolerance: final residual", NUM_FP16);
+            $display("    [METRIC] RTL           vs FP32 : SQNR = %0.2f dB, CosineSim = %0.6f",
+                     sqnr_rtl_fp32, cos_rtl_fp32);
+            $display("    [METRIC] Py Fake-Quant vs FP32 : SQNR = %0.2f dB, CosineSim = %0.6f",
+                     sqnr_fq_fp32, cos_fq_fp32);
+            $display("    [METRIC] RTL           vs PyFQ : SQNR = %0.2f dB, CosineSim = %0.6f",
+                     sqnr_rtl_fq, cos_rtl_fq);
+        end
+        cyc_tb_check += (cyc_total - check_t0);
 
         $display("\n========================================================================");
         $display("  MID-SIZE FULL LAYER RESULT");
         $display("========================================================================");
         $display("  Final FP16 values : %0d / %0d", stage_match, NUM_FP16);
         $display("  Total job cycles  : %0d", job_cycles_total);
-        $display("  Cycle mix         : total=%0d seq_busy=%0d core_compute=%0d core_fp16=%0d cpu=%0d dma=%0d",
-                 cyc_total, cyc_seq, cyc_core_compute, cyc_core_fp16, cyc_cpu, cyc_dma);
+        $display("  Cycle mix         : total=%0d seq_busy=%0d sfu_pipe=%0d sfu_core=%0d core_compute=%0d core_fp16=%0d cpu=%0d dma=%0d tb_verify=%0d",
+                 cyc_total, cyc_seq, cyc_sfu_pipe, cyc_sfu, cyc_core_compute, cyc_core_fp16, cyc_cpu, cyc_dma, cyc_tb_check);
         $display("  Checks            : %0d passed, %0d failed", checks_pass, checks_fail);
         $display("========================================================================\n");
 

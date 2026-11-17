@@ -53,6 +53,13 @@ module tb_snax_sfu_system;
     localparam logic [11:0] A_RD_BASE   = 12'd27;
     localparam logic [11:0] A_RD_NV     = 12'd28;
     localparam logic [11:0] A_RD_LS     = 12'd29;
+    localparam logic [11:0] A_SEQ_CTRL  = 12'd31;
+    localparam logic [11:0] A_GEMM_NT   = 12'd38;
+    localparam logic [11:0] A_GEMM_MT   = 12'd39;
+    localparam logic [11:0] A_GEMM_KB   = 12'd40;
+    localparam logic [11:0] A_RING_BASE = 12'd41;
+    localparam logic [11:0] A_Q_BASE    = 12'd42;
+    localparam logic [11:0] A_OUT_BASE  = 12'd43;
     localparam logic [11:0] A_SFU_CTRL  = 12'd46;
     localparam logic [11:0] A_SFU_INV_N = 12'd47;
     localparam logic [11:0] A_SFU_EPS   = 12'd48;
@@ -412,6 +419,74 @@ module tb_snax_sfu_system;
         for (int i = 0; i < 16; i++)
             check_lane("RMSNORM", i, o_vals[i], a_vals[i] * inv_rms, 0.10);
         $display("[PASS] System RMSNORM");
+
+        // ---------------------------------------------------------------------
+        // Fused Core -> SFU (sfu_in_a_src = 1):
+        //   16x16 GEMM (A=1.0, W=1.0 -> 16.0) -> SFU RESIDUAL (+ B) -> TCDM
+        // ---------------------------------------------------------------------
+        begin
+            logic [71:0] pkt_ones;
+            int guard;
+            // Log8 scale = 0, 16x E2M1 = 1.0 (4'b0010) -> 64'h2222_2222_2222_2222
+            pkt_ones = {8'h00, 64'h2222_2222_2222_2222};
+            for (int t = 0; t < 16; t++) begin
+                // Activation packet for token t in bank 20 (stride 0x200)
+                cpu_mem_write(tcdm_addr(t, 20), pkt_ones);
+                // Weight packet for lane t in bank t (banks 0..15)
+                cpu_mem_write(tcdm_addr(0, t), pkt_ones);
+                // Residual B vector t in bank 22
+                for (int i = 0; i < 16; i++) b_vals[i] = 0.25 * (t + 1);
+                write_vec(t * 4, 22, b_vals);
+            end
+
+            csr_write(A_CTRL,       32'h0000_0000); // Sequencer mode
+            csr_write(A_SEQ_CTRL,   32'h0000_0000); // op=00 GEMM, out_mode=0 (FP16)
+            csr_write(A_GEMM_NT,    32'd1);
+            csr_write(A_GEMM_MT,    32'd1);
+            csr_write(A_GEMM_KB,    32'd1);
+            csr_write(A_RING_BASE,  tcdm_addr(0, 0));
+            csr_write(A_Q_BASE,     tcdm_addr(0, 20));
+            csr_write(A_OUT_BASE,   tcdm_addr(0, 23));
+
+            // SFU: sfu_en=1, sfu_out_dst=1 (FP16), sfu_op=1 (RESIDUAL),
+            //      sfu_num_vecs=16, sfu_in_a_src=1 (direct from u_core)
+            csr_write(A_SFU_CTRL,   (32'd1 << 21) | (32'd16 << 5) | (32'd1 << 2) | 32'h2 | 32'h1);
+            csr_write(A_SFU_B_BASE, tcdm_addr(0, 22));
+            csr_write(A_SFU_B_NV,   32'd16);
+            csr_write(A_SFU_B_LS,   32'h0000_0200);
+
+            // Start: commit(0) | seq(1) | sfu(7) | rd_b(8) = 0x183
+            csr_write(A_START,      32'h0000_0183);
+
+            // Wait with counters (start counting immediately)
+            begin
+                int cv_cnt, sfu_out_cnt, wo_req_cnt, drain_cnt;
+                cv_cnt = 0; sfu_out_cnt = 0; wo_req_cnt = 0; drain_cnt = 0;
+                guard = 0;
+                while (guard < 12 || dut.seq_busy || dut.sfu_busy || dut.wo_busy || dut.u_read_fp16_b.busy_o) begin
+                    @(posedge clk); guard++;
+                    if (dut.tile_drain_req) drain_cnt++;
+                    if (dut.core_fp16_valid && dut.core_fp16_ready) cv_cnt++;
+                    if (dut.sfu_out_valid && dut.sfu_out_ready) sfu_out_cnt++;
+                    if (dut.wo_m_req_valid && dut.wo_m_req_ready) wo_req_cnt++;
+                    if (guard > 30000) begin
+                        $display("TIMEOUT: drain=%0d cv=%0d sfu_out=%0d wo_req=%0d state=%0d act_b=%b wt_b=%b act_v=%b wt_v=%h wt_req=%h act_r=%b wt_r=%h wt_st=%0d wt_rep=%0d wt_skid=%h",
+                                 drain_cnt, cv_cnt, sfu_out_cnt, wo_req_cnt, dut.u_seq.state_q,
+                                 dut.act_busy, dut.wt_busy, dut.act_stream_valid, dut.wt_stream_valid,
+                                 dut.wt_m_req_valid, dut.act_stream_ready, dut.wt_stream_ready,
+                                 dut.u_wt_streamer.state_q, dut.u_wt_streamer.rep_cnt_q, dut.u_wt_streamer.skid_valid);
+                        $fatal(1, "Fused Core->SFU timeout");
+                    end
+                end
+            end
+
+            for (int t = 0; t < 16; t++) begin
+                read_vec(t * 4, 23, o_vals);
+                for (int i = 0; i < 16; i++)
+                    check_lane("FUSED_CORE_SFU_RESIDUAL", i, o_vals[i], 16.0 + 0.25 * (t + 1), 0.10);
+            end
+            $display("[PASS] System FUSED Core->SFU RESIDUAL (16x16 GEMM + Residual, sfu_in_a_src=1)");
+        end
 
         $display("\n=== ALL SFU SYSTEM TESTS PASSED (0 errors) ===");
         $finish;

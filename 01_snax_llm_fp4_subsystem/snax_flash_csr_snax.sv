@@ -82,6 +82,7 @@ module snax_flash_csr_snax (
     output logic        sfu_start,
     output logic        sfu_en,
     output logic        sfu_out_dst,     // 0: logq FP4, 1: write-out FP16
+    output logic        sfu_in_a_src,    // 0: TCDM rd_fp16, 1: direct core_fp16_packed
     output logic [2:0]  sfu_op,
     output logic [15:0] sfu_num_vecs,
     output logic [31:0] sfu_inv_n_fp32,
@@ -269,6 +270,7 @@ module snax_flash_csr_snax (
     assign sfu_out_dst     = cfg_rw[RW_SFU_CTRL][1];
     assign sfu_op          = cfg_rw[RW_SFU_CTRL][4:2];
     assign sfu_num_vecs    = cfg_rw[RW_SFU_CTRL][20:5];
+    assign sfu_in_a_src    = cfg_rw[RW_SFU_CTRL][21];
     assign sfu_inv_n_fp32  = cfg_rw[RW_SFU_INV_N];
     assign sfu_eps_fp32    = cfg_rw[RW_SFU_EPS];
     assign rd_b_base       = cfg_rw[RW_SFU_B_BASE];

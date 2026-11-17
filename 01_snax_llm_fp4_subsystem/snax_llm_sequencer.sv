@@ -118,12 +118,16 @@ module snax_llm_sequencer #(
     //    the entire job.
     // =========================================================================
     output logic                                wo_start_o,
-    output logic [1:0]                          wo_mode_o,           // 0: FP4 linear, 1: FP16 linear, 2: V FP4 batch
+    output logic [1:0]                          wo_mode_o,           // 0: FP4 linear, 1: FP16 linear, 2: V FP4 batch, 3: FP4 4D
     output logic [ADDR_WIDTH-1:0]               wo_base_o,
     output logic [31:0]                         wo_num_vectors_o,
     output logic [31:0]                         wo_line_stride_o,
     output logic [31:0]                         wo_num_batches_o,
     output logic [31:0]                         wo_batch_stride_o,
+    output logic [31:0]                         wo_dim2_cnt_o,
+    output logic [31:0]                         wo_dim2_stride_o,
+    output logic [31:0]                         wo_dim3_cnt_o,
+    output logic [31:0]                         wo_dim3_stride_o,
     input  logic                                wo_busy_i,
     input  logic                                wo_done_i,
 
@@ -515,6 +519,10 @@ module snax_llm_sequencer #(
         wo_line_stride_o          = 32'h200;
         wo_num_batches_o          = 32'd1;
         wo_batch_stride_o         = 32'd0;
+        wo_dim2_cnt_o             = 32'd1;
+        wo_dim2_stride_o          = 32'd0;
+        wo_dim3_cnt_o             = 32'd1;
+        wo_dim3_stride_o          = 32'd0;
 
         v_start_o                 = 1'b0;
         rd_start_o                = 1'b0;
@@ -583,15 +591,28 @@ module snax_llm_sequencer #(
                         endcase
                     end else begin
                         // Attention output: one 16-lane vector per query.
-                        // FP4 linear only (bank scatter is not meaningful here).
-                        wo_mode_o          = (cfg_out_mode_i == 2'd1) ? 2'd0 : 2'd1;
-                        wo_num_vectors_o   = 32'(cfg_attn_h_i) *
-                                             32'(cfg_attn_q_tiles_i) *
-                                             32'(cfg_attn_dv_tiles_i) *
-                                             32'(cfg_attn_m_q_i);
-                        wo_line_stride_o   = 32'h200;
-                        wo_num_batches_o   = 32'd1;
-                        wo_batch_stride_o  = 32'd0;
+                        // out_mode 0: FP16 linear, 1: FP4 linear, 2: FP4 4D token-major
+                        if (cfg_out_mode_i == 2'd2) begin
+                            wo_mode_o          = 2'd3; // MODE_FP4_4D
+                            wo_num_vectors_o   = 32'(cfg_attn_m_q_i);
+                            wo_line_stride_o   = (32'(cfg_attn_h_i) * 32'(cfg_attn_dv_tiles_i)) * 32'h200;
+                            wo_num_batches_o   = 32'(cfg_attn_dv_tiles_i);
+                            wo_batch_stride_o  = 32'h200;
+                            wo_dim2_cnt_o      = 32'(cfg_attn_q_tiles_i);
+                            wo_dim2_stride_o   = 32'(cfg_attn_m_q_i) *
+                                                 (32'(cfg_attn_h_i) * 32'(cfg_attn_dv_tiles_i)) * 32'h200;
+                            wo_dim3_cnt_o      = 32'(cfg_attn_h_i);
+                            wo_dim3_stride_o   = 32'(cfg_attn_dv_tiles_i) * 32'h200;
+                        end else begin
+                            wo_mode_o          = (cfg_out_mode_i == 2'd1) ? 2'd0 : 2'd1;
+                            wo_num_vectors_o   = 32'(cfg_attn_h_i) *
+                                                 32'(cfg_attn_q_tiles_i) *
+                                                 32'(cfg_attn_dv_tiles_i) *
+                                                 32'(cfg_attn_m_q_i);
+                            wo_line_stride_o   = 32'h200;
+                            wo_num_batches_o   = 32'd1;
+                            wo_batch_stride_o  = 32'd0;
+                        end
                     end
                 end
                 state_d = ST_PREFETCH_INIT;
@@ -648,12 +669,25 @@ module snax_llm_sequencer #(
                     cfg_enable_slq_o   = 1'b1;
                     rd_start_o         = 1'b1;
                     wo_start_o         = 1'b1;
-                    wo_mode_o          = 2'd0;             // FP4 linear
                     wo_base_o          = cfg_rd_out_base_i;
-                    wo_num_vectors_o   = cfg_rd_num_vectors_i;
-                    wo_line_stride_o   = cfg_rd_line_stride_i;
-                    wo_num_batches_o   = 32'd1;
-                    wo_batch_stride_o  = 32'd0;
+                    if (cfg_out_mode_i == 2'd3) begin
+                        // 4D FP4 write-out: reuse unused ATTN/BASE CSRs for (cnt, stride)
+                        wo_mode_o          = 2'd3;
+                        wo_num_vectors_o   = {16'd0, cfg_attn_q_tiles_i};
+                        wo_line_stride_o   = cfg_tcdm_ring_base_i;
+                        wo_num_batches_o   = {16'd0, cfg_attn_dv_tiles_i};
+                        wo_batch_stride_o  = cfg_tcdm_q_base_i;
+                        wo_dim2_cnt_o      = {16'd0, cfg_attn_kv_tiles_i};
+                        wo_dim2_stride_o   = cfg_tcdm_out_base_i;
+                        wo_dim3_cnt_o      = {16'd0, cfg_attn_k_blocks_i};
+                        wo_dim3_stride_o   = cfg_dram_kv_base_i;
+                    end else begin
+                        wo_mode_o          = 2'd0;             // FP4 linear
+                        wo_num_vectors_o   = cfg_rd_num_vectors_i;
+                        wo_line_stride_o   = cfg_rd_line_stride_i;
+                        wo_num_batches_o   = 32'd1;
+                        wo_batch_stride_o  = 32'd0;
+                    end
                     state_d            = ST_RD_RUN;
                 end
             end
