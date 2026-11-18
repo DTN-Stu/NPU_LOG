@@ -101,6 +101,7 @@ module snax_flash_csr_snax (
     output logic        seq_is_causal,
     output logic        seq_enable_dma,
     output logic [1:0]  seq_out_mode,      // 00 FP16, 01 FP4 linear, 10 FP4 bank-scatter
+    output logic        seq_dma_wb,        // 1: Standalone DMA transfer (TCDM <-> DRAM)
     output logic [7:0]  seq_gemm_k_tiles_m1, // K-tiles - 1 (0 => 1 K-tile)
     output logic [7:0]  seq_gqa_group_m1,    // GQA group size - 1 (0 => MHA 1:1)
     output logic [7:0]  seq_attn_h,
@@ -289,6 +290,7 @@ module snax_flash_csr_snax (
     assign seq_is_causal    = cfg_rw[RW_SEQ_CTRL][2];
     assign seq_enable_dma   = cfg_rw[RW_SEQ_CTRL][3];
     assign seq_out_mode        = cfg_rw[RW_SEQ_CTRL][5:4];
+    assign seq_dma_wb          = cfg_rw[RW_SEQ_CTRL][6];
     assign seq_gemm_k_tiles_m1 = cfg_rw[RW_SEQ_CTRL][15:8];
     assign seq_gqa_group_m1    = cfg_rw[RW_SEQ_CTRL][23:16];
     assign seq_attn_h       = cfg_rw[RW_SEQ_ATTN_H][7:0];

@@ -267,6 +267,7 @@ module snax_llm_top_clean #(
     logic [1:0]  csr_seq_op_mode;
     logic        csr_seq_is_causal, csr_seq_enable_dma;
     logic [1:0]  csr_seq_out_mode;
+    logic        csr_seq_dma_wb;
     logic [7:0]  csr_seq_gemm_k_tiles_m1, csr_seq_gqa_group_m1;
     logic [7:0]  csr_seq_attn_h;
     logic [15:0] csr_seq_attn_q_tiles, csr_seq_attn_dv_tiles;
@@ -539,6 +540,7 @@ module snax_llm_top_clean #(
         .seq_is_causal            (csr_seq_is_causal),
         .seq_enable_dma           (csr_seq_enable_dma),
         .seq_out_mode             (csr_seq_out_mode),
+        .seq_dma_wb               (csr_seq_dma_wb),
         .seq_gemm_k_tiles_m1      (csr_seq_gemm_k_tiles_m1),
         .seq_gqa_group_m1         (csr_seq_gqa_group_m1),
         .seq_attn_h               (csr_seq_attn_h),
@@ -573,6 +575,7 @@ module snax_llm_top_clean #(
         .cfg_op_mode_i         (csr_seq_op_mode),
         .cfg_is_causal_i       (csr_seq_is_causal),
         .cfg_enable_dma_i      (csr_seq_enable_dma),
+        .cfg_dma_wb_i          (csr_seq_dma_wb),
         .cfg_out_mode_i        (csr_seq_out_mode),
         .cfg_gemm_k_tiles_m1_i (csr_seq_gemm_k_tiles_m1),
         .cfg_gqa_group_m1_i    (csr_seq_gqa_group_m1),

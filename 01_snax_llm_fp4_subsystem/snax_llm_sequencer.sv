@@ -39,6 +39,7 @@ module snax_llm_sequencer #(
     input  logic [1:0]                          cfg_op_mode_i,       // 00: GEMM, 01: FlashAttention, 10: Transpose/Quant, 11: readback
     input  logic                                cfg_is_causal_i,     // 1: Enable causal autoregressive masking
     input  logic                                cfg_enable_dma_i,    // 1: Enable autonomous DMA prefetching via Ring Buffer
+    input  logic                                cfg_dma_wb_i,        // 1: Standalone DMA transfer (TCDM <-> DRAM)
     input  logic [1:0]                          cfg_out_mode_i,      // 00: FP16, 01: FP4 linear, 10: FP4 bank-scatter
     input  logic [7:0]                          cfg_gemm_k_tiles_m1_i, // GEMM K-tiles - 1 (0 => 1 K-tile)
     input  logic [7:0]                          cfg_gqa_group_m1_i,    // GQA group size - 1 (0 => MHA 1:1)
@@ -192,6 +193,9 @@ module snax_llm_sequencer #(
         ST_V_RUN,
         ST_RD_LAUNCH,
         ST_RD_RUN,
+        // Standalone DMA Writeback / Transfer
+        ST_DMA_WB_LAUNCH,
+        ST_DMA_WB_WAIT,
         // Epilogue
         ST_WAIT_WRITE_OUT,
         ST_DONE
@@ -570,7 +574,7 @@ module snax_llm_sequencer #(
         case (state_q)
             ST_IDLE: begin
                 if (start_i) begin
-                    state_d = ST_PREP_DRAIN;
+                    state_d = cfg_dma_wb_i ? ST_DMA_WB_LAUNCH : ST_PREP_DRAIN;
                 end
             end
             ST_PREP_DRAIN: begin
@@ -953,6 +957,21 @@ module snax_llm_sequencer #(
                 end
             end
 
+            ST_DMA_WB_LAUNCH: begin
+                dma_req_valid_o      = 1'b1;
+                dma_req_dir_o        = cfg_out_mode_i; // [0]: 0=DRAM->TCDM, 1=TCDM->DRAM; [1]: 0=16-bank, 1=linear
+                dma_req_dram_addr_o  = cfg_dram_kv_base_i;
+                dma_req_tcdm_addr_o  = cfg_tcdm_out_base_i;
+                dma_req_size_bytes_o = cfg_stride_tile_i;
+                if (dma_req_ready_i)
+                    state_d = ST_DMA_WB_WAIT;
+            end
+
+            ST_DMA_WB_WAIT: begin
+                if (dma_done_i)
+                    state_d = ST_DONE;
+            end
+
             ST_WAIT_WRITE_OUT: begin
                 if ((wo_done_i || !wo_busy_i) && !nrm_busy && !gemm_drain_active_q &&
                     !v_busy_i) begin
@@ -964,7 +983,7 @@ module snax_llm_sequencer #(
                 // Hold DONE until the next start so `done_o` is observable, then
                 // accept another job (multi-job layers: norm->QKV->attn->FFN...).
                 if (start_i)
-                    state_d = ST_PREP_DRAIN;
+                    state_d = cfg_dma_wb_i ? ST_DMA_WB_LAUNCH : ST_PREP_DRAIN;
             end
 
             default: state_d = ST_IDLE;
@@ -1033,7 +1052,7 @@ module snax_llm_sequencer #(
                 dma_gn_q          <= '0;
                 dma_gm_q          <= '0;
                 dma_kt_q          <= '0;
-                dma_pending_q     <= cfg_enable_dma_i && (cfg_op_mode_i == 2'b00);
+                dma_pending_q     <= cfg_enable_dma_i && !cfg_dma_wb_i && (cfg_op_mode_i == 2'b00);
                 gemm_drain_seen_q <= 1'b0;
                 gemm_drain_active_q <= 1'b0;
                 gdr_idx_q           <= 5'd0;

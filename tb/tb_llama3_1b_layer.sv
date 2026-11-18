@@ -71,7 +71,10 @@ module tb_llama3_1b_layer;
     localparam logic [31:0] DRAM_WO = 32'h0036_0000;
     localparam logic [31:0] DRAM_WG = 32'h005A_0000;
     localparam logic [31:0] DRAM_WU = 32'h00EA_0000;
-    localparam logic [31:0] DRAM_WD = 32'h017A_0000;
+    localparam logic [31:0] DRAM_WD  = 32'h017A_0000;
+    localparam logic [31:0] DRAM_KC  = 32'h0210_0000; // K-cache writeback (4,608 B)
+    localparam logic [31:0] DRAM_VC  = 32'h0210_2000; // V-cache writeback (4,608 B)
+    localparam logic [31:0] DRAM_OUT = 32'h0211_0000; // Final Output writeback (73,728 B)
 
     // ------------------------------------------------------------- CSR map --
     localparam logic [11:0] A_CTRL      = 12'd0;
@@ -150,7 +153,7 @@ module tb_llama3_1b_layer;
     logic [511:0] dram_req_wdata, dram_rsp_rdata;
     logic [63:0]  dram_req_strb;
 
-    logic [31:0]  stat_rd_beats, stat_busy_cycles;
+    logic [31:0]  stat_rd_beats, stat_wr_beats, stat_busy_cycles;
     logic         busy, done_irq;
 
     snax_llm_top_clean #(
@@ -228,7 +231,7 @@ module tb_llama3_1b_layer;
         .dram_rsp_valid_i     (dram_rsp_valid),
         .dram_rsp_rdata_i     (dram_rsp_rdata),
         .stat_dram_rd_beats_o (stat_rd_beats),
-        .stat_dram_wr_beats_o (),
+        .stat_dram_wr_beats_o (stat_wr_beats),
         .stat_tcdm_words_o    (),
         .stat_busy_cycles_o   (stat_busy_cycles)
     );
@@ -253,9 +256,13 @@ module tb_llama3_1b_layer;
                 lat_vld[i] <= lat_vld[i-1]; lat_data[i] <= lat_data[i-1];
             end
             lat_vld[0] <= 1'b0;
-            if (dram_req_valid && dram_req_ready && !dram_req_write) begin
-                lat_vld[0]  <= 1'b1;
-                lat_data[0] <= dram_mem[dram_req_addr[25:6]];
+            if (dram_req_valid && dram_req_ready) begin
+                if (dram_req_write) begin
+                    dram_mem[dram_req_addr[25:6]] <= dram_req_wdata;
+                end else begin
+                    lat_vld[0]  <= 1'b1;
+                    lat_data[0] <= dram_mem[dram_req_addr[25:6]];
+                end
             end
         end
     end
@@ -534,6 +541,53 @@ module tb_llama3_1b_layer;
         wait_job(name);
     endtask
 
+    task automatic run_dma_writeback(input logic [1:0] dir, input logic [31:0] tcdm_base,
+                                     input logic [31:0] dram_base, input int size_bytes, input string name);
+        cpu_csr_write(A_CTRL,      32'h0);
+        cpu_csr_write(A_SEQ_CTRL,  32'h40 | (32'(dir) << 4)); // bit[6]=dma_wb, bits[5:4]=dir
+        cpu_csr_write(A_OUT_BASE,  tcdm_base);
+        cpu_csr_write(A_DRAM_KV,   dram_base);
+        cpu_csr_write(A_TILE_ST,   size_bytes);
+        cpu_csr_write(A_START,     32'h0000_0003);
+        wait_job(name);
+    endtask
+
+    task automatic verify_dram_vs_tcdm(input logic linear_mode, input int tcdm_word0, input int tcdm_bank0,
+                                       input logic [31:0] dram_base, input int n_words, input string name);
+        int bad;
+        int base_beat;
+        logic [71:0] exp_w, act_w;
+        int cur_w, cur_b;
+        bad = 0;
+        base_beat = dram_base >> 6;
+        cur_w = tcdm_word0;
+        cur_b = tcdm_bank0;
+        for (int w = 0; w < n_words; w++) begin
+            cpu_mem_read(tcdm_addr(cur_w, cur_b), exp_w);
+            for (int bit_i = 0; bit_i < 72; bit_i++) begin
+                int gbit;
+                gbit = w * 72 + bit_i;
+                act_w[bit_i] = dram_mem[base_beat + (gbit >> 9)][gbit & 511];
+            end
+            if (act_w !== exp_w) begin
+                if (bad < 5)
+                    $display("    [WB MISMATCH] %s word=%0d dram=%018X tcdm=%018X", name, w, act_w, exp_w);
+                bad++;
+            end
+            if (linear_mode) begin
+                cur_w++;
+            end else begin
+                if (cur_b == 15) begin
+                    cur_b = 0; cur_w++;
+                end else begin
+                    cur_b++;
+                end
+            end
+        end
+        $display("    [DMA WB] %-22s : %0d/%0d words bit-exact in DRAM", name, n_words - bad, n_words);
+        check(bad == 0, name);
+    endtask
+
     // =========================================================================
     // Main Llama-3.2-1B End-to-End Prefill Layer Sequence
     // =========================================================================
@@ -626,6 +680,11 @@ module tb_llama3_1b_layer;
                     cpu_mem_read(tcdm_addr((hkv*K_PACKETS_QK + kp)*M_TOKENS + l, OUT_BANK), kp_pkt);
                     cpu_mem_write(tcdm_addr(hkv*K_PACKETS_QK + kp, l), kp_pkt);
                 end
+        // DMA Writeback: flush K-cache & V-cache (16-bank TCDM -> DRAM, 4608B each)
+        run_dma_writeback(2'b01, tcdm_addr(0, 0),            DRAM_KC, 512 * 9, "DMA WB K-cache");
+        verify_dram_vs_tcdm(1'b0, 0, 0,                      DRAM_KC, 512,     "Verify DRAM K-cache");
+        run_dma_writeback(2'b01, tcdm_addr(V_BASE_BLOCK, 0), DRAM_VC, 512 * 9, "DMA WB V-cache");
+        verify_dram_vs_tcdm(1'b0, V_BASE_BLOCK, 0,           DRAM_VC, 512,     "Verify DRAM V-cache");
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;
@@ -698,6 +757,10 @@ module tb_llama3_1b_layer;
         cos_s = dot_p / ($sqrt(sum_rtl2) * $sqrt(sum_ref2));
         check(cos_s >= 0.88, "Final Layer Output vs FP32");
 
+        // DMA Writeback: flush Final Output (linear TCDM -> DRAM, 73,728 B)
+        run_dma_writeback(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, 8192 * 9, "DMA WB Final Out");
+        verify_dram_vs_tcdm(1'b1, 0, FIN_BANK,           DRAM_OUT, 8192,     "Verify DRAM Final Out");
+
         $display("\n========================================================================");
         $display("  LLAMA-3.2-1B FULL PREFILL LAYER RESULT");
         $display("========================================================================");
@@ -705,6 +768,7 @@ module tb_llama3_1b_layer;
         $display("  Total cycles      : %0d (seq=%0d, sfu=%0d, mac=%0d, dma=%0d)",
                  cyc_total, cyc_seq, cyc_sfu, cyc_core_compute, cyc_dma);
         $display("  DRAM 512b rd beats: %0d (%0d bytes)", stat_rd_beats, stat_rd_beats * 64);
+        $display("  DRAM 512b wr beats: %0d (%0d bytes)", stat_wr_beats, stat_wr_beats * 64);
         $display("  Checks            : %0d passed, %0d failed", checks_pass, checks_fail);
         $display("========================================================================\n");
 
