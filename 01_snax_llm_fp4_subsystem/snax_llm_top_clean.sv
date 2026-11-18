@@ -123,7 +123,7 @@ module snax_llm_top_clean #(
 
     logic [NUM_BANKS-1:0]            b_req;
     logic [NUM_BANKS-1:0]            b_write;
-    logic [NUM_BANKS-1:0][9:0]       b_addr;
+    logic [NUM_BANKS-1:0][$clog2(BANK_DEPTH)-1:0] b_addr;
     logic [NUM_BANKS-1:0][71:0]      b_wdata;
     logic [NUM_BANKS-1:0][8:0]       b_strb;
     logic [NUM_BANKS-1:0][71:0]      b_rdata;
@@ -267,6 +267,7 @@ module snax_llm_top_clean #(
     logic [1:0]  csr_seq_op_mode;
     logic        csr_seq_is_causal, csr_seq_enable_dma;
     logic [1:0]  csr_seq_out_mode;
+    logic [7:0]  csr_seq_gemm_k_tiles_m1, csr_seq_gqa_group_m1;
     logic [7:0]  csr_seq_attn_h;
     logic [15:0] csr_seq_attn_q_tiles, csr_seq_attn_dv_tiles;
     logic [15:0] csr_seq_attn_kv_tiles, csr_seq_attn_k_blocks;
@@ -538,6 +539,8 @@ module snax_llm_top_clean #(
         .seq_is_causal            (csr_seq_is_causal),
         .seq_enable_dma           (csr_seq_enable_dma),
         .seq_out_mode             (csr_seq_out_mode),
+        .seq_gemm_k_tiles_m1      (csr_seq_gemm_k_tiles_m1),
+        .seq_gqa_group_m1         (csr_seq_gqa_group_m1),
         .seq_attn_h               (csr_seq_attn_h),
         .seq_attn_q_tiles         (csr_seq_attn_q_tiles),
         .seq_attn_m_q             (csr_seq_attn_m_q),
@@ -558,7 +561,7 @@ module snax_llm_top_clean #(
         .ADDR_WIDTH           (ADDR_WIDTH),
         .NUM_LANES            (NUM_LANES),
         .NUM_RING_SLOTS       (4),
-        .SLOT_SIZE_BYTES      (16 * 1024)
+        .SLOT_SIZE_BYTES      (128 * 1024)
     ) u_seq (
         .clk                   (clk),
         .rst_n                 (rst_n),
@@ -571,6 +574,8 @@ module snax_llm_top_clean #(
         .cfg_is_causal_i       (csr_seq_is_causal),
         .cfg_enable_dma_i      (csr_seq_enable_dma),
         .cfg_out_mode_i        (csr_seq_out_mode),
+        .cfg_gemm_k_tiles_m1_i (csr_seq_gemm_k_tiles_m1),
+        .cfg_gqa_group_m1_i    (csr_seq_gqa_group_m1),
         .cfg_attn_h_i          (csr_seq_attn_h),
         .cfg_attn_q_tiles_i    (csr_seq_attn_q_tiles),
         .cfg_attn_m_q_i        (csr_seq_attn_m_q),

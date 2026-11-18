@@ -1,0 +1,199 @@
+QuestaSim-64 vlog 2024.1 Compiler 2024.02 Feb  1 2024
+Start time: 15:14:22 on Nov 18,2026
+vlog -work work_llama -sv -f filelist_llama3_1b.f 
+-- Compiling module fp4_mult_lut
+-- Compiling module compressor_4to2
+-- Compiling module dot_product_16
+-- Compiling module icg_cell
+-- Compiling module dlatch
+-- Compiling module dff
+-- Compiling module latch_array
+-- Compiling module vsq_rescaler_32b
+-- Compiling package log8_fp4_arith_units_sv_unit
+-- Compiling module logscale_lazy_drain_norm
+-- Compiling module scale_adder
+-- Compiling module logscale_frac_scaler
+-- Compiling module bidirectional_shifter
+-- Compiling module accum_adder
+** Warning: ../01_snax_llm_fp4_subsystem/vsq_matmul_engine.sv(57): (vlog-13314) Defaulting port 'wt_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling package vsq_matmul_engine_sv_unit
+-- Compiling module vsq_matmul_engine
+** Warning: ../01_snax_llm_fp4_subsystem/vsq_matmul_engine.sv(57): (vlog-13314) Defaulting port 'wt_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module softmax_requantizer
+** Warning: ../01_snax_llm_fp4_subsystem/softmax_requantizer.sv(68): (vlog-13314) Defaulting port 'score_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module p_fifo
+-- Compiling module l_accumulator
+-- Compiling module final_normalizer
+** Warning: ../01_snax_llm_fp4_subsystem/final_normalizer.sv(18): (vlog-13314) Defaulting port 'accum_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module log_quantizer
+** Warning: ../01_snax_llm_fp4_subsystem/slq_encoder.sv(14): (vlog-13314) Defaulting port 'fp16_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(27): (vlog-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(30): (vlog-13314) Defaulting port 'effective_old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling package log8_fp4_mac_array_sv_unit
+-- Compiling module log8_fp4_mac_array
+** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(27): (vlog-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(30): (vlog-13314) Defaulting port 'effective_old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling package rmw_latch_acc_buffer_sv_unit
+-- Compiling module rmw_latch_acc_buffer
+** Warning: ../01_snax_llm_fp4_subsystem/attn_o_rescaler_bank.sv(25): (vlog-13314) Defaulting port 'old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling package attn_o_rescaler_bank_sv_unit
+-- Compiling module attn_o_rescaler_bank
+** Warning: ../01_snax_llm_fp4_subsystem/attn_o_rescaler_bank.sv(25): (vlog-13314) Defaulting port 'old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module sfu_fp16_to_fp20
+-- Compiling module sfu_fp20_to_fp16
+-- Compiling module sfu_fp20_mul
+-- Compiling module sfu_fp20_addsub
+-- Compiling module sfu_rsqrt_fp20
+-- Compiling module sfu_sigmoid_pwl_fp20
+-- Compiling module snax_llm_sfu_opt
+-- Compiling module snax_sfu_sequencer
+** Warning: ../01_snax_llm_fp4_subsystem/snax_fused_llm_core.sv(54): (vlog-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling package snax_fused_llm_core_sv_unit
+-- Compiling module snax_fused_llm_core
+** Warning: ../01_snax_llm_fp4_subsystem/snax_fused_llm_core.sv(54): (vlog-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module skid_buffer
+-- Compiling module snax_streamer_act_bcast
+-- Compiling module snax_streamer_wt_16ch
+** Warning: ../01_snax_llm_fp4_subsystem/snax_streamer_wt_16ch.sv(57): (vlog-13314) Defaulting port 'm_tcdm_rsp_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module snax_streamer_write_out
+-- Compiling module snax_transpose_buffer
+** Warning: ../01_snax_llm_fp4_subsystem/snax_transpose_buffer.sv(13): (vlog-13314) Defaulting port 'wr_data' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module snax_transpose_ctrl
+-- Compiling module snax_stream_read_fp16
+-- Compiling module snax_csr_manager
+** Warning: ../01_snax_llm_fp4_subsystem/snax_csr_manager.sv(31): (vlog-13314) Defaulting port 'ro_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module snax_flash_csr_snax
+-- Compiling module snax_llm_sequencer
+-- Compiling module fixed_priority_arb_n
+-- Compiling module round_robin_arb_n
+-- Compiling module interleaved_interconnect_72b
+** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(68): (vlog-13314) Defaulting port 'm_req_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(70): (vlog-13314) Defaulting port 'm_req_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(71): (vlog-13314) Defaulting port 'm_req_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(85): (vlog-13314) Defaulting port 'b_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module sram_bank_72b
+-- Compiling module multi_bank_tcdm_72b
+** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(69): (vlog-13314) Defaulting port 'bank_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(70): (vlog-13314) Defaulting port 'bank_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(71): (vlog-13314) Defaulting port 'bank_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module snax_simple_dma
+** Warning: ../01_snax_llm_fp4_subsystem/snax_simple_dma.sv(41): (vlog-13314) Defaulting port 'tcdm_rsp_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module snax_llm_top_clean
+** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(98): (vlog-13314) Defaulting port 'dma_aux_mem_req_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(100): (vlog-13314) Defaulting port 'dma_aux_mem_req_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(101): (vlog-13314) Defaulting port 'dma_aux_mem_req_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module tb_llama3_1b_layer
+
+Top level modules:
+	vsq_matmul_engine
+	round_robin_arb_n
+	tb_llama3_1b_layer
+End time: 15:14:22 on Nov 18,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 27
+Reading pref.tcl
+
+# 2024.1
+
+# vsim -c work_llama.tb_llama3_1b_layer -do "run -all; quit" 
+# Start time: 15:14:23 on Nov 18,2026
+# ** Note: (vsim-3813) Design is being optimized due to module recompilation...
+# Support of the MGLS_LICENSE_FILE and LM_LICENSE_FILE licensing environment variables will be discontinued starting with the 2025.1 release. Please update to using the SALT_LICENSE_SERVER variable.
+# Please contact Siemens EDA Customer Support (https://support.sw.siemens.com/) for assistance.
+# ** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(68): (vopt-13314) Defaulting port 'm_req_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(70): (vopt-13314) Defaulting port 'm_req_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(71): (vopt-13314) Defaulting port 'm_req_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv(85): (vopt-13314) Defaulting port 'b_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(69): (vopt-13314) Defaulting port 'bank_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(70): (vopt-13314) Defaulting port 'bank_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/multi_bank_tcdm_72b.sv(71): (vopt-13314) Defaulting port 'bank_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_csr_manager.sv(31): (vopt-13314) Defaulting port 'ro_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_transpose_buffer.sv(13): (vopt-13314) Defaulting port 'wr_data' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/slq_encoder.sv(14): (vopt-13314) Defaulting port 'fp16_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_streamer_wt_16ch.sv(57): (vopt-13314) Defaulting port 'm_tcdm_rsp_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(27): (vopt-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/log8_fp4_mac_array.sv(30): (vopt-13314) Defaulting port 'effective_old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/attn_o_rescaler_bank.sv(25): (vopt-13314) Defaulting port 'old_res_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/softmax_requantizer.sv(68): (vopt-13314) Defaulting port 'score_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/final_normalizer.sv(18): (vopt-13314) Defaulting port 'accum_in' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_fused_llm_core.sv(54): (vopt-13314) Defaulting port 'wt_in_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(98): (vopt-13314) Defaulting port 'dma_aux_mem_req_addr_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(100): (vopt-13314) Defaulting port 'dma_aux_mem_req_wdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_llm_top_clean.sv(101): (vopt-13314) Defaulting port 'dma_aux_mem_req_strb_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: ../01_snax_llm_fp4_subsystem/snax_simple_dma.sv(41): (vopt-13314) Defaulting port 'tcdm_rsp_rdata_i' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=21.
+# //  Questa Sim-64
+# //  Version 2024.1 win64 Feb  1 2024
+# //
+# // Unpublished work. Copyright 2024 Siemens
+# //
+# // This material contains trade secrets or otherwise confidential information
+# // owned by Siemens Industry Software Inc. or its affiliates (collectively,
+# // "SISW"), or its licensors. Access to and use of this information is strictly
+# // limited as set forth in the Customer's applicable agreements with SISW.
+# //
+# // This material may not be copied, distributed, or otherwise disclosed outside
+# // of the Customer's facilities without the express written permission of SISW,
+# // and may not be used in any way not expressly authorized by SISW.
+# //
+# Loading sv_std.std
+# Loading work.attn_o_rescaler_bank_sv_unit(fast)
+# Loading work.rmw_latch_acc_buffer_sv_unit(fast)
+# Loading work.log8_fp4_arith_units_sv_unit(fast)
+# Loading work.log8_fp4_mac_array_sv_unit(fast)
+# Loading work.snax_fused_llm_core_sv_unit(fast)
+# Loading work.tb_llama3_1b_layer(fast)
+# Loading work.dot_product_16(fast)
+# run -all
+# Loading Llama-3.2-1B DRAM weights (34.2 MB) & TCDM preload...
+# 
+# ========================================================================
+#   NousResearch/Llama-3.2-1B - FULL PREFILL LAYER END-TO-END
+#   M_TOKENS=16 D_MODEL=2048 D_FF=8192 H_Q=32 H_KV=8 (GQA 4:1) D_K=64
+#   Weights: ~34.2 MB in 512b DRAM -> 4-Port DMA -> 4x128KB TCDM Ring
+# ========================================================================
+# 
+# [1/12] SFU RMSNorm 1 (M=16, D=2048)...
+#     [METRIC] RMSNorm 1          : SQNR = 44.10 dB, CosineSim = 0.999990
+#        cycles=53510
+# [2/12] HW Requant Xn -> ACT_BANK (2048 packets)...
+#        cycles=18456
+# [3/12] Fused Q (2048x2048, DMA) + RoPE + LogQ...
+#        cycles=284521
+# [4/12] Fused K (512x2048, GQA H_KV=8, DMA) + RoPE + LogQ...
+#        cycles=70121
+# [5/12] Fused V + Transpose (32 jobs, H_KV=8, DV=4, DMA)...
+#        cycles=111873
+# [6/12] HW Causal FlashAttention (GQA 4:1, H_Q=32, H_KV=8, D=64)...
+#        cycles=14890
+# [7/12] GEMM O (2048x2048, DMA)...
+#        cycles=264049
+# [8/12] SFU Residual 1 + RMSNorm 2...
+#     [METRIC] Residual 1 vs FQ   : SQNR = 12.31 dB, CosineSim = 0.972731
+#     [METRIC] Residual 1 vs FP32 : SQNR = 10.99 dB, CosineSim = 0.961970
+#     [METRIC] RMSNorm 2 vs FQ    : SQNR = 11.90 dB, CosineSim = 0.967841
+#     [METRIC] RMSNorm 2 vs FP32  : SQNR = 10.55 dB, CosineSim = 0.956141
+#        cycles=139564
+# [9/12] HW Requant Norm2 -> ACT_BANK...
+#        cycles=18456
+# [10/12] FFN Gate & Up (2 x 8192x2048, DMA) + SiLU*Up (32 chunks)...
+#        cycles=2347295
+# [11/12] GEMM Down (2048x8192, DMA + 2x4096 K-Tiling)...
+#        cycles=1052290
+# [12/12] SFU Residual 2 -> Final Output Check...
+#     [METRIC] Final vs PyFQ      : SQNR = 7.93 dB, CosineSim = 0.920303
+# 
+# ========================================================================
+#   LLAMA-3.2-1B FULL PREFILL LAYER RESULT
+# ========================================================================
+#   RTL vs FP32       : SQNR = 6.98 dB, CosineSim = 0.899392
+#   Total cycles      : 4479514 (seq=4012274, sfu=110272, mac=3811328, dma=1140902)
+#   DRAM 512b rd beats: 534528 (34209792 bytes)
+#   Checks            : 111 passed, 0 failed
+# ========================================================================
+# 
+# >>> LLAMA-3.2-1B FULL LAYER PREFILL PASSED (0 errors) <<<
+# 
+# ** Note: $finish    : ../tb/tb_llama3_1b_layer.sv(716)
+#    Time: 44795195 ns  Iteration: 1  Instance: /tb_llama3_1b_layer
+# End time: 15:31:28 on Nov 18,2026, Elapsed time: 0:17:05
+# Errors: 0, Warnings: 21

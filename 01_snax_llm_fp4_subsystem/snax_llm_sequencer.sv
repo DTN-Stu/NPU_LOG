@@ -23,7 +23,7 @@ module snax_llm_sequencer #(
     parameter int unsigned ADDR_WIDTH      = 32,
     parameter int unsigned NUM_LANES       = 16,
     parameter int unsigned NUM_RING_SLOTS  = 4,   // TCDM Circular Buffer Depth
-    parameter int unsigned SLOT_SIZE_BYTES = 16 * 1024 // 16 KB per Ring Slot
+    parameter int unsigned SLOT_SIZE_BYTES = 128 * 1024 // 128 KB per Ring Slot (256 K-packets, Kmax=4096)
 )(
     input  logic                                clk,
     input  logic                                rst_n,
@@ -40,6 +40,8 @@ module snax_llm_sequencer #(
     input  logic                                cfg_is_causal_i,     // 1: Enable causal autoregressive masking
     input  logic                                cfg_enable_dma_i,    // 1: Enable autonomous DMA prefetching via Ring Buffer
     input  logic [1:0]                          cfg_out_mode_i,      // 00: FP16, 01: FP4 linear, 10: FP4 bank-scatter
+    input  logic [7:0]                          cfg_gemm_k_tiles_m1_i, // GEMM K-tiles - 1 (0 => 1 K-tile)
+    input  logic [7:0]                          cfg_gqa_group_m1_i,    // GQA group size - 1 (0 => MHA 1:1)
 
     // Attention Dimensions
     input  logic [7:0]                          cfg_attn_h_i,        // Number of Heads (H)
@@ -253,6 +255,7 @@ module snax_llm_sequencer #(
     // =========================================================================
     // Attention Counters
     logic [7:0]   cnt_h_q;
+    logic [7:0]   cnt_hkv_q, cnt_hgrp_q;
     logic [15:0]  cnt_qi_q;
     logic [15:0]  cnt_dvi_q;
     logic [15:0]  cnt_kj_q;
@@ -261,6 +264,7 @@ module snax_llm_sequencer #(
 
     // GEMM DMA Prefetch Counters (streams weights ahead into ring buffer)
     logic [15:0]  dma_gn_q, dma_gm_q;
+    logic [7:0]   dma_kt_q;
     logic         dma_pending_q;
     logic         kv_first_q;    // the current KV tile is the first of a row
     logic         last_group_q;  // the group just retired was the final one
@@ -378,18 +382,19 @@ module snax_llm_sequencer #(
                                32'(cnt_qi_q) * q_blk_per_tile) * 32'h200);
 
     wire [31:0] k_addr_calc = cfg_tcdm_ring_base_i +
-                             ((32'(cnt_h_q) * k_blk_per_head +
+                             ((32'(cnt_hkv_q) * k_blk_per_head +
                                32'(cnt_kj_q) * 32'(cfg_attn_k_blocks_i)) * 32'h200);
 
     wire [31:0] v_addr_calc = cfg_tcdm_ring_base_i +
                              ((v_base_block +
-                               32'(cnt_h_q)   * v_blk_per_head +
+                               32'(cnt_hkv_q) * v_blk_per_head +
                                32'(cnt_dvi_q) * 32'(cfg_attn_kv_tiles_i) +
                                32'(cnt_kj_q)) * 32'h200);
 
     // GEMM Counters
     logic [15:0]  cnt_gn_q; // GEMM N-tile
     logic [15:0]  cnt_gm_q; // GEMM M-tile
+    logic [7:0]   cnt_kt_q; // GEMM K-tile (output-stationary partial-sum loop)
     logic [15:0]  cnt_gk_q; // GEMM K-block
     logic [3:0]   cnt_gbeat_q;
     logic         gemm_drain_seen_q, gemm_drain_seen_d;
@@ -407,12 +412,16 @@ module snax_llm_sequencer #(
     // once the write-out has also drained.
     logic         rd_done_seen_q, rd_done_seen_d;
 
+    wire [31:0] total_k_blocks = (32'(cfg_gemm_k_tiles_m1_i) + 32'd1) * 32'(cfg_gemm_k_blocks_i);
+
     wire [31:0] gemm_wt_addr = cfg_tcdm_ring_base_i +
-                              ((32'(cnt_gn_q) * 32'(cfg_gemm_k_blocks_i) +
+                              ((32'(cnt_gn_q) * total_k_blocks +
+                                32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i) +
                                 32'(cnt_gk_q)) * 32'h200);
 
     wire [31:0] gemm_act_addr = cfg_tcdm_q_base_i +
-                               (((32'(cnt_gm_q) * 32'd16) * 32'(cfg_gemm_k_blocks_i) +
+                               (((32'(cnt_gm_q) * 32'd16) * total_k_blocks +
+                                 32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i) +
                                  32'(cnt_gk_q)) * 32'h200);
 
     wire last_m_beat  = (cnt_m_q == (cfg_attn_m_q_i - 4'd1));
@@ -423,6 +432,7 @@ module snax_llm_sequencer #(
 
     wire last_gbeat   = (cnt_gbeat_q == 4'd15);
     wire last_gk      = (cnt_gk_q == (cfg_gemm_k_blocks_i - 16'd1));
+    wire last_kt      = (cnt_kt_q == cfg_gemm_k_tiles_m1_i);
     wire last_gm      = (cnt_gm_q == (cfg_gemm_m_tiles_i - 16'd1));
     wire last_gn      = (cnt_gn_q == (cfg_gemm_n_tiles_i - 16'd1));
 
@@ -484,8 +494,8 @@ module snax_llm_sequencer #(
     assign pv_compute_fire   = !p_fifo_empty_i && (&wt_valid_i);
     assign gemm_compute_fire = act_valid_i && (&wt_valid_i) && gemm_beat_ok;
 
-    // The last beat of the last K block: the tile's accumulators are final.
-    wire gemm_k_last_fire = (state_q == ST_GEMM_RUN) && gemm_compute_fire && last_gbeat && last_gk;
+    // The last beat of the last K block of the last K-tile: the tile's accumulators are final.
+    wire gemm_k_last_fire = (state_q == ST_GEMM_RUN) && gemm_compute_fire && last_gbeat && last_gk && last_kt;
 
     always_comb begin
         state_d                   = state_q;
@@ -504,7 +514,8 @@ module snax_llm_sequencer #(
             (state_q != ST_IDLE) && (state_q != ST_DONE)) begin
             dma_req_valid_o      = 1'b1;
             dma_req_dir_o        = 2'd0; // DRAM -> TCDM 16-bank weight layout
-            dma_req_dram_addr_o  = cfg_dram_kv_base_i + (32'(dma_gn_q) * cfg_stride_tile_i);
+            dma_req_dram_addr_o  = cfg_dram_kv_base_i + (32'(dma_gn_q) * cfg_stride_tile_i) +
+                                   (32'(dma_kt_q) * 32'(cfg_gemm_k_blocks_i) * 32'd144);
             dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
             dma_req_size_bytes_o = 32'(cfg_gemm_k_blocks_i) * 32'd144; // 16 ch * 9B * K_PACKETS
             if (dma_req_ready_i) begin
@@ -686,7 +697,7 @@ module snax_llm_sequencer #(
                     rd_start_o         = 1'b1;
                     wo_start_o         = 1'b1;
                     wo_base_o          = cfg_rd_out_base_i;
-                    if (cfg_out_mode_i == 2'd3) begin
+                    if (cfg_out_mode_i == 2'd3 && cnt_kt_q == 8'd0) begin
                         // 4D FP4 write-out: reuse unused ATTN/BASE CSRs for (cnt, stride)
                         wo_mode_o          = 2'd3;
                         wo_num_vectors_o   = {16'd0, cfg_attn_q_tiles_i};
@@ -858,7 +869,7 @@ module snax_llm_sequencer #(
             ST_GEMM_LAUNCH: begin
                 if (core_can_pop && !act_busy_i && !wt_busy_i && !v_busy_i) begin
                     cfg_mode_o    = 2'b00; // Mode 00: GEMM
-                    if (cfg_out_mode_i == 2'd3) begin
+                    if (cfg_out_mode_i == 2'd3 && cnt_kt_q == 8'd0) begin
                         // Fused V transpose: core FP16 rows go straight into the
                         // transpose buffer; the write-out writes FP4 packets.
                         v_start_o        = 1'b1;
@@ -883,7 +894,7 @@ module snax_llm_sequencer #(
                     act_start_o        = 1'b1;
                     act_base_o         = gemm_act_addr;
                     act_tokens_o       = 32'd16;
-                    act_token_stride_o = 32'(cfg_gemm_k_blocks_i) * 32'h200;
+                    act_token_stride_o = total_k_blocks * 32'h200;
                     act_k_blocks_o     = cfg_gemm_k_blocks_i;
                     act_k_stride_o     = 32'h200;
 
@@ -907,7 +918,7 @@ module snax_llm_sequencer #(
                         // engine and start the next tile immediately, so drain
                         // (Port B) overlaps next-tile compute.
                         core_release_credit_pulse = cfg_enable_dma_i;
-                        state_d = (last_gm && last_gn) ? ST_WAIT_WRITE_OUT : ST_GEMM_LAUNCH;
+                        state_d = (last_kt && last_gm && last_gn) ? ST_WAIT_WRITE_OUT : ST_GEMM_LAUNCH;
                     end
                 end
             end
@@ -982,16 +993,20 @@ module snax_llm_sequencer #(
         if (!rst_n) begin
             state_q           <= ST_IDLE;
             cnt_h_q           <= '0;
+            cnt_hkv_q         <= '0;
+            cnt_hgrp_q        <= '0;
             cnt_qi_q          <= '0;
             cnt_dvi_q         <= '0;
             cnt_kj_q          <= '0;
             cnt_m_q           <= '0;
             cnt_gn_q          <= '0;
             cnt_gm_q          <= '0;
+            cnt_kt_q          <= '0;
             cnt_gk_q          <= '0;
             cnt_gbeat_q       <= '0;
             dma_gn_q          <= '0;
             dma_gm_q          <= '0;
+            dma_kt_q          <= '0;
             dma_pending_q     <= 1'b0;
             gemm_drain_seen_q <= 1'b0;
             gemm_drain_active_q <= 1'b0;
@@ -1003,6 +1018,8 @@ module snax_llm_sequencer #(
 
             if (start_i) begin
                 cnt_h_q           <= '0;
+                cnt_hkv_q         <= '0;
+                cnt_hgrp_q        <= '0;
                 cnt_qi_q          <= '0;
                 cnt_dvi_q         <= '0;
                 cnt_kj_q          <= '0;
@@ -1010,10 +1027,12 @@ module snax_llm_sequencer #(
                 cnt_dr_q          <= '0;
                 cnt_gn_q          <= '0;
                 cnt_gm_q          <= '0;
+                cnt_kt_q          <= '0;
                 cnt_gk_q          <= '0;
                 cnt_gbeat_q       <= '0;
                 dma_gn_q          <= '0;
                 dma_gm_q          <= '0;
+                dma_kt_q          <= '0;
                 dma_pending_q     <= cfg_enable_dma_i && (cfg_op_mode_i == 2'b00);
                 gemm_drain_seen_q <= 1'b0;
                 gemm_drain_active_q <= 1'b0;
@@ -1054,10 +1073,19 @@ module snax_llm_sequencer #(
                                 cnt_dvi_q <= '0;
                                 if (cnt_qi_q == cfg_attn_q_tiles_i - 16'd1) begin
                                     cnt_qi_q <= '0;
-                                    if (cnt_h_q == cfg_attn_h_i - 8'd1)
-                                        cnt_h_q <= '0;
-                                    else
+                                    if (cnt_h_q == cfg_attn_h_i - 8'd1) begin
+                                        cnt_h_q    <= '0;
+                                        cnt_hkv_q  <= '0;
+                                        cnt_hgrp_q <= '0;
+                                    end else begin
                                         cnt_h_q <= cnt_h_q + 8'd1;
+                                        if (cnt_hgrp_q == cfg_gqa_group_m1_i) begin
+                                            cnt_hgrp_q <= '0;
+                                            cnt_hkv_q  <= cnt_hkv_q + 8'd1;
+                                        end else begin
+                                            cnt_hgrp_q <= cnt_hgrp_q + 8'd1;
+                                        end
+                                    end
                                 end else begin
                                     cnt_qi_q <= cnt_qi_q + 16'd1;
                                 end
@@ -1072,18 +1100,23 @@ module snax_llm_sequencer #(
                     end
                 end
 
-                // GEMM DMA Prefetch Progression
+                // GEMM DMA Prefetch Progression (K-tile inner, M-tile middle, N-tile outer)
                 if (dma_issue_fire && (cfg_op_mode_i == 2'b00) && dma_pending_q) begin
-                    if (dma_gm_q == (cfg_gemm_m_tiles_i - 16'd1)) begin
-                        dma_gm_q <= '0;
-                        if (dma_gn_q == (cfg_gemm_n_tiles_i - 16'd1)) begin
-                            dma_gn_q      <= '0;
-                            dma_pending_q <= 1'b0;
+                    if (dma_kt_q == cfg_gemm_k_tiles_m1_i) begin
+                        dma_kt_q <= '0;
+                        if (dma_gm_q == (cfg_gemm_m_tiles_i - 16'd1)) begin
+                            dma_gm_q <= '0;
+                            if (dma_gn_q == (cfg_gemm_n_tiles_i - 16'd1)) begin
+                                dma_gn_q      <= '0;
+                                dma_pending_q <= 1'b0;
+                            end else begin
+                                dma_gn_q <= dma_gn_q + 16'd1;
+                            end
                         end else begin
-                            dma_gn_q <= dma_gn_q + 16'd1;
+                            dma_gm_q <= dma_gm_q + 16'd1;
                         end
                     end else begin
-                        dma_gm_q <= dma_gm_q + 16'd1;
+                        dma_kt_q <= dma_kt_q + 8'd1;
                     end
                 end
 
@@ -1093,15 +1126,20 @@ module snax_llm_sequencer #(
                         cnt_gbeat_q <= '0;
                         if (last_gk) begin
                             cnt_gk_q <= '0;
-                            // Output tile finished: advance (gm, gn) now so the
-                            // next launch uses the correct tile while this one
-                            // is drained in the background.
-                            if (last_gm) begin
-                                cnt_gm_q <= '0;
-                                if (last_gn) cnt_gn_q <= '0;
-                                else         cnt_gn_q <= cnt_gn_q + 1'b1;
+                            if (last_kt) begin
+                                cnt_kt_q <= '0;
+                                // Output tile finished: advance (gm, gn) now so the
+                                // next launch uses the correct tile while this one
+                                // is drained in the background.
+                                if (last_gm) begin
+                                    cnt_gm_q <= '0;
+                                    if (last_gn) cnt_gn_q <= '0;
+                                    else         cnt_gn_q <= cnt_gn_q + 1'b1;
+                                end else begin
+                                    cnt_gm_q <= cnt_gm_q + 1'b1;
+                                end
                             end else begin
-                                cnt_gm_q <= cnt_gm_q + 1'b1;
+                                cnt_kt_q <= cnt_kt_q + 8'd1;
                             end
                         end else begin
                             cnt_gk_q <= cnt_gk_q + 1'b1;
