@@ -92,12 +92,22 @@ module snax_llm_top_clean #(
     output logic [31:0]             dma_desc_size_o,
     input  logic                    dma_desc_done_i,
 
+    // Optional 3 extra DMA TCDM ports (Masters 22..24) for 4-word/cycle (288b) DMA
+    input  logic [2:0]                  dma_aux_mem_req_valid_i = 3'b0,
+    output logic [2:0]                  dma_aux_mem_req_ready_o,
+    input  logic [2:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i  = '0,
+    input  logic [2:0]                  dma_aux_mem_req_write_i = 3'b0,
+    input  logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i = '0,
+    input  logic [2:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i  = '0,
+    output logic [2:0]                  dma_aux_mem_rsp_valid_o,
+    output logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_rsp_rdata_o,
+
     // Trạng thái hệ thống
     output logic                    subsystem_busy_o,
     output logic                    subsystem_done_irq_o
 );
 
-    localparam int NUM_MASTERS = 22;
+    localparam int NUM_MASTERS = 25;
 
     // -------------------------------------------------------------------------
     // Tín hiệu nội bộ Interconnect (22 Masters -> 32 Banks)
@@ -184,7 +194,14 @@ module snax_llm_top_clean #(
     logic [255:0] rd_b_fp16_data;
     logic         rd_b_fp16_valid, rd_b_fp16_ready;
 
-    logic        sfu_start, sfu_en, sfu_out_dst, sfu_in_a_src;
+    logic        sfu_start, sfu_en, sfu_out_dst, sfu_in_a_src, sfu_seq_en;
+    logic        csr_sfu_start, csr_rd_b_start;
+    logic [31:0] csr_rd_b_base, csr_rd_b_num_vectors, csr_rd_b_line_stride;
+    logic        sfu_seq_busy, sfu_seq_done;
+    logic        sfu_seq_rd_start, sfu_seq_rd_b_start, sfu_seq_sfu_start, sfu_seq_wo_start;
+    logic [31:0] sfu_seq_rd_base, sfu_seq_rd_nv, sfu_seq_rd_ls;
+    logic [31:0] sfu_seq_rd_b_base, sfu_seq_rd_b_nv, sfu_seq_rd_b_ls;
+    logic [31:0] sfu_seq_wo_base, sfu_seq_wo_nv, sfu_seq_wo_ls;
     logic [2:0]  sfu_op;
     logic [15:0] sfu_num_vecs;
     logic [31:0] sfu_inv_n_fp32, sfu_eps_fp32;
@@ -311,6 +328,18 @@ module snax_llm_top_clean #(
     assign dma_mem_req_ready_o  = m_req_ready[0];
     assign dma_mem_rsp_valid_o  = m_rsp_valid[0];
     assign dma_mem_rsp_rdata_o  = m_rsp_rdata[0];
+
+    // Masters 22..24: Auxiliary DMA Ports 1..3 (for 4-word/cycle parallel TCDM fill)
+    for (genvar d = 0; d < 3; d++) begin : gen_dma_aux
+        assign m_req_valid[22 + d]        = dma_aux_mem_req_valid_i[d];
+        assign m_req_addr[22 + d]         = dma_aux_mem_req_addr_i[d];
+        assign m_req_write[22 + d]        = dma_aux_mem_req_write_i[d];
+        assign m_req_wdata[22 + d]        = dma_aux_mem_req_wdata_i[d];
+        assign m_req_strb[22 + d]         = dma_aux_mem_req_strb_i[d];
+        assign dma_aux_mem_req_ready_o[d] = m_req_ready[22 + d];
+        assign dma_aux_mem_rsp_valid_o[d] = m_rsp_valid[22 + d];
+        assign dma_aux_mem_rsp_rdata_o[d] = m_rsp_rdata[22 + d];
+    end
 
     // Master 1: CPU RV32I Port (TCDM L1 Scratchpad Access cho RoPE/Norm/SiLU)
     assign m_req_valid[1]       = cpu_mem_req_valid_i;
@@ -451,6 +480,7 @@ module snax_llm_top_clean #(
         .core_fp16_valid          (core_fp16_valid),
         .sfu_busy                 (sfu_busy),
         .sfu_done                 (sfu_done),
+        .sfu_seq_busy             (sfu_seq_busy),
         .start_pulse              (csr_start_pulse),
         .src_sel                  (csr_src_sel),
         .act_ready_force          (csr_act_ready),
@@ -489,18 +519,19 @@ module snax_llm_top_clean #(
         .rd_base                  (csr_rd_base),
         .rd_num_vectors           (csr_rd_num_vectors),
         .rd_line_stride           (csr_rd_line_stride),
-        .sfu_start                (sfu_start),
+        .sfu_start                (csr_sfu_start),
         .sfu_en                   (sfu_en),
         .sfu_out_dst              (sfu_out_dst),
         .sfu_in_a_src             (sfu_in_a_src),
+        .sfu_seq_en               (sfu_seq_en),
         .sfu_op                   (sfu_op),
         .sfu_num_vecs             (sfu_num_vecs),
         .sfu_inv_n_fp32           (sfu_inv_n_fp32),
         .sfu_eps_fp32             (sfu_eps_fp32),
-        .rd_b_start               (rd_b_start),
-        .rd_b_base                (rd_b_base),
-        .rd_b_num_vectors         (rd_b_num_vectors),
-        .rd_b_line_stride         (rd_b_line_stride),
+        .rd_b_start               (csr_rd_b_start),
+        .rd_b_base                (csr_rd_b_base),
+        .rd_b_num_vectors         (csr_rd_b_num_vectors),
+        .rd_b_line_stride         (csr_rd_b_line_stride),
         .quant_src_sel            (cfg_quant_src_sel),
 
         .seq_op_mode              (csr_seq_op_mode),
@@ -652,20 +683,65 @@ module snax_llm_top_clean #(
     assign wt_tile_step       = csr_src_sel ? csr_wt_tile_step : seq_wt_tile_step;
     assign wt_stream_ready    = csr_src_sel ? {16{csr_wt_ready}} : seq_wt_ready;
 
-    assign wo_start           = csr_src_sel ? csr_wo_start : seq_wo_start;
+    // Autonomous 2D / 2-Pass SFU Sequencer (replaces CPU per-vector CSR loops)
+    wire sfu_seq_active = (csr_src_sel && sfu_en && sfu_seq_en) || sfu_seq_busy;
+
+    snax_sfu_sequencer #(
+        .ADDR_WIDTH (ADDR_WIDTH)
+    ) u_sfu_seq (
+        .clk              (clk),
+        .rst_n            (rst_n),
+        .start_i          (csr_start_pulse && csr_src_sel && sfu_en && sfu_seq_en && !sfu_seq_busy),
+        .busy_o           (sfu_seq_busy),
+        .done_o           (sfu_seq_done),
+        .cfg_sfu_op_i     (sfu_op),
+        .cfg_m_tokens_i   (csr_seq_gemm_m_tiles),
+        .cfg_n_tiles_i    (csr_seq_gemm_n_tiles),
+        .cfg_k_vecs_i     (sfu_num_vecs),
+        .cfg_base_a_i     (csr_rd_base),
+        .cfg_stride_a_t_i ({12'd0, csr_rd_line_stride[15:0], 4'd0}),
+        .cfg_stride_a_g_i ({12'd0, csr_rd_line_stride[31:16], 4'd0}),
+        .cfg_base_b_i     (csr_rd_b_base),
+        .cfg_stride_b_t_i ({12'd0, csr_rd_b_line_stride[15:0], 4'd0}),
+        .cfg_stride_b_g_i ({12'd0, csr_rd_b_line_stride[31:16], 4'd0}),
+        .cfg_base_o_i     (csr_wo_base),
+        .cfg_stride_o_t_i ({12'd0, csr_wo_line_stride[15:0], 4'd0}),
+        .cfg_stride_o_g_i ({12'd0, csr_wo_line_stride[31:16], 4'd0}),
+        .rd_busy_i        (rd_busy),
+        .rd_b_busy_i      (rd_b_busy),
+        .sfu_busy_i       (sfu_busy),
+        .wo_busy_i        (wo_busy),
+        .rd_start_o       (sfu_seq_rd_start),
+        .rd_base_o        (sfu_seq_rd_base),
+        .rd_nv_o          (sfu_seq_rd_nv),
+        .rd_ls_o          (sfu_seq_rd_ls),
+        .rd_b_start_o     (sfu_seq_rd_b_start),
+        .rd_b_base_o      (sfu_seq_rd_b_base),
+        .rd_b_nv_o        (sfu_seq_rd_b_nv),
+        .rd_b_ls_o        (sfu_seq_rd_b_ls),
+        .sfu_start_o      (sfu_seq_sfu_start),
+        .wo_start_o       (sfu_seq_wo_start),
+        .wo_base_o        (sfu_seq_wo_base),
+        .wo_nv_o          (sfu_seq_wo_nv),
+        .wo_ls_o          (sfu_seq_wo_ls)
+    );
+
+    assign wo_start           = sfu_seq_active ? sfu_seq_wo_start : (csr_src_sel ? csr_wo_start : seq_wo_start);
     wire   wo_mode_fp16_sel   = csr_src_sel ? csr_wo_mode_fp16 : (seq_wo_mode == 2'd1);
 
     // The descriptor always comes from one owner: the sequencer in autonomous
     // mode, the CSR file in direct mode.
     assign wo_cfg_mode = csr_src_sel ? (csr_wo_mode_fp16 ? 2'd1 : 2'd0) : seq_wo_mode;
-    assign wo_cfg_base = csr_src_sel ? csr_wo_base        : seq_wo_base;
-    assign wo_cfg_nvec = csr_src_sel ? csr_wo_num_vectors: seq_wo_num_vectors;
-    assign wo_cfg_line = csr_src_sel ? csr_wo_line_stride: seq_wo_line_stride;
+    assign wo_cfg_base = sfu_seq_active ? sfu_seq_wo_base    : (csr_src_sel ? csr_wo_base        : seq_wo_base);
+    assign wo_cfg_nvec = sfu_seq_active ? sfu_seq_wo_nv      : (csr_src_sel ? csr_wo_num_vectors : seq_wo_num_vectors);
+    assign wo_cfg_line = sfu_seq_active ? sfu_seq_wo_ls      : (csr_src_sel ? csr_wo_line_stride : seq_wo_line_stride);
     assign wo_cfg_nb   = csr_src_sel ? 32'd1              : seq_wo_num_batches;
     assign wo_cfg_bs   = csr_src_sel ? 32'd0              : seq_wo_batch_stride;
 
     assign v_start            = csr_src_sel ? csr_v_start : seq_v_start;
-    assign rd_start           = csr_src_sel ? csr_rd_start: seq_rd_start;
+    assign rd_start           = sfu_seq_active ? sfu_seq_rd_start : (csr_src_sel ? csr_rd_start : seq_rd_start);
+    assign rd_b_start         = sfu_seq_active ? sfu_seq_rd_b_start : csr_rd_b_start;
+    assign sfu_start          = sfu_seq_active ? sfu_seq_sfu_start  : csr_sfu_start;
 
     // The write-out latches its mode at the launch edge; the core/quantizer
     // routing must use the same latched value for the whole job.  The sequencer
@@ -687,7 +763,7 @@ module snax_llm_top_clean #(
     assign lane_valid         = csr_src_sel ? csr_core_lane_valid : seq_core_lane_valid;
     assign lane_acc_idx       = csr_src_sel ? csr_core_lane_acc_idx : seq_core_lane_acc_idx;
 
-    assign csr_cfg_ready = !seq_busy && !act_busy && !wt_busy &&
+    assign csr_cfg_ready = !seq_busy && !sfu_seq_busy && !act_busy && !wt_busy &&
                            !wo_busy && !v_busy && !rd_busy &&
                            !rd_b_busy && !wo_fp4_valid;
 
@@ -801,9 +877,12 @@ module snax_llm_top_clean #(
     // -------------------------------------------------------------------------
     assign v_base        = csr_v_base;
     assign v_num_batches = csr_v_num_batches;
-    assign rd_base        = csr_rd_base;
-    assign rd_num_vectors = csr_rd_num_vectors;
-    assign rd_line_stride = csr_rd_line_stride;
+    assign rd_base          = sfu_seq_active ? sfu_seq_rd_base : csr_rd_base;
+    assign rd_num_vectors   = sfu_seq_active ? sfu_seq_rd_nv   : csr_rd_num_vectors;
+    assign rd_line_stride   = sfu_seq_active ? sfu_seq_rd_ls   : csr_rd_line_stride;
+    assign rd_b_base        = sfu_seq_active ? sfu_seq_rd_b_base : csr_rd_b_base;
+    assign rd_b_num_vectors = sfu_seq_active ? sfu_seq_rd_b_nv   : csr_rd_b_num_vectors;
+    assign rd_b_line_stride = sfu_seq_active ? sfu_seq_rd_b_ls   : csr_rd_b_line_stride;
 
     assign rd_fp16_ready   = (sfu_en && !sfu_in_a_src) ? sfu_in_a_ready : (src_rd_sel && quant_accept);
 

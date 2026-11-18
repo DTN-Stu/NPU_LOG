@@ -258,6 +258,10 @@ module snax_llm_sequencer #(
     logic [15:0]  cnt_kj_q;
     logic [3:0]   cnt_m_q;
     logic [3:0]   cnt_dr_q;      // per-slot drain index (softmax / output)
+
+    // GEMM DMA Prefetch Counters (streams weights ahead into ring buffer)
+    logic [15:0]  dma_gn_q, dma_gm_q;
+    logic         dma_pending_q;
     logic         kv_first_q;    // the current KV tile is the first of a row
     logic         last_group_q;  // the group just retired was the final one
 
@@ -495,6 +499,19 @@ module snax_llm_sequencer #(
         dma_issue_fire            = 1'b0;
         core_release_credit_pulse = 1'b0;
 
+        // Background GEMM DMA Weight Prefetch Producer (overlaps with compute)
+        if (cfg_enable_dma_i && (cfg_op_mode_i == 2'b00) && dma_pending_q && dma_can_push &&
+            (state_q != ST_IDLE) && (state_q != ST_DONE)) begin
+            dma_req_valid_o      = 1'b1;
+            dma_req_dir_o        = 2'd0; // DRAM -> TCDM 16-bank weight layout
+            dma_req_dram_addr_o  = cfg_dram_kv_base_i + (32'(dma_gn_q) * cfg_stride_tile_i);
+            dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
+            dma_req_size_bytes_o = 32'(cfg_gemm_k_blocks_i) * 32'd144; // 16 ch * 9B * K_PACKETS
+            if (dma_req_ready_i) begin
+                dma_issue_fire = 1'b1;
+            end
+        end
+
         act_start_o               = 1'b0;
         act_base_o                = cfg_tcdm_q_base_i;
         act_k_blocks_o            = 32'd1;
@@ -619,14 +636,13 @@ module snax_llm_sequencer #(
             end
 
             ST_PREFETCH_INIT: begin
-                // Kick off initial DMA prefetch if enabled
-                if (cfg_enable_dma_i && dma_can_push) begin
+                // For GEMM, the background prefetch producer handles all tiles.
+                if (cfg_enable_dma_i && (cfg_op_mode_i != 2'b00) && dma_can_push) begin
                     dma_req_valid_o      = 1'b1;
                     dma_req_dram_addr_o  = cfg_dram_kv_base_i;
                     if (dma_req_ready_i) begin
                         dma_issue_fire   = 1'b1;
-                        state_d          = (cfg_op_mode_i == 2'b00) ? ST_GEMM_LAUNCH :
-                                           (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
+                        state_d          = (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
                                            (cfg_op_mode_i == 2'b11) ? ST_RD_LAUNCH :
                                                                       ST_ATTN_QK_LAUNCH;
                     end
@@ -974,6 +990,9 @@ module snax_llm_sequencer #(
             cnt_gm_q          <= '0;
             cnt_gk_q          <= '0;
             cnt_gbeat_q       <= '0;
+            dma_gn_q          <= '0;
+            dma_gm_q          <= '0;
+            dma_pending_q     <= 1'b0;
             gemm_drain_seen_q <= 1'b0;
             gemm_drain_active_q <= 1'b0;
             gdr_idx_q           <= 5'd0;
@@ -993,6 +1012,9 @@ module snax_llm_sequencer #(
                 cnt_gm_q          <= '0;
                 cnt_gk_q          <= '0;
                 cnt_gbeat_q       <= '0;
+                dma_gn_q          <= '0;
+                dma_gm_q          <= '0;
+                dma_pending_q     <= cfg_enable_dma_i && (cfg_op_mode_i == 2'b00);
                 gemm_drain_seen_q <= 1'b0;
                 gemm_drain_active_q <= 1'b0;
                 gdr_idx_q           <= 5'd0;
@@ -1047,6 +1069,21 @@ module snax_llm_sequencer #(
                         end
                     end else begin
                         cnt_m_q <= cnt_m_q + 4'd1;
+                    end
+                end
+
+                // GEMM DMA Prefetch Progression
+                if (dma_issue_fire && (cfg_op_mode_i == 2'b00) && dma_pending_q) begin
+                    if (dma_gm_q == (cfg_gemm_m_tiles_i - 16'd1)) begin
+                        dma_gm_q <= '0;
+                        if (dma_gn_q == (cfg_gemm_n_tiles_i - 16'd1)) begin
+                            dma_gn_q      <= '0;
+                            dma_pending_q <= 1'b0;
+                        end else begin
+                            dma_gn_q <= dma_gn_q + 16'd1;
+                        end
+                    end else begin
+                        dma_gm_q <= dma_gm_q + 16'd1;
                     end
                 end
 

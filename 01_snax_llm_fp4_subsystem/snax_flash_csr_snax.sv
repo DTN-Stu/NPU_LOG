@@ -32,6 +32,7 @@ module snax_flash_csr_snax (
     input  logic        core_fp16_valid,
     input  logic        sfu_busy,
     input  logic        sfu_done,
+    input  logic        sfu_seq_busy,
 
     output logic        start_pulse,
     output logic        src_sel,
@@ -83,6 +84,7 @@ module snax_flash_csr_snax (
     output logic        sfu_en,
     output logic        sfu_out_dst,     // 0: logq FP4, 1: write-out FP16
     output logic        sfu_in_a_src,    // 0: TCDM rd_fp16, 1: direct core_fp16_packed
+    output logic        sfu_seq_en,      // 1: hardware snax_sfu_sequencer batch/2D mode
     output logic [2:0]  sfu_op,
     output logic [15:0] sfu_num_vecs,
     output logic [31:0] sfu_inv_n_fp32,
@@ -191,7 +193,7 @@ module snax_flash_csr_snax (
     assign ro[6] = {28'd0, core_fp16_valid, l_ready, p_fifo_empty, p_fifo_full};
     assign ro[7] = 32'h534E_4146;
     assign ro[8] = {31'd0, p_fifo_almost_full};
-    assign ro[9] = {30'd0, sfu_done, sfu_busy};
+    assign ro[9] = {29'd0, sfu_seq_busy, sfu_done, sfu_busy};
 
     snax_csr_manager #(
         .NUM_RW     (NUM_RW),
@@ -271,6 +273,7 @@ module snax_flash_csr_snax (
     assign sfu_op          = cfg_rw[RW_SFU_CTRL][4:2];
     assign sfu_num_vecs    = cfg_rw[RW_SFU_CTRL][20:5];
     assign sfu_in_a_src    = cfg_rw[RW_SFU_CTRL][21];
+    assign sfu_seq_en      = cfg_rw[RW_SFU_CTRL][22];
     assign sfu_inv_n_fp32  = cfg_rw[RW_SFU_INV_N];
     assign sfu_eps_fp32    = cfg_rw[RW_SFU_EPS];
     assign rd_b_base       = cfg_rw[RW_SFU_B_BASE];

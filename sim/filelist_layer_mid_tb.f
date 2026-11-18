@@ -19,6 +19,7 @@
 ../01_snax_llm_fp4_subsystem/attn_o_rescaler_bank.sv
 ../01_snax_llm_fp4_subsystem/snax_sfu_fp20_units.sv
 ../01_snax_llm_fp4_subsystem/snax_llm_sfu_opt.sv
+../01_snax_llm_fp4_subsystem/snax_sfu_sequencer.sv
 ../01_snax_llm_fp4_subsystem/snax_fused_llm_core.sv
 ../01_snax_llm_fp4_subsystem/skid_buffer.sv
 ../01_snax_llm_fp4_subsystem/snax_streamer_act_bcast.sv

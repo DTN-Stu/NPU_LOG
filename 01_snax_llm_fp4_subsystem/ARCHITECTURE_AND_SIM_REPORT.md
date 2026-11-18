@@ -93,3 +93,79 @@ Trích xuất từ residual stream thực sau Layer 0 (`x_real std=0.0409, max_a
 1. **Gọi `u_sfu` rời rạc từng vector qua CSR (~`84,000` cycles overhead trong TB)**: Phần cứng `sfu_pipe` chỉ chạy `35,072` cycles nhưng `wall_cycles` của các bước SFU + `cpu_copy_gate` lên tới `119,163` cycles. Tối ưu bằng cách batch `sfu_num_vecs = 256`, dùng đường `Core -> fused_fifo -> SFU` (`sfu_in_a_src = 1`), và trỏ `A_OUT_BASE` của `GEMM Up` sang thẳng `G_STG_BANK`.
 2. **Online Requant qua TCDM (`13,890` cycles = `35.5%` của `seq_busy`)**: Tận dụng đường `u_sfu -> u_log_quantizer` (`sfu_out_dst = 0`) để nén trực tiếp sau `RMSNorm` / `RoPE` / `SwiGLU` mà không ghi/đọc FP16 trung gian qua TCDM.
 3. **DMA & Fused V tile nhỏ**: Bật `cfg_enable_dma = 1` để overlap DMA double-buffer với `u_core`.
+
+---
+
+## 4. Cập nhật Tối ưu Fused Pipeline & Kết quả mới nhất
+
+Các tối ưu đã triển khai và kiểm chứng trên QuestaSim 2024.1:
+
+### 4.1. Fuse `GEMM Q/K -> SFU RoPE -> LogQ -> FP4` (bỏ ghi/đọc FP16 trung gian)
+- **Kiến trúc**: Đẩy trực tiếp đầu ra FP16 của `u_core` qua `fused_fifo` (4-entry) $\rightarrow$ `u_sfu` (RoPE với `cos/sin` từ `u_read_fp16_b`) $\rightarrow$ `u_log_quantizer` $\rightarrow$ TCDM, thay cho chuỗi rời rạc `GEMM -> TCDM(FP16) -> SFU RoPE -> TCDM(FP16) -> Requant -> TCDM(FP4)`.
+- **Hoán vị cột trọng số $W_Q', W_K'$ offline**: Sắp xếp trước thứ tự cột cặp $(j, j+d_k/2)$ theo cặp cặp đôi liền kề của `u_sfu` để bỏ hoàn toàn bước CPU repack trước RoPE (không cần hoán vị activation $X$).
+- **Kiểm chứng bit-exact (`tb/tb_fused_qk_rope_compare.sv`)**:
+  - `Exact 72b FP4 Packet Match : 256 / 256`
+  - `Method B (Fused) vs Method A (Rời rạc) : SQNR = 999.00 dB, CosineSim = 1.000000`
+- **Phân tích stall trên `u_mac_array` khi chạy Fused**:
+  - Trong `snax_llm_sequencer.sv`, tín hiệu `gemm_beat_ok` (`!gemm_drain_active_q || ({1'b0, cnt_gbeat_q} < gdr_idx_q)`) chủ động tạm dừng `gemm_compute_fire` khi slot accumulator chưa drain xong do backpressure từ `u_read_fp16_b` (`snax_stream_read_fp16.sv` đọc `cos/sin` ~9 cycles/vector).
+  - Cơ chế này an toàn tuyệt đối (không mất beat hay deadlock nhờ skid buffer `SKID_DEPTH = 4` ở `snax_streamer_act_bcast.sv`), chỉ làm `Fused Q/K+RoPE+LogQ` tốn `3,703` job cycles thay vì `2,184` cycles.
+
+### 4.2. Tự động hóa SFU bằng `snax_sfu_sequencer` & tối ưu FFN (`tb/tb_snax_llm_layer_fused.sv`)
+1. **Dùng `snax_sfu_sequencer` (`u_sfu_seq`)** thay vòng lặp CPU CSR cho `RMSNorm 1`, `Residual 1`, `RMSNorm 2`, `SiLU`, `Residual 2`:
+   - `RMSNorm 1 / 2`: giảm từ `6,080` xuống `5,103` wall cycles.
+   - `Residual 1 / 2`: giảm từ `12,543` xuống `4,654` wall cycles.
+2. **Loại bỏ `cpu_copy_gate()` trong phase `[16]`**:
+   - Mở rộng `run_gemm` nhận tham số `out_base` (`A_OUT_BASE`), trỏ `GEMM gate chunk` ghi thẳng vào `G_STG_BANK` và `GEMM up chunk` ghi vào `OUT_BASE`.
+   - Giảm `8,192` wall cycles (`120,390 -> 112,198`), `cpu` cycles giảm từ `15,021 -> 10,925`.
+3. **Fuse `SFU SiLU -> u_log_quantizer -> FP4` trực tiếp vào `FF1_BANK` (bỏ `[17] Requant FFN`)**:
+   - Bật `sfu_out_dst = 0` (`A_SFU_CTRL[1] = 0`) và `A_WO_MODE = 0` trong `run_sfu_seq` (`out_fp4 = 1'b1`), đồng thời gộp 2 batch 16+16 token thành 1 lần chạy `M_TOKENS = 32` cho mỗi chunk, ghi packet FP4 thẳng vào `FF1_BANK` (tránh ghi đè `ACT_BANK` đang giữ `norm2` cho `chunk = 1`).
+   - Loại bỏ hoàn toàn `4,657` cycles của phase `[17] Requant FFN` và giảm thêm `606` cycles ở phase `[16]`.
+
+### 4.3. Tổng kết tiến trình tối ưu toàn Layer (`32` tokens, `d_model=128`, `d_ff=256`)
+
+| Phiên bản | Tổng Wall Cycles | `Total job cycles` | `Checks` | Thay đổi chính |
+| :--- | :---: | :---: | :---: | :--- |
+| `tb_snax_llm_layer_mid.sv` (baseline 4D WO) | `194,348` | `39,141` | `80 passed, 0 failed` | Baseline với CPU gọi SFU rời rạc + `cpu_copy_gate()` + Requant rời rạc |
+| `tb_snax_llm_layer_fused.sv` (Fused Q/K + `u_sfu_seq`) | `120,390` | `37,549` | `78 passed, 0 failed` | Fuse `Q/K + RoPE + LogQ` + `u_sfu_seq` (`-73,958` cycles) |
+| + Bỏ `cpu_copy_gate()` (`A_OUT_BASE` trực tiếp) | `112,198` | `37,549` | `78 passed, 0 failed` | `GEMM gate` ghi thẳng `G_STG_BANK` (`-8,192` cycles) |
+| + Fuse `SFU SiLU -> LogQ -> FF1_BANK` (hiện tại) | **`106,936`** | **`32,919`** | **`76 passed, 0 failed`** | Bỏ luôn ghi FP16 trung gian & `[17] Requant FFN` (`-5,262` cycles; tổng giảm **`87,412` cycles ≈ 45.0%**) |
+
+- **Chi tiết kết quả chạy mới nhất (`sim/logs/tb_snax_llm_layer_fused.log`)**:
+  - `Cycle mix`: `total=106936`, `seq_busy=32838`, `sfu_pipe=25792`, `sfu_core=13184`, `core_compute=22016`, `core_fp16=2944`, `cpu=10875`, `dma=11584`, `tb_verify=8192`.
+  - `Errors: 0, Warnings: 0`, `Checks: 76 passed, 0 failed`.
+
+### 4.4. Xác minh độ chính xác trên dữ liệu thực `NousResearch/Llama-3.2-1B` (Layer 1)
+- Trích xuất slice thực từ `NousResearch/Llama-3.2-1B` Layer 1 (`x_real std=0.0416, max_abs=0.2718`) ra `sim/sim_snax_llm_layer_mid/llama32_1b_layer1_slice.npz` và sinh dữ liệu bằng `tb/generate_snax_llm_layer_mid_data.py --real-slice ...` (đồng thời bổ sung tùy chọn `--llm-scale` cho dữ liệu synthetic đúng biên độ LLM `x_std=0.04, w_std=0.03`).
+- **Kết quả trên `tb_snax_llm_layer_fused.sv`**:
+  - `SFU residual 1`: `max_abs = 0.00291`, **`fail = 0 / 4096`**
+  - `SFU RMS2`: `max_abs = 0.02148`, **`fail = 0 / 4096`**
+  - `Final residual`: `max_abs = 0.00293`, **`fail = 0 / 4096`**
+  - `RTL vs FP32`: **`SQNR = 37.74 dB, CosineSim = 0.999916`**
+  - `Py Fake-Quant vs FP32`: `SQNR = 37.68 dB, CosineSim = 0.999915`
+  - `RTL vs PyFQ`: **`SQNR = 40.18 dB, CosineSim = 0.999952`**
+
+---
+
+## 5. Thiết kế Simple Gearbox DMA (`512-bit DRAM <-> 4×72-bit TCDM`) & Layer lớn hơn TCDM
+
+### 5.1. Kiến trúc phần cứng
+- **`snax_simple_dma.sv`**:
+  - Giao tiếp `valid/ready` đơn giản (không dùng AXI): Descriptor Slave (`dma_desc_*`), External DRAM Master (`512-bit` / 64B per beat, phù hợp gắn Ramulator2/DRAMSim3 để ước lượng băng thông & năng lượng), và `TCDM_PORTS = 4` cổng TCDM (`4 × 72-bit = 288 bits/cycle = 36 bytes/cycle`, khớp LPDDR4X/LPDDR5 64-bit ở 500 MHz–1 GHz).
+  - **Gearbox `512b <-> 72b`** (tỉ lệ tròn `9 beats × 512b = 64 packets × 72b`) dùng buffer **`1096-bit`** pipeline các lệnh đọc DRAM để che độ trễ DRAM (`6` cycles), kèm 4 holding register ở ngõ ra TCDM để đảm bảo in-order và an toàn khi xung đột bank.
+  - Hỗ trợ cả `DRAM -> TCDM` (`dir[0]=0`) và `TCDM -> DRAM` (`dir[0]=1`), cùng 2 kiểu địa chỉ TCDM (`dir[1]=0`: rải 16 bank `0..15` cho trọng số; `dir[1]=1`: tuyến tính `+0x200`).
+  - Tích hợp sẵn bộ đếm telemetry: `stat_dram_rd_beats_o`, `stat_dram_wr_beats_o`, `stat_tcdm_words_o`, `stat_busy_cycles_o`.
+- **`snax_llm_top_clean.sv` (`NUM_MASTERS = 25`)**:
+  - Giữ nguyên cổng `dma_mem_*` (`M0`) và mở rộng thêm 3 cổng `dma_aux_mem_*[2:0]` (`M22..24`, mặc định `'0` để tương thích 100% với các TB cũ).
+  - Giữ nguyên cấu trúc arbitration `fixed_priority_arb_n` hiện tại (`M0` qua `HOST_MASTER=0` và `M22..24` có index lớn hơn `M2..21` nên mọi cổng DMA đều nhường quyền ưu tiên cho các streamer).
+- **`snax_llm_sequencer.sv`**:
+  - Bổ sung **GEMM DMA Prefetch Producer** (`dma_gn_q`, `dma_gm_q`, `dma_pending_q`) tự động phát liên tiếp descriptor trọng số (`144 * cfg_gemm_k_blocks_i` bytes/tile) vào 4-slot ring buffer song song khi `u_core` đang tính.
+
+### 5.2. Kết quả kiểm chứng DMA & Layer lớn hơn TCDM (QuestaSim 2024.1)
+1. **`tb/tb_simple_dma_gemm.sv`** (`Errors: 0`):
+   - **Round-trip `TCDM -> 512b DRAM -> TCDM`** (`128` words = `1,152 B`): **`128 / 128` exact**.
+   - **Streaming GEMM (`M=2, N=8, K=8`, 16 tiles qua 4-slot ring, `DRAM_LATENCY=6`)**: **`1024 / 1024` words bit-exact**; nâng cấp từ 1 cổng (`72b/cyc`) lên 4 cổng (`288b/cyc`) + pipeline DRAM giúp rút ngắn từ `4,602` cycles xuống **`2,315` cycles** (sát `~2,184` non-DMA, `dma_busy = 2,080`, `288` DRAM beats = `18,432 B`).
+2. **`tb/tb_large_layer_dma.sv` — Layer lớn hơn dung lượng TCDM (`Errors: 0`)**:
+   - **Cấu hình**: `M=16, D_MODEL=256, D_FF=512`, **tổng trọng số = `40,960` words (`368,640` bytes > `32,768` words toàn TCDM)**, stream toàn bộ 7 phép chiếu từ DRAM 512-bit:
+     - `GEMM Q / K / V / O / Gate 0 / Gate 1 / Up 0 / Up 1`: mỗi phép `4,096` wt words (`576` beats = `36,864 B`) chạy `4,489` cycles (`dma_busy = 4,097`).
+     - `GEMM Down`: `8,192` wt words (`1,152` beats = `73,728 B`) chạy `8,837` cycles (`dma_busy = 8,129`).
+   - **Tổng hợp toàn layer**: **`5,760` DRAM 512b read beats (`368,640` bytes)**, **`40,960` TCDM 72b words**, **`40,905` DMA busy cycles**, **`0 errors`** bit-exact.

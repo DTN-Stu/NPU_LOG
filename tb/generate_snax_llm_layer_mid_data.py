@@ -163,6 +163,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--real-slice", type=str, default=None,
                         help="Path to .npz containing real LLM layer slice (x_real, g1, g2, wq, wk, wv, wo, wgu, wd)")
+    parser.add_argument("--llm-scale", action="store_true",
+                        help="Use realistic LLM activation/weight scale (x std=0.04, w std=0.03, gamma~N(1.0,0.1))")
     args = parser.parse_args()
 
     np.random.seed(2029)
@@ -191,22 +193,28 @@ def main():
             "d": npz["wd"].astype(np.float64),
         }
     else:
+        x_std = 0.04 if args.llm_scale else 1.0
+        w_std = 0.03 if args.llm_scale else 0.6
+        g_mean = 1.0 if args.llm_scale else 0.0
+        g_std = 0.1 if args.llm_scale else 0.5
+        if args.llm_scale:
+            print(f"Using realistic LLM scale: x_std={x_std}, w_std={w_std}, gamma~N({g_mean},{g_std})")
         # ------------------------------------------------------------ input ----
-        x_real = np.random.normal(0.0, 1.0, (M_TOKENS, D_MODEL))
+        x_real = np.random.normal(0.0, x_std, (M_TOKENS, D_MODEL))
         x_hex = np.vectorize(real_to_fp16_hex)(x_real).astype(np.uint16)
         gamma1_hex = np.vectorize(real_to_fp16_hex)(
-            np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
+            np.random.normal(g_mean, g_std, (1, D_MODEL)))[0]
         gamma2_hex = np.vectorize(real_to_fp16_hex)(
-            np.random.normal(0.0, 0.5, (1, D_MODEL)))[0]
+            np.random.normal(g_mean, g_std, (1, D_MODEL)))[0]
 
         # ---------------------------------------------------------- weights ----
         weights = {
-            "q": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)) * qk_scale,
-            "k": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)) * qk_scale,
-            "v": np.random.normal(0.0, 0.6, (D_MODEL, D_MODEL)),
-            "o": np.random.normal(0.0, 0.6, (D_MODEL, H * D_V)),
-            "gu": np.random.normal(0.0, 0.6, (2 * D_FF, D_MODEL)),
-            "d": np.random.normal(0.0, 0.6, (D_MODEL, D_FF)),
+            "q": np.random.normal(0.0, w_std, (D_MODEL, D_MODEL)) * qk_scale,
+            "k": np.random.normal(0.0, w_std, (D_MODEL, D_MODEL)) * qk_scale,
+            "v": np.random.normal(0.0, w_std, (D_MODEL, D_MODEL)),
+            "o": np.random.normal(0.0, w_std, (D_MODEL, H * D_V)),
+            "gu": np.random.normal(0.0, w_std, (2 * D_FF, D_MODEL)),
+            "d": np.random.normal(0.0, w_std, (D_MODEL, D_FF)),
         }
 
     w_codes, w_scales, w_packets = {}, {}, {}

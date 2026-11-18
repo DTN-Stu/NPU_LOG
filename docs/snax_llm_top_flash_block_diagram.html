@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SNAX LLM Top Flash - Block Diagram</title>
+<style>
+  :root {
+    --ink:#0f172a; --muted:#475569; --line:#334155;
+    --bg:#f6f8fc; --card:#ffffff;
+    --host:#eef2f7; --host-b:#475569;
+    --ctrl:#fff7ed; --ctrl-b:#c2410c;
+    --stream:#fffbeb; --stream-b:#d97706;
+    --mem:#eff6ff; --mem-b:#2563eb;
+    --core:#ecfdf5; --core-b:#059669;
+    --v:#fdf2f8; --v-b:#be185d;
+    --red:#b91c1c;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:"Segoe UI", Inter, Arial, sans-serif; }
+  header { padding:26px 34px 10px; }
+  h1 { margin:0; font-size:25px; letter-spacing:.2px; }
+  header p { margin:7px 0 0; color:var(--muted); font-size:14px; }
+  .wrap { padding:8px 24px 28px; }
+  .diagram { background:var(--card); border:1px solid #dbe3ef; border-radius:14px;
+             padding:8px; overflow:auto; box-shadow:0 4px 18px rgba(15,23,42,.05); }
+  svg { width:100%; height:auto; display:block; min-width:1100px; }
+  .node { fill:#fff; stroke:var(--line); stroke-width:2; }
+  .host  { fill:var(--host); stroke:var(--host-b); }
+  .ctrl  { fill:var(--ctrl); stroke:var(--ctrl-b); }
+  .stream{ fill:var(--stream); stroke:var(--stream-b); }
+  .mem   { fill:var(--mem); stroke:var(--mem-b); }
+  .core  { fill:var(--core); stroke:var(--core-b); }
+  .vpath { fill:var(--v); stroke:var(--v-b); }
+  .sub   { fill:#ffffff; stroke:#64748b; stroke-width:1.5; }
+  .title { font-weight:700; font-size:15px; fill:var(--ink); }
+  .subtitle { font-size:12px; fill:var(--muted); }
+  .mini { font-size:11px; fill:var(--muted); }
+  .label { font-size:11.5px; fill:#334155; }
+  .label-b { font-size:11.5px; font-weight:600; fill:#1e293b; }
+  .flow { fill:none; stroke:#475569; stroke-width:1.8; marker-end:url(#arrow); }
+  .flow-b { fill:none; stroke:#2563eb; stroke-width:1.8; marker-end:url(#arrowBlue); }
+  .flow-g { fill:none; stroke:#059669; stroke-width:1.8; marker-end:url(#arrowGreen); }
+  .flow-o { fill:none; stroke:#d97706; stroke-width:1.8; marker-end:url(#arrowOrange); }
+  .status { fill:none; stroke:#64748b; stroke-width:1.5; stroke-dasharray:7 5; }
+  .gap { fill:none; stroke:var(--red); stroke-width:1.8; stroke-dasharray:6 5; }
+  .gap-text { font-size:11px; fill:var(--red); font-weight:600; }
+  .port { fill:#ffffff; stroke:#94a3b8; stroke-width:1.5; }
+  .legend text { font-size:12px; fill:#334155; }
+  .notes { margin-top:18px; background:var(--card); border:1px solid #dbe3ef;
+           border-radius:14px; padding:18px 22px; }
+  .notes h2 { margin:0 0 8px; font-size:16px; }
+  .notes ul { margin:6px 0 0 18px; padding:0; }
+  .notes li { margin:4px 0; font-size:13px; line-height:1.45; color:#334155; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px;
+          background:#fef2f2; color:var(--red); font-weight:700; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>snax_llm_top_flash — integrated block diagram</h1>
+  <p>20-master top: host CSR/DMA, CSR + sequencer control mux, 16-lane K/V streamer, Q/act streamer, FP4/FP16 write-out, V transpose + log-quantizer path, fused FP4 core, 32-bank TCDM.</p>
+</header>
+
+<div class="wrap">
+<div class="diagram">
+<svg viewBox="0 0 1680 1120" role="img" aria-label="SNAX LLM top flash block diagram">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#059669"/>
+    </marker>
+    <marker id="arrowOrange" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <!-- ======================= HOST / CONTROL ======================= -->
+  <rect class="node host" x="40" y="50" width="300" height="80" rx="10"/>
+  <text class="title" x="58" y="78">Host / RV32I + DMA</text>
+  <text class="subtitle" x="58" y="99">external host (not in RTL)</text>
+  <text class="mini" x="58" y="116">host_csr_*  ·  host_mem_*</text>
+
+  <rect class="node ctrl" x="40" y="170" width="300" height="150" rx="10"/>
+  <text class="title" x="58" y="196">snax_flash_csr</text>
+  <text class="subtitle" x="58" y="216">12-bit CSR · status · direct/seq select</text>
+  <text class="mini" x="58" y="238">start_pulse · src_sel</text>
+  <text class="mini" x="58" y="255">act/wt/wo/core cfg · v_start</text>
+  <text class="mini" x="58" y="272">busy/done · p_fifo/l_ready</text>
+  <text class="mini" x="58" y="289">wo_mode_fp16 · enable_slq</text>
+
+  <rect class="node ctrl" x="40" y="360" width="300" height="140" rx="10"/>
+  <text class="title" x="58" y="386">snax_flash_seq</text>
+  <text class="subtitle" x="58" y="406">hardware h → qi → dvi → kj sequencer</text>
+  <text class="mini" x="58" y="428">QK → softmax → PV → final drain</text>
+  <text class="mini" x="58" y="445">act/wt/wo/core control</text>
+  <text class="mini" x="58" y="462">p_fifo_empty · core_fp16_valid</text>
+  <text class="mini" x="58" y="479">start only when !src_sel</text>
+
+  <rect class="node ctrl" x="390" y="170" width="180" height="330" rx="10"/>
+  <text class="title" x="408" y="198">src_sel</text>
+  <text class="subtitle" x="408" y="218">control mux</text>
+  <text class="mini" x="408" y="248">CSR direct</text>
+  <text class="mini" x="408" y="266">↔</text>
+  <text class="mini" x="408" y="284">sequencer</text>
+  <text class="mini" x="408" y="320">act / wt / wo</text>
+  <text class="mini" x="408" y="338">core cfg</text>
+  <text class="mini" x="408" y="372">V path = CSR only</text>
+  <text class="mini" x="408" y="420">wo_mode_fp16:</text>
+  <text class="mini" x="408" y="438">CSR or 0 (seq)</text>
+
+  <!-- Host -> CSR, CSR -> seq, CSR/seq -> mux -->
+  <path class="flow" d="M190,130 V170"/>
+  <text class="label" x="200" y="155">CSR we/addr/wdata</text>
+  <path class="flow" d="M190,320 V360"/>
+  <text class="label" x="200" y="345">start_pulse if !src_sel</text>
+  <path class="flow" d="M340,245 H390"/>
+  <text class="label" x="344" y="238">CSR cfg</text>
+  <path class="flow" d="M340,430 H390"/>
+  <text class="label" x="344" y="423">seq cfg</text>
+
+  <!-- ======================= STREAMERS ======================= -->
+  <rect class="node stream" x="40" y="560" width="300" height="70" rx="10"/>
+  <text class="title" x="58" y="586">snax_streamer_act_bcast</text>
+  <text class="subtitle" x="58" y="606">master 1 · Q / activation · 72b</text>
+  <text class="mini" x="58" y="622">2-entry skid + outstanding credit</text>
+
+  <rect class="node stream" x="40" y="660" width="300" height="90" rx="10"/>
+  <text class="title" x="58" y="686">snax_streamer_wt_16ch</text>
+  <text class="subtitle" x="58" y="706">masters 2..17 · 16 lanes · 72b</text>
+  <text class="mini" x="58" y="724">3D AGU: replay → K-block → tile</text>
+  <text class="mini" x="58" y="741">FIFO-head replay · real byte base</text>
+
+  <rect class="node stream" x="40" y="790" width="300" height="70" rx="10"/>
+  <text class="title" x="58" y="816">snax_streamer_write_out</text>
+  <text class="subtitle" x="58" y="836">master 18 · linear FP4 / FP16</text>
+  <text class="mini" x="58" y="852">4 × 72b words per 256b FP16 vector</text>
+
+  <rect class="node vpath" x="40" y="900" width="300" height="80" rx="10"/>
+  <text class="title" x="58" y="926">snax_v_quant_path</text>
+  <text class="subtitle" x="58" y="946">master 19 · transpose + log-quantizer</text>
+  <text class="mini" x="58" y="964">16 × 16 transpose buffer → 16 V packets</text>
+
+  <!-- Mux -> streamers/core -->
+  <path class="flow-o" d="M480,500 V595 H340"/>
+  <text class="label" x="488" y="560">act cfg</text>
+  <path class="flow-o" d="M510,500 V705 H340"/>
+  <text class="label" x="518" y="690">wt cfg</text>
+  <path class="flow-o" d="M540,500 V825 H340"/>
+  <text class="label" x="548" y="818">wo cfg</text>
+  <path class="flow-o" d="M570,300 H900"/>
+  <text class="label" x="640" y="292">core cfg: mode/row/mask/drain/lane</text>
+
+  <!-- CSR V config along left edge -->
+  <path class="flow" d="M40,280 H20 V940 H40"/>
+  <text class="label" x="8" y="640" transform="rotate(-90 8 640)">v_start / v_base / v_num_batches (CSR only)</text>
+
+  <!-- wo mode from CSR (simplified) -->
+  <path class="flow" d="M340,280 H680 V800 H340"/>
+  <text class="label" x="686" y="620" transform="rotate(90 686 620)">wo_mode_fp16 (CSR; 0 in seq)</text>
+
+  <!-- ======================= XBAR / TCDM ======================= -->
+  <rect class="node mem" x="700" y="430" width="520" height="90" rx="10"/>
+  <text class="title" x="720" y="458">interleaved_interconnect_72b</text>
+  <text class="subtitle" x="720" y="478">20 masters × 32 banks · fixed priority · 1-cycle response tracker</text>
+  <text class="mini" x="720" y="499">m0 host · m1 act · m2..17 wt · m18 out · m19 v-quant</text>
+
+  <rect class="node mem" x="700" y="570" width="520" height="140" rx="10"/>
+  <text class="title" x="720" y="598">multi_bank_tcdm_72b</text>
+  <text class="subtitle" x="720" y="618">32 banks × 1024 words × 72b = 288 KB</text>
+  <g>
+    <rect class="sub" x="724" y="636" width="52" height="38" rx="4"/><text class="mini" x="732" y="660">B0</text>
+    <rect class="sub" x="786" y="636" width="52" height="38" rx="4"/><text class="mini" x="794" y="660">B1</text>
+    <rect class="sub" x="848" y="636" width="52" height="38" rx="4"/><text class="mini" x="856" y="660">B2</text>
+    <rect class="sub" x="910" y="636" width="52" height="38" rx="4"/><text class="mini" x="918" y="660">B3</text>
+    <text class="mini" x="980" y="660">…</text>
+    <rect class="sub" x="1010" y="636" width="52" height="38" rx="4"/><text class="mini" x="1018" y="660">B16</text>
+    <rect class="sub" x="1072" y="636" width="52" height="38" rx="4"/><text class="mini" x="1080" y="660">B17</text>
+    <text class="mini" x="1140" y="660">…</text>
+    <rect class="sub" x="1160" y="636" width="44" height="38" rx="4"/><text class="mini" x="1164" y="660">B31</text>
+  </g>
+
+  <path class="flow-b" d="M960,520 V570"/>
+  <text class="label" x="972" y="548">32 banks</text>
+
+  <!-- Host DMA master 0 -->
+  <path class="flow-b" d="M340,90 H650 V450 H700"/>
+  <text class="label" x="400" y="82">host DMA · master 0</text>
+
+  <!-- Streamers <-> XBAR -->
+  <path class="flow" d="M340,600 L700,470"/>
+  <text class="label" x="470" y="505">m1 act/Q</text>
+  <path class="flow" d="M340,700 L700,490"/>
+  <text class="label" x="460" y="575">m2..17 wt/K/V</text>
+  <path class="flow" d="M340,825 L700,510"/>
+  <text class="label" x="470" y="660">m18 out</text>
+  <path class="flow" d="M340,940 L700,530"/>
+  <text class="label" x="480" y="735">m19 V</text>
+
+  <!-- ======================= CORE ======================= -->
+  <rect class="node core" x="900" y="150" width="600" height="330" rx="12"/>
+  <text class="title" x="920" y="178">snax_fused_llm_core</text>
+  <text class="subtitle" x="920" y="197">8 queries · 8 S slots + 8 O slots · ACC_DEPTH=16</text>
+
+  <rect class="sub" x="930" y="215" width="240" height="65" rx="6"/>
+  <text class="label-b" x="946" y="240">MAC array</text>
+  <text class="mini" x="946" y="258">vsq_matmul_engine · 16 lanes</text>
+  <text class="mini" x="946" y="273">FP4 dot16 + CSD + latch array</text>
+
+  <rect class="sub" x="1210" y="215" width="260" height="65" rx="6"/>
+  <text class="label-b" x="1226" y="240">softmax + rescale</text>
+  <text class="mini" x="1226" y="258">exp-free · log2/8 · online m/l</text>
+  <text class="mini" x="1226" y="273">P code + block scale + resc sideband</text>
+
+  <rect class="sub" x="1210" y="300" width="260" height="45" rx="6"/>
+  <text class="label-b" x="1226" y="321">p_fifo</text>
+  <text class="mini" x="1226" y="337">P packet + query/rescale sideband</text>
+
+  <rect class="sub" x="930" y="310" width="240" height="60" rx="6"/>
+  <text class="label-b" x="946" y="334">FP norm &amp; round</text>
+  <text class="mini" x="946" y="352">final_normalizer · 1/l · FP16 16 lanes</text>
+
+  <rect class="sub" x="1210" y="370" width="260" height="50" rx="6"/>
+  <text class="label-b" x="1226" y="392">log quantizer</text>
+  <text class="mini" x="1226" y="408">slq_encoder · FP16 → 72b FP4 packet</text>
+
+  <!-- Core internal flows -->
+  <path class="flow-g" d="M1170,247 H1210"/>
+  <text class="label" x="1176" y="240">S</text>
+  <path class="flow-g" d="M1340,280 V300"/>
+  <text class="label" x="1348" y="294">P</text>
+  <path class="flow-g" d="M1210,322 H1185 V280 H1170"/>
+  <text class="label" x="1135" y="300">P → act mux</text>
+  <path class="flow-g" d="M1050,280 V310"/>
+  <path class="flow-g" d="M1170,340 H1210"/>
+  <text class="label" x="1176" y="333">FP16</text>
+  <path class="flow-g" d="M1470,395 H1500"/>
+  <text class="label" x="1476" y="388">FP4</text>
+
+  <!-- Core inputs from streamers -->
+  <path class="flow" d="M340,595 H850 V320 H900"/>
+  <text class="label" x="700" y="590">ext_act 72b</text>
+  <path class="flow" d="M340,705 H850 V370 H900"/>
+  <text class="label" x="700" y="700">wt_in[16] 72b</text>
+
+  <!-- Status from core to CSR/seq -->
+  <path class="status" d="M1200,150 V135 H360 V430"/>
+  <text class="label" x="720" y="128">p_fifo_empty/full/almost · l_ready · core_fp16_valid (status)</text>
+  <path class="status" d="M360,245 H340"/>
+  <path class="status" d="M360,430 H340"/>
+
+  <!-- ======================= FP4 SKID ======================= -->
+  <rect class="node vpath" x="1280" y="520" width="180" height="70" rx="10"/>
+  <text class="title" x="1298" y="546">FP4 skid</text>
+  <text class="subtitle" x="1298" y="565">72b × 16</text>
+  <text class="mini" x="1298" y="581">core_fp4 → write_out</text>
+
+  <path class="flow-g" d="M1500,395 H1520 V540 H1460"/>
+  <text class="label" x="1530" y="470" transform="rotate(90 1530 470)">FP4 72b</text>
+  <path class="flow-o" d="M1280,555 H1240 V840 H340"/>
+  <text class="label" x="1246" y="760" transform="rotate(90 1246 760)">FP4 → write_out</text>
+
+  <!-- ready gap -->
+  <path class="gap" d="M1460,555 H1490 V610"/>
+  <text class="gap-text" x="1498" y="586">ready → NC</text>
+  <circle cx="1490" cy="610" r="5" fill="#fff" stroke="#b91c1c" stroke-width="2"/>
+
+  <!-- ======================= CORE FP16 PATHS ======================= -->
+  <path class="flow-g" d="M1500,340 H1560 V820 H340"/>
+  <text class="label" x="1568" y="650" transform="rotate(90 1568 650)">core_fp16 256b → wo (wo_fp16_valid)</text>
+
+  <path class="flow-g" d="M1500,360 H1600 V950 H340"/>
+  <text class="label" x="1608" y="760" transform="rotate(90 1608 760)">core_fp16 256b → V path (v_busy)</text>
+
+  <!-- ======================= STATUS LOGIC ======================= -->
+  <rect class="node ctrl" x="1260" y="870" width="300" height="105" rx="10"/>
+  <text class="title" x="1278" y="896">busy / done</text>
+  <text class="mini" x="1278" y="916">seq mode: busy = seq | v</text>
+  <text class="mini" x="1278" y="933">direct  : busy = act | wt | wo | v</text>
+  <text class="mini" x="1278" y="950">done    = seq_done | v_done</text>
+  <text class="gap-text" x="1278" y="968">wo_busy / fp4_skid not included</text>
+
+  <!-- ======================= LEGEND ======================= -->
+  <g class="legend" transform="translate(40,1035)">
+    <text x="0" y="0" class="label-b">Legend</text>
+    <line x1="0" y1="14" x2="38" y2="14" class="flow"/><text x="46" y="18">data / config</text>
+    <line x1="190" y1="14" x2="228" y2="14" class="status"/><text x="236" y="18">status / valid</text>
+    <line x1="370" y1="14" x2="408" y2="14" class="gap"/><text x="416" y="18">known gap / unconnected</text>
+    <rect x="620" y="4" width="16" height="16" rx="3" class="host"/><text x="644" y="18">host/control</text>
+    <rect x="760" y="4" width="16" height="16" rx="3" class="stream"/><text x="784" y="18">streamer</text>
+    <rect x="880" y="4" width="16" height="16" rx="3" class="mem"/><text x="904" y="18">TCDM/xbar</text>
+    <rect x="1000" y="4" width="16" height="16" rx="3" class="core"/><text x="1024" y="18">core datapath</text>
+    <rect x="1140" y="4" width="16" height="16" rx="3" class="vpath"/><text x="1164" y="18">V/FP4 path</text>
+  </g>
+</svg>
+</div>
+
+<section class="notes">
+  <h2>Top-level notes</h2>
+  <ul>
+    <li><span class="pill">P0</span> <b>FP4 backpressure missing:</b> <code>u_fp4_skid.ready</code> is not connected; core/SLQ has no <code>out_vec_fp4_ready_i</code>. A full skid drops packets.</li>
+    <li><span class="pill">P0</span> <b>FP16 backpressure missing:</b> <code>write_out.core_out_fp16_ready_o</code> and <code>v_quant_path.core_out_fp16_ready_o</code> are unconnected; core has no <code>out_vec_fp16_ready_i</code>. FP16 write-out takes 4 cycles/vector; V path only accepts in GATHER.</li>
+    <li><span class="pill">P0</span> <b>Done/busy:</b> sequencer mode <code>busy = seq | v</code>, <code>done = seq_done | v_done</code>; <code>wo_busy</code> and <code>fp4_skid_valid</code> are not included, so the host can read OUT early.</li>
+    <li><span class="pill">P0</span> <b>WT streamer credit:</b> <code>snax_streamer_wt_16ch</code> lacks the outstanding-read credit that <code>act_bcast</code> has; DRAIN only waits for skid empty.</li>
+    <li><span class="pill">P1</span> <b>Sequencer:</b> <code>QK_ACT_DRAIN</code> hardcodes 2 K-blocks (<code>kb &lt; 1</code>) instead of <code>K_BLOCKS-1</code>; <code>p_fifo_almost_full</code> and <code>l_ready</code> are not used.</li>
+    <li><span class="pill">P1</span> <b>V path:</b> gathers 16 tokens, while <code>M_Q=8</code>; it needs 2 query tiles or a batch/ready protocol. <code>v_start</code> is CSR-only, not sequenced.</li>
+    <li><span class="pill">P1</span> <b>Legacy tops:</b> <code>snax_llm_top</code> + <code>snax_llm_shell</code> are 18-master, static-address, no V path; do not use as the integrated top.</li>
+    <li><b>Compile:</b> new top 0 errors / 16 warnings; core TB 0 errors / 7 warnings. <code>vsim</code> currently exits before log even for the known-good skid TB — environment/license issue, not RTL mismatch.</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

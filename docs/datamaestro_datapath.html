@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataMaestro — Datapath của các circuit chính</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --ink:#1b2430; --muted:#5c6878;
+    --line:#2b3440;
+    --read:#2f6fb5; --read-bg:#e8f1fb; --read-soft:#f5faff;
+    --write:#c26a2e; --write-bg:#fdeee3; --write-soft:#fff9f4;
+    --data:#2e7d4f; --data-bg:#e8f6ec;
+    --mem:#a97b0b; --mem-bg:#fdf2d0;
+    --cfg:#7b4fa0; --cfg-bg:#f3e8f8;
+    --fifo:#5b4b8a; --fifo-bg:#ede9f7;
+    --border:#dde4ec;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55}
+  .wrap{max-width:1340px;margin:0 auto;padding:28px 22px 72px}
+  .hero{background:linear-gradient(135deg,#0f2740 0%,#1d4d78 55%,#2f6fb5 100%);color:#fff;border-radius:18px;padding:32px 36px;box-shadow:0 14px 34px rgba(15,39,64,.20)}
+  .hero h1{margin:0 0 8px;font-size:30px;line-height:1.2;letter-spacing:-.3px}
+  .hero p{margin:0;color:#d7e6f5;max-width:1000px}
+  .hero .meta{margin-top:14px;font-size:13px;color:#bcd4ea}
+  .hero .meta a{color:#fff;text-decoration:underline;text-underline-offset:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:18px;font-size:12.5px;color:#eaf3fb}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:26px;height:0;border-top:4px solid #fff;border-radius:2px;display:inline-block}
+  .swatch.read{border-color:#8fc2f5}.swatch.write{border-color:#f3b07a}.swatch.data{border-color:#8ed3a6}.swatch.cfg{border-color:#d6b6ee;border-top-style:dashed}
+  .swatch.box{height:12px;border:1.5px solid #fff;border-top-width:1.5px;background:rgba(255,255,255,.14)}
+  .toc{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 8px}
+  .toc a{display:inline-block;padding:7px 12px;border-radius:999px;background:#fff;border:1px solid var(--border);color:#26364a;text-decoration:none;font-size:13px;font-weight:600}
+  .toc a:hover{border-color:#9bb8d8;background:#f8fbff}
+  section{margin:34px 0 0}
+  h2{font-size:22px;margin:0 0 6px;letter-spacing:-.2px}
+  h2 .num{color:var(--read);font-variant-numeric:tabular-nums}
+  .lede{margin:0 0 14px;color:var(--muted);max-width:1050px}
+  .diagram{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px;box-shadow:0 8px 26px rgba(27,36,48,.06);overflow-x:auto}
+  .diagram svg{display:block;width:100%;height:auto;min-width:960px}
+  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:0 4px 14px rgba(27,36,48,.04)}
+  .card h3{margin:0 0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:#38506b}
+  .card ul{margin:0;padding-left:18px}
+  .card li{margin:5px 0}
+  .card p{margin:0 0 8px}
+  .pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11.5px;font-weight:700;letter-spacing:.2px;vertical-align:1px}
+  .pill.read{background:var(--read-bg);color:#1d4e85}.pill.write{background:var(--write-bg);color:#8a4318}.pill.data{background:var(--data-bg);color:#1f5e39}.pill.cfg{background:var(--cfg-bg);color:#5a327a}.pill.mem{background:var(--mem-bg);color:#7a5700}
+  .tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:13.5px}
+  .tbl th,.tbl td{padding:9px 12px;border-bottom:1px solid #e9eef4;text-align:left;vertical-align:top}
+  .tbl th{background:#f2f6fb;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#40566f}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:12.5px}
+  .formula{background:#0f2740;color:#eaf4ff;border-radius:12px;padding:14px 18px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px;overflow-x:auto}
+  .formula .cm{color:#9fc3e8}
+  .callout{border-left:4px solid var(--read);background:#f3f8fe;border-radius:0 12px 12px 0;padding:12px 16px;margin:14px 0;color:#243b55}
+  .callout.warn{border-left-color:var(--write);background:#fff7f1}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+  /* SVG primitives */
+  svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;fill:#1b2430}
+  .c{text-anchor:middle;dominant-baseline:middle}
+  .l{text-anchor:start;dominant-baseline:middle}
+  .r{text-anchor:end;dominant-baseline:middle}
+  .b{font-weight:700}
+  .h2s{font-size:20px;font-weight:750;letter-spacing:-.2px}
+  .sub{font-size:12px;fill:#5c6878}
+  .small{font-size:11.5px;fill:#40566f}
+  .tiny{font-size:10px;fill:#5c6878}
+  .mono-s{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10.5px}
+  .node rect{stroke-width:1.6}
+  .node.read rect{fill:#fff;stroke:var(--read)}
+  .node.readb rect{fill:var(--read-bg);stroke:var(--read)}
+  .node.write rect{fill:#fff;stroke:var(--write)}
+  .node.writeb rect{fill:var(--write-bg);stroke:var(--write)}
+  .node.data rect{fill:#fff;stroke:var(--data)}
+  .node.datab rect{fill:var(--data-bg);stroke:var(--data)}
+  .node.mem rect{fill:var(--mem-bg);stroke:var(--mem)}
+  .node.cfg rect{fill:var(--cfg-bg);stroke:var(--cfg);stroke-dasharray:5 4}
+  .node.fifo rect{fill:var(--fifo-bg);stroke:var(--fifo)}
+  .node.ext rect{fill:#e6f4f1;stroke:#2a7f7a}
+  .wire{fill:none;stroke:var(--line);stroke-width:1.7;stroke-linejoin:round;stroke-linecap:round}
+  .wire.read{stroke:var(--read)}
+  .wire.write{stroke:var(--write)}
+  .wire.data{stroke:var(--data);stroke-width:2.6}
+  .wire.cfg{stroke:var(--cfg);stroke-dasharray:6 5}
+  .wire.gray{stroke:#6b7787;stroke-dasharray:5 4}
+  .wire.bus{stroke-width:4.5}
+  .wire.thin{stroke-width:1.2}
+  @media print{
+    body{background:#fff}.wrap{max-width:none;padding:0}.hero{box-shadow:none}.diagram{break-inside:avoid;box-shadow:none}.toc{display:none}section{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2b3440"/></marker>
+    <marker id="a-read" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2f6fb5"/></marker>
+    <marker id="a-write" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c26a2e"/></marker>
+    <marker id="a-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2e7d4f"/></marker>
+    <marker id="a-cfg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7b4fa0"/></marker>
+    <marker id="a-mem" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a97b0b"/></marker>
+    <marker id="a-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7787"/></marker>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#d9e2ec" stroke-width="2"/></pattern>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="hero">
+    <h1>DataMaestro — Datapath của các circuit chính</h1>
+    <p>Sơ đồ tái dựng từ paper <b>DataMaestro: A Versatile and Efficient Data Streaming Engine</b> (arXiv:2504.14091v2). Mục tiêu: nhìn rõ luồng địa chỉ, luồng dữ liệu, luồng điều khiển và các điểm cấu hình runtime của engine streaming này.</p>
+    <div class="meta">Nguồn: KU Leuven MICAS + INESC-ID/IST · 7 trang · Fig. 2, 4, 5 · trang 2–5 của PDF · mã nguồn: <span class="mono">KULeuven-MICAS/snax_cluster</span></div>
+    <div class="legend">
+      <span><i class="swatch read"></i>Read / access stream</span>
+      <span><i class="swatch write"></i>Write stream</span>
+      <span><i class="swatch data"></i>Data stream</span>
+      <span><i class="swatch cfg"></i>Control / config (dashed)</span>
+      <span><i class="swatch box"></i>FIFO / buffer</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#overview">1 · Toàn cảnh</a>
+    <a href="#agu">2 · AGU N-D</a>
+    <a href="#mic-read">3 · Read MIC + ORM</a>
+    <a href="#mic-write">4 · Write MIC</a>
+    <a href="#remapper">5 · Address remapper</a>
+    <a href="#extension">6 · Datapath extension</a>
+    <a href="#glossary">7 · Tín hiệu &amp; tham số</a>
+  </nav>
+
+  <section id="overview">
+    <h2><span class="num">1.</span> Toàn cảnh datapath: memory ↔ DataMaestro ↔ accelerator</h2>
+    <p class="lede">DataMaestro được đặt giữa scratchpad đa bank và accelerator datapath. Read DataMaestro gom dữ liệu rải rác trong memory thành một wide stream; Write DataMaestro làm ngược lại. Mỗi engine có <span class="mono">N_C</span> channel độc lập, mỗi channel là một MIC + data FIFO; AGU sinh địa chỉ N-D cho toàn bộ channel.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 820" role="img" aria-label="DataMaestro system datapath overview">
+        <rect width="1280" height="820" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">DataMaestro system datapath</text>
+        <text x="28" y="56" class="sub">Một read engine và một write engine; mỗi engine được nhân bản N_R / N_W lần trong hệ thống</text>
+
+        <!-- memory -->
+        <g class="node mem" transform="translate(190,80)">
+          <rect width="900" height="58" rx="9"/>
+          <text x="450" y="23" class="c b">Scratchpad: N_BF banks × W_B</text>
+          <text x="450" y="43" class="c small">multi-banked on-chip memory</text>
+        </g>
+        <g stroke="#a97b0b" stroke-width="1" opacity=".55">
+          <line x1="250" y1="80" x2="250" y2="138"/><line x1="310" y1="80" x2="310" y2="138"/>
+          <line x1="370" y1="80" x2="370" y2="138"/><line x1="430" y1="80" x2="430" y2="138"/>
+          <line x1="490" y1="80" x2="490" y2="138"/><line x1="550" y1="80" x2="550" y2="138"/>
+          <line x1="610" y1="80" x2="610" y2="138"/><line x1="670" y1="80" x2="670" y2="138"/>
+          <line x1="730" y1="80" x2="730" y2="138"/><line x1="790" y1="80" x2="790" y2="138"/>
+          <line x1="850" y1="80" x2="850" y2="138"/><line x1="910" y1="80" x2="910" y2="138"/>
+          <line x1="970" y1="80" x2="970" y2="138"/><line x1="1030" y1="80" x2="1030" y2="138"/>
+        </g>
+        <g class="node mem" transform="translate(190,150)">
+          <rect width="900" height="44" rx="9"/>
+          <text x="450" y="22" class="c b">Interleaved crossbar</text>
+        </g>
+        <text x="1105" y="173" class="tiny">any channel → any bank</text>
+
+        <!-- read DM outer -->
+        <g class="node read" transform="translate(50,230)">
+          <rect width="540" height="420" rx="15" fill="#f7fbff"/>
+          <text x="18" y="25" class="l b">READ DataMaestro  ×N_R</text>
+          <text x="18" y="44" class="l small">address → memory → data stream</text>
+        </g>
+        <!-- read channels -->
+        <g class="node readb" transform="translate(70,285)">
+          <rect width="360" height="145" rx="11"/>
+          <text x="12" y="20" class="l b">N_C channels</text>
+          <text x="348" y="20" class="r small">MIC + FIFO</text>
+        </g>
+        <g class="node read" transform="translate(85,320)"><rect width="98" height="85" rx="7"/><text x="49" y="30" class="c b">Ch 1</text><text x="49" y="52" class="c small">MIC</text><text x="49" y="69" class="c small">FIFO</text></g>
+        <g class="node read" transform="translate(198,320)"><rect width="98" height="85" rx="7"/><text x="49" y="30" class="c b">Ch 2</text><text x="49" y="52" class="c small">MIC</text><text x="49" y="69" class="c small">FIFO</text></g>
+        <g class="node read" transform="translate(311,320)"><rect width="98" height="85" rx="7"/><text x="49" y="30" class="c b">Ch N_C</text><text x="49" y="52" class="c small">MIC</text><text x="49" y="69" class="c small">FIFO</text></g>
+        <text x="381" y="368" class="tiny">…</text>
+        <!-- read gather + ext -->
+        <g class="node data" transform="translate(70,455)"><rect width="360" height="36" rx="8"/><text x="180" y="19" class="c b">N_C → 1 gather  ·  W_B·N_C</text></g>
+        <g class="node ext" transform="translate(70,508)"><rect width="360" height="38" rx="8"/><text x="180" y="20" class="c b">optional datapath extensions</text></g>
+        <path class="wire read" d="M250,430 V455" marker-end="url(#a-read)"/>
+        <path class="wire data" d="M250,491 V508" marker-end="url(#a-data)"/>
+        <path class="wire data" d="M250,546 V575 H530 V650" marker-end="url(#a-data)"/>
+        <text x="270" y="566" class="small">read data stream</text>
+
+        <!-- read AGU -->
+        <g class="node data" transform="translate(450,310)"><rect width="105" height="105" rx="9" fill="#e8f6ec"/><text x="52" y="42" class="c b">AGU</text><text x="52" y="62" class="c small">N-D affine</text><text x="52" y="80" class="c tiny">D_t + D_s loops</text></g>
+        <path class="wire read" d="M450,350 H430" marker-end="url(#a-read)"/>
+        <text x="360" y="276" class="tiny mono-s">N_C SA</text>
+        <path class="wire gray" d="M430,295 H450 V310" marker-end="url(#a-gray)"/>
+        <text x="432" y="287" class="tiny">QR</text>
+
+        <!-- read <-> crossbar -->
+        <path class="wire read bus" d="M312,285 V194" marker-end="url(#a-read)"/>
+        <path class="wire read" d="M330,194 V285" marker-end="url(#a-read)"/>
+        <text x="270" y="235" class="small">Req</text>
+        <text x="338" y="250" class="small">Rsp</text>
+
+        <!-- write DM outer -->
+        <g class="node write" transform="translate(700,230)">
+          <rect width="540" height="420" rx="15" fill="#fff9f4"/>
+          <text x="18" y="25" class="l b">WRITE DataMaestro  ×N_W</text>
+          <text x="18" y="44" class="l small">data stream → memory</text>
+        </g>
+        <!-- write ext + split + channels -->
+        <g class="node ext" transform="translate(720,270)"><rect width="360" height="34" rx="8"/><text x="180" y="18" class="c b">optional datapath extensions</text></g>
+        <g class="node data" transform="translate(720,315)"><rect width="360" height="34" rx="8"/><text x="180" y="18" class="c b">1 → N_C split  ·  W_B per channel</text></g>
+        <g class="node writeb" transform="translate(720,360)">
+          <rect width="360" height="100" rx="11"/>
+          <text x="12" y="18" class="l b">N_C channels</text>
+          <text x="348" y="18" class="r small">MIC + FIFO</text>
+        </g>
+        <g class="node write" transform="translate(735,385)"><rect width="98" height="58" rx="7"/><text x="49" y="24" class="c b">Ch 1</text><text x="49" y="43" class="c small">MIC/FIFO</text></g>
+        <g class="node write" transform="translate(848,385)"><rect width="98" height="58" rx="7"/><text x="49" y="24" class="c b">Ch 2</text><text x="49" y="43" class="c small">MIC/FIFO</text></g>
+        <g class="node write" transform="translate(961,385)"><rect width="98" height="58" rx="7"/><text x="49" y="24" class="c b">Ch N_C</text><text x="49" y="43" class="c small">MIC/FIFO</text></g>
+        <text x="1070" y="414" class="tiny">…</text>
+        <path class="wire data" d="M900,304 V315" marker-end="url(#a-data)"/>
+        <path class="wire write" d="M900,349 V360" marker-end="url(#a-write)"/>
+        <!-- write AGU -->
+        <g class="node data" transform="translate(1110,360)"><rect width="110" height="95" rx="9" fill="#e8f6ec"/><text x="55" y="38" class="c b">AGU</text><text x="55" y="58" class="c small">N-D affine</text><text x="55" y="75" class="c tiny">addresses</text></g>
+        <path class="wire write" d="M1110,430 H1080" marker-end="url(#a-write)"/>
+        <text x="1092" y="470" class="tiny mono-s">N_C SA</text>
+        <path class="wire gray" d="M1080,380 H1110" marker-end="url(#a-gray)"/>
+        <text x="1082" y="398" class="tiny">QR</text>
+
+        <!-- write <-> crossbar -->
+        <path class="wire write bus" d="M952,360 H1105 V194" marker-end="url(#a-write)"/>
+        <path class="wire write" d="M1085,194 V410 H1059" marker-end="url(#a-write)"/>
+        <text x="930" y="250" class="small">Wr req</text>
+        <text x="1094" y="300" class="small">ack</text>
+
+        <!-- accelerator -> write DM -->
+        <path class="wire write" d="M800,650 V600 H690 V287 H720" marker-end="url(#a-write)"/>
+        <text x="700" y="590" class="small">write data stream</text>
+
+        <!-- accelerator -->
+        <g class="node data" transform="translate(400,650)">
+          <rect width="480" height="100" rx="13"/>
+          <text x="240" y="27" class="c b">Dataflow accelerator datapath</text>
+          <text x="240" y="46" class="c small">GeMM / Quantization (ví dụ trong paper)</text>
+          <g transform="translate(90,62)">
+            <rect x="0" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="17" y="13" class="c tiny">×+</text>
+            <rect x="42" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="59" y="13" class="c tiny">×+</text>
+            <rect x="84" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="101" y="13" class="c tiny">×+</text>
+            <rect x="126" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="143" y="13" class="c tiny">×+</text>
+            <rect x="168" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="185" y="13" class="c tiny">×+</text>
+            <rect x="210" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="227" y="13" class="c tiny">×+</text>
+            <rect x="252" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="269" y="13" class="c tiny">×+</text>
+            <rect x="294" y="0" width="34" height="25" rx="4" fill="#dff0e5" stroke="#2e7d4f"/><text x="311" y="13" class="c tiny">×+</text>
+          </g>
+        </g>
+
+        <!-- config bus -->
+        <g class="node cfg" transform="translate(50,650)">
+          <rect width="300" height="100" rx="12"/>
+          <text x="150" y="27" class="c b">Runtime config / compiler</text>
+          <text x="150" y="50" class="c small mono-s">AddrB · B_t · S_t · B_s · S_s · RS</text>
+          <text x="150" y="69" class="c small mono-s">D_Pext enable · FIFO credits</text>
+          <text x="150" y="86" class="c tiny">design-time: D_t, D_s, N_C, N_BF, N_BG, W_B</text>
+        </g>
+        <path class="wire cfg" d="M200,650 V610 H500 V415" marker-end="url(#a-cfg)"/>
+        <path class="wire cfg" d="M500,610 H1170 V455" marker-end="url(#a-cfg)"/>
+        <text x="250" y="602" class="tiny">cfg bus (runtime); QR = QueueReady</text>
+
+        <!-- legend -->
+        <g transform="translate(940,650)">
+          <rect width="290" height="100" rx="11" fill="#fff" stroke="#dde4ec"/>
+          <text x="14" y="20" class="l b small">Chú thích</text>
+          <line x1="16" y1="39" x2="52" y2="39" class="wire read" marker-end="url(#a-read)"/><text x="62" y="39" class="l small">read / access</text>
+          <line x1="16" y1="58" x2="52" y2="58" class="wire write" marker-end="url(#a-write)"/><text x="62" y="58" class="l small">write</text>
+          <line x1="16" y1="77" x2="52" y2="77" class="wire data" marker-end="url(#a-data)"/><text x="62" y="77" class="l small">data</text>
+          <line x1="170" y1="39" x2="206" y2="39" class="wire cfg" marker-end="url(#a-cfg)"/><text x="216" y="39" class="l small">control</text>
+          <rect x="170" y="52" width="36" height="14" rx="3" fill="var(--fifo-bg)" stroke="var(--fifo)"/><text x="216" y="59" class="l small">FIFO</text>
+          <rect x="170" y="70" width="36" height="14" rx="3" fill="#e6f4f1" stroke="#2a7f7a"/><text x="216" y="77" class="l small">extension</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Luồng địa chỉ</h3><ul>
+        <li>AGU sinh <b>1 temporal address (TA)</b> mỗi cycle và <b>N_C spatial addresses (SA)</b> song song.</li>
+        <li>Mỗi channel nhận một SA, đi qua address FIFO rồi vào MIC.</li>
+        <li>Stride và temporal bounds là cấu hình runtime, nên cùng hardware phục vụ GeMM, transposed GeMM và convolution.</li>
+      </ul></div>
+      <div class="card"><h3>Luồng dữ liệu</h3><ul>
+        <li>Read: bank → crossbar → MIC → data FIFO → gather <span class="mono">N_C → 1</span> → extension → accelerator.</li>
+        <li>Write: accelerator → extension → split <span class="mono">1 → N_C</span> → FIFO → MIC → crossbar → bank.</li>
+        <li>Gather/split chính là chỗ biến nhiều access hẹp thành một wide stream (hoặc ngược lại).</li>
+      </ul></div>
+      <div class="card"><h3>Vì sao tách read/write?</h3><ul>
+        <li>Read và write có timing, backpressure và độ sâu FIFO khác nhau; tách ra để tối ưu từng port.</li>
+        <li>Mỗi engine có tham số design-time riêng (<span class="mono">N_C, D_DBf, D_ABf, D_Pext</span>), nên 5 instance A–E trong paper có diện tích/rubro khác nhau.</li>
+        <li>Đây là điểm tạo nên khả năng "reusable" so với các DMA cố định.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="agu">
+    <h2><span class="num">2.</span> AGU: N-D affine address generation</h2>
+    <p class="lede">AGU là nơi DataMaestro biến một cấu hình vòng lặp N-D thành chuỗi địa chỉ. Mỗi dimension temporal có hai counter: <b>Bound Counter</b> giữ loop index, <b>Stride Counter</b> cộng dồn offset. Các offset được cộng bằng adder tree với base address; spatial AGU sinh đồng thời <span class="mono">N_C</span> địa chỉ cho các channel.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 800" role="img" aria-label="DataMaestro AGU datapath">
+        <rect width="1280" height="800" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">Address Generation Unit (AGU)</text>
+        <text x="28" y="56" class="sub">Temporal: 1 địa chỉ/cycle · Spatial: N_C địa chỉ/cycle · affine access pattern</text>
+
+        <!-- config -->
+        <g class="node cfg" transform="translate(30,90)">
+          <rect width="230" height="280" rx="12"/>
+          <text x="115" y="25" class="c b">Runtime + design config</text>
+          <text x="16" y="58" class="l mono-s">AddrB</text><text x="214" y="58" class="r tiny">RT</text>
+          <text x="16" y="84" class="l mono-s">S_t[1..D_t]</text><text x="214" y="84" class="r tiny">RT</text>
+          <text x="16" y="110" class="l mono-s">B_t[1..D_t]</text><text x="214" y="110" class="r tiny">RT</text>
+          <text x="16" y="136" class="l mono-s">S_s[1..D_s]</text><text x="214" y="136" class="r tiny">RT</text>
+          <text x="16" y="162" class="l mono-s">B_s[1..D_s]</text><text x="214" y="162" class="r tiny">DT</text>
+          <text x="16" y="188" class="l mono-s">RS</text><text x="214" y="188" class="r tiny">RT</text>
+          <text x="16" y="214" class="l mono-s">start / enable</text><text x="214" y="214" class="r tiny">RT</text>
+          <text x="115" y="248" class="c tiny">RT = runtime; DT = design-time</text>
+          <text x="115" y="264" class="c tiny">D_t, D_s, N_C: design-time</text>
+        </g>
+
+        <!-- temporal AGU -->
+        <rect x="290" y="90" width="580" height="390" rx="14" fill="#f4faf1" stroke="#2e7d4f" stroke-dasharray="3 4"/>
+        <text x="310" y="116" class="l b" fill="#1f5e39">Temporal AGU · D_t dimensions · 1 TA/cycle</text>
+
+        <!-- stage 1 -->
+        <g class="node data" transform="translate(310,140)">
+          <rect width="230" height="85" rx="8"/>
+          <text x="115" y="18" class="c b">Stride Counter 1</text>
+          <circle cx="45" cy="58" r="14" fill="#fff" stroke="#2e7d4f"/><text x="45" y="58" class="c b">+</text>
+          <rect x="92" y="43" width="55" height="30" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/><text x="119" y="58" class="c small">REG</text>
+          <path class="wire data thin" d="M59,58 H92" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M147,58 H205" marker-end="url(#a-data)"/>
+          <text x="180" y="48" class="tiny">off_t[1]</text>
+          <text x="18" y="78" class="tiny">offset += S_t[1]</text>
+        </g>
+        <g class="node data" transform="translate(560,140)">
+          <rect width="280" height="85" rx="8"/>
+          <text x="140" y="18" class="c b">Bound Counter 1</text>
+          <circle cx="45" cy="55" r="13" fill="#fff" stroke="#2e7d4f"/><text x="45" y="55" class="c b">+1</text>
+          <rect x="90" y="40" width="55" height="30" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/><text x="117" y="55" class="c small">REG</text>
+          <path class="wire data thin" d="M58,55 H90" marker-end="url(#a-data)"/>
+          <text x="165" y="55" class="small">index &lt; B_t[1]</text>
+          <path class="wire data thin" d="M145,55 H160" marker-end="url(#a-data)"/>
+          <text x="205" y="80" class="tiny">overflow_1</text>
+        </g>
+        <text x="300" y="180" class="tiny">enable_1</text>
+        <path class="wire cfg thin" d="M260,180 H310" marker-end="url(#a-cfg)"/>
+        <text x="850" y="180" class="tiny">B_t[1]</text>
+        <path class="wire cfg thin" d="M880,180 H840" marker-end="url(#a-cfg)"/>
+
+        <!-- stage 2 -->
+        <g class="node data" transform="translate(310,250)">
+          <rect width="230" height="65" rx="8"/>
+          <text x="115" y="22" class="c b">Stride Counter 2</text>
+          <text x="115" y="44" class="c small">offset += S_t[2]</text>
+        </g>
+        <g class="node data" transform="translate(560,250)">
+          <rect width="280" height="65" rx="8"/>
+          <text x="140" y="22" class="c b">Bound Counter 2</text>
+          <text x="140" y="44" class="c small">index &lt; B_t[2]</text>
+        </g>
+        <path class="wire gray thin" d="M840,225 H860 V282 H840" marker-end="url(#a-gray)"/>
+        <text x="866" y="260" class="tiny">enable_2</text>
+        <text x="850" y="290" class="tiny">B_t[2]</text>
+        <path class="wire cfg thin" d="M880,290 H840" marker-end="url(#a-cfg)"/>
+        <text x="840" y="338" class="c small">···</text>
+
+        <!-- stage Dt -->
+        <g class="node data" transform="translate(310,370)">
+          <rect width="230" height="65" rx="8"/>
+          <text x="115" y="22" class="c b">Stride Counter D_t</text>
+          <text x="115" y="44" class="c small">offset += S_t[D_t]</text>
+        </g>
+        <g class="node data" transform="translate(560,370)">
+          <rect width="280" height="65" rx="8"/>
+          <text x="140" y="22" class="c b">Bound Counter D_t</text>
+          <text x="140" y="44" class="c small">index &lt; B_t[D_t]</text>
+        </g>
+        <path class="wire gray thin" d="M840,315 H860 V390 H840" marker-end="url(#a-gray)"/>
+        <text x="866" y="382" class="tiny">enable_Dt</text>
+        <text x="850" y="412" class="tiny">B_t[D_t]</text>
+        <path class="wire cfg thin" d="M880,412 H840" marker-end="url(#a-cfg)"/>
+        <path class="wire gray thin" d="M840,435 H900" marker-end="url(#a-gray)"/>
+        <text x="906" y="435" class="small">Finish</text>
+
+        <!-- adder tree -->
+        <g class="node data" transform="translate(310,500)">
+          <rect width="540" height="45" rx="8"/>
+          <text x="270" y="24" class="c b">Adder tree: Σ off_t[i] + AddrB</text>
+        </g>
+        <path class="wire data bus" d="M425,435 V500" marker-end="url(#a-data)"/>
+        <text x="432" y="470" class="tiny">off_t[1..D_t]</text>
+        <path class="wire cfg thin" d="M260,150 H280 V522 H310" marker-end="url(#a-cfg)"/>
+        <text x="288" y="516" class="tiny">AddrB</text>
+        <path class="wire data" d="M580,545 V580" marker-end="url(#a-data)"/>
+        <text x="590" y="565" class="small">TA</text>
+
+        <!-- queue ready -->
+        <path class="wire gray" d="M905,100 V120 H870 V140" marker-end="url(#a-gray)"/>
+        <text x="872" y="112" class="tiny">QR</text>
+
+        <!-- spatial AGU -->
+        <rect x="290" y="580" width="580" height="150" rx="14" fill="#f4faf1" stroke="#2e7d4f" stroke-dasharray="3 4"/>
+        <text x="310" y="606" class="l b" fill="#1f5e39">Spatial AGU · D_s dimensions · N_C SA/cycle</text>
+        <g class="node data" transform="translate(320,630)"><rect width="110" height="55" rx="8"/><text x="55" y="22" class="c b">× S_s[1]</text><text x="55" y="42" class="c small">+ index</text></g>
+        <g class="node data" transform="translate(450,630)"><rect width="110" height="55" rx="8"/><text x="55" y="22" class="c b">× S_s[2]</text><text x="55" y="42" class="c small">+ index</text></g>
+        <g class="node data" transform="translate(580,630)"><rect width="110" height="55" rx="8"/><text x="55" y="22" class="c b">× S_s[D_s]</text><text x="55" y="42" class="c small">+ index</text></g>
+        <path class="wire data thin" d="M430,657 H450" marker-end="url(#a-data)"/>
+        <path class="wire data thin" d="M560,657 H580" marker-end="url(#a-data)"/>
+        <path class="wire data" d="M690,657 H870" marker-end="url(#a-data)"/>
+        <text x="720" y="648" class="small">SA[0..N_C-1]</text>
+        <text x="500" y="710" class="c tiny">N_C parallel lanes · mỗi lane một spatial index</text>
+        <path class="wire cfg thin" d="M260,136 H275 V650 H320" marker-end="url(#a-cfg)"/>
+        <path class="wire cfg thin" d="M260,162 H285 V675 H320" marker-end="url(#a-cfg)"/>
+        <text x="228" y="646" class="tiny">S_s</text>
+        <text x="228" y="678" class="tiny">B_s</text>
+
+        <!-- remappers -->
+        <g class="node cfg" transform="translate(900,625)">
+          <rect width="300" height="75" rx="10"/>
+          <text x="150" y="26" class="c b">N_C address remappers</text>
+          <text x="150" y="48" class="c small">bank-bit permutation · mode RS</text>
+          <text x="150" y="64" class="c tiny">mỗi channel một remapper</text>
+        </g>
+        <path class="wire data" d="M870,657 H900" marker-end="url(#a-data)"/>
+        <path class="wire read" d="M1200,662 H1240" marker-end="url(#a-read)"/>
+        <text x="1202" y="680" class="tiny">to MIC</text>
+
+        <!-- formula panel -->
+        <g transform="translate(900,90)">
+          <rect width="340" height="210" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="26" class="l b">Affine address function</text>
+          <text x="16" y="54" class="l mono-s">Addr_c = AddrB</text>
+          <text x="16" y="74" class="l mono-s">  + Σ S_t[i] · x_t[i]</text>
+          <text x="16" y="94" class="l mono-s">  + Σ S_s[j] · x_s[j,c]</text>
+          <text x="16" y="124" class="l small">Temporal: tuần tự, 1 TA/cycle.</text>
+          <text x="16" y="144" class="l small">Spatial: song song, N_C SA/cycle.</text>
+          <text x="16" y="164" class="l small">Dims: design-time; spatial bounds: design-time.</text>
+          <text x="16" y="184" class="l tiny">S_t/B_t: runtime · B_s: design-time.</text>
+        </g>
+
+        <!-- example panel -->
+        <g transform="translate(900,330)">
+          <rect width="340" height="210" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="26" class="l b">Ví dụ Fig. 4(b): 4×4 GeMM / 2×2×2 PE</text>
+          <text x="16" y="52" class="l mono-s">D_t = 3, B_t = [2, 2, 2]</text>
+          <text x="16" y="72" class="l mono-s">S_t = [4, 0, 8]</text>
+          <text x="16" y="92" class="l mono-s">D_s = 2, B_s = [2, 2]</text>
+          <text x="16" y="112" class="l mono-s">S_s = [1, 2]</text>
+          <text x="16" y="132" class="l mono-s">AddrB = 0</text>
+          <text x="16" y="158" class="l small">S_t[2] = 0: dimension không đóng góp</text>
+          <text x="16" y="175" class="l small">offset, dùng cho broadcast/reuse.</text>
+          <text x="16" y="195" class="l tiny">Ta thu được 1 TA + 4 SA mỗi cycle.</text>
+        </g>
+
+        <!-- why panel -->
+        <g transform="translate(30,390)">
+          <rect width="230" height="180" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="24" class="l b">Vì sao dual-counter?</text>
+          <text x="16" y="50" class="l small">Single counter cần modulo/divider</text>
+          <text x="16" y="67" class="l small">và multiplier → critical path dài.</text>
+          <text x="16" y="90" class="l small">Bound Counter giữ loop index.</text>
+          <text x="16" y="107" class="l small">Stride Counter cộng dồn offset.</text>
+          <text x="16" y="124" class="l small">Adder tree cộng D_t offsets + base.</text>
+          <text x="16" y="150" class="l small">→ mạch ngắn, scale tuyến tính</text>
+          <text x="16" y="167" class="l small">theo số dimension.</text>
+        </g>
+        <g transform="translate(30,600)">
+          <rect width="230" height="130" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="24" class="l b">Overflow chain</text>
+          <text x="16" y="48" class="l small">Stage i+1 chỉ chạy khi</text>
+          <text x="16" y="65" class="l small">stage i overflow.</text>
+          <text x="16" y="88" class="l small">Finish = overflow của</text>
+          <text x="16" y="105" class="l small">Bound Counter D_t.</text>
+          <text x="16" y="122" class="l tiny">QueueReady backpressure từ MIC.</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Công thức</h3><p class="mono">Addr_c = AddrB + Σ<sub>i</sub> S_t[i]·x_t[i] + Σ<sub>j</sub> S_s[j]·x_s[j,c]</p><p><span class="pill read">TA</span> sinh tuần tự mỗi cycle; <span class="pill data">SA</span> sinh song song cho N_C channel.</p></div>
+      <div class="card"><h3>Điểm cần nhớ</h3><ul><li>Bound Counter = loop index, Stride Counter = offset accumulator.</li><li>Không dùng modulo/divider cho loop index.</li><li>Stride 0 là một cách biểu diễn broadcast/reuse.</li><li><code>B_s</code> là design-time; <code>B_t</code> và strides là runtime → cùng hardware, nhiều dataflow.</li></ul></div>
+      <div class="card"><h3>Đối chiếu Fig. 4</h3><ul><li>Ví dụ 4×4 GeMM trên PE array 2×2×2 dùng D_t=3, D_s=2.</li><li>TA chạy 0, 4, 8, 12…; SA thay đổi theo channel và cycle (Fig. 4c).</li><li>Đây là nền để hiểu vì sao DataMaestro phục vụ được cả GeMM và convolution.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="mic-read">
+    <h2><span class="num">3.</span> Read MIC: fine-grained prefetch và ORM</h2>
+    <p class="lede">Đây là circuit quan trọng nhất để đạt utilization cao. Mỗi channel tách một request rộng thành request hẹp, gửi đi ngay khi có địa chỉ, trong khi <b>Outstanding Request Manager (ORM)</b> giữ credit cho các request đang bay để data FIFO không bao giờ tràn.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 760" role="img" aria-label="DataMaestro read MIC datapath">
+        <rect width="1280" height="760" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">Read Memory Interface Controller (MIC)</text>
+        <text x="28" y="56" class="sub">Một channel trong N_C channel · fine-grained prefetch · credit-based flow control</text>
+
+        <!-- AGU -->
+        <g class="node data" transform="translate(40,190)">
+          <rect width="130" height="80" rx="9"/>
+          <text x="65" y="32" class="c b">AGU</text>
+          <text x="65" y="52" class="c small">N-D affine</text>
+          <text x="65" y="68" class="c tiny">1 SA / channel</text>
+        </g>
+        <!-- address FIFO -->
+        <g class="node fifo" transform="translate(210,195)">
+          <rect width="110" height="65" rx="8"/>
+          <text x="55" y="25" class="c b">Address FIFO</text>
+          <text x="55" y="45" class="c small">D_ABf · addr_w</text>
+          <text x="55" y="59" class="c tiny">decouple AGU ↔ MIC</text>
+        </g>
+        <path class="wire read" d="M170,230 H210" marker-end="url(#a-read)"/>
+        <text x="176" y="220" class="tiny">addr</text>
+        <path class="wire read" d="M320,227 H360" marker-end="url(#a-read)"/>
+
+        <!-- QueueReady -->
+        <path class="wire gray" d="M265,195 V160 H105 V190" marker-end="url(#a-gray)"/>
+        <text x="110" y="152" class="tiny">QueueReady</text>
+
+        <!-- RSC -->
+        <g class="node read" transform="translate(360,175)">
+          <rect width="170" height="105" rx="9"/>
+          <text x="85" y="27" class="c b">RSC</text>
+          <text x="85" y="47" class="c small">Request Side Controller</text>
+          <text x="85" y="70" class="c tiny">issue request ngay khi</text>
+          <text x="85" y="85" class="c tiny">có addr + credit</text>
+        </g>
+
+        <!-- crossbar -->
+        <g class="node mem" transform="translate(620,55)">
+          <rect width="560" height="60" rx="9"/>
+          <text x="280" y="25" class="c b">Interleaved crossbar</text>
+          <text x="280" y="45" class="c small">request routing + response return</text>
+        </g>
+        <path class="wire read" d="M470,175 V115 H700" marker-end="url(#a-read)"/>
+        <text x="505" y="108" class="small">ReqAddr / ReqValid</text>
+        <path class="wire read" d="M720,115 V150 H500 V175" marker-end="url(#a-read)"/>
+        <text x="560" y="143" class="tiny">ReqReady</text>
+
+        <!-- response -->
+        <path class="wire data" d="M820,115 V300" marker-end="url(#a-data)"/>
+        <text x="828" y="220" class="small">RspData / RspValid</text>
+        <path class="wire read" d="M860,300 V115" marker-end="url(#a-read)"/>
+        <text x="868" y="270" class="tiny">RspReady</text>
+
+        <!-- data FIFO -->
+        <g class="node fifo" transform="translate(720,300)">
+          <rect width="220" height="120" rx="9"/>
+          <text x="110" y="26" class="c b">Data FIFO</text>
+          <text x="110" y="47" class="c small">D_DBf × W_B</text>
+          <text x="110" y="66" class="c tiny">write: RspData / RspValid</text>
+          <text x="110" y="82" class="c tiny">read: Data / Valid / Ready</text>
+          <text x="110" y="103" class="c tiny">DataPopped → ORM</text>
+        </g>
+        <path class="wire data" d="M940,360 H980" marker-end="url(#a-data)"/>
+        <text x="944" y="350" class="tiny">Data</text>
+
+        <!-- gather + ext + accel -->
+        <g class="node data" transform="translate(980,320)"><rect width="180" height="55" rx="8"/><text x="90" y="22" class="c b">N_C → 1 gather</text><text x="90" y="41" class="c small">W_B·N_C wide word</text></g>
+        <g class="node ext" transform="translate(980,405)"><rect width="180" height="50" rx="8"/><text x="90" y="20" class="c b">optional extension</text><text x="90" y="37" class="c tiny">transpose / broadcast</text></g>
+        <g class="node data" transform="translate(980,490)"><rect width="180" height="70" rx="9"/><text x="90" y="28" class="c b">Accelerator</text><text x="90" y="48" class="c small">datapath</text></g>
+        <path class="wire data" d="M1070,375 V405" marker-end="url(#a-data)"/>
+        <path class="wire data" d="M1070,455 V490" marker-end="url(#a-data)"/>
+
+        <!-- ORM -->
+        <g class="node cfg" transform="translate(360,330)">
+          <rect width="230" height="170" rx="11"/>
+          <text x="115" y="22" class="c b">ORM</text>
+          <text x="115" y="40" class="c small">Outstanding Request Manager</text>
+          <g class="node cfg" transform="translate(15,58)"><rect width="90" height="45" rx="6"/><text x="45" y="16" class="c tiny">outstanding</text><text x="45" y="33" class="c tiny">+1 / −1</text></g>
+          <g class="node cfg" transform="translate(120,58)"><rect width="90" height="45" rx="6"/><text x="45" y="16" class="c tiny">FIFO slots</text><text x="45" y="33" class="c tiny">+1 / −1</text></g>
+          <text x="115" y="125" class="c small">outstanding + slots ≤ D_DBf</text>
+          <text x="115" y="145" class="c b">→ grant</text>
+          <text x="115" y="160" class="c tiny">reserve slot cho request đang bay</text>
+        </g>
+
+        <!-- ORM control -->
+        <path class="wire gray" d="M440,280 V330" marker-end="url(#a-gray)"/>
+        <text x="446" y="306" class="tiny">ReqSubmitted</text>
+        <path class="wire gray" d="M520,330 V280" marker-end="url(#a-gray)"/>
+        <text x="526" y="306" class="tiny">grant</text>
+        <path class="wire gray" d="M820,200 H620 V330 H590" marker-end="url(#a-gray)"/>
+        <text x="632" y="193" class="tiny">RspValid</text>
+        <path class="wire gray" d="M720,400 H590" marker-end="url(#a-gray)"/>
+        <text x="632" y="392" class="tiny">DataPopped</text>
+
+        <!-- one-channel note -->
+        <text x="40" y="300" class="small">Một channel được vẽ; DataMaestro có N_C channel như vậy.</text>
+        <text x="40" y="318" class="tiny">Mỗi channel có MIC + data FIFO riêng; gather ở cuối.</text>
+
+        <!-- bottom summary -->
+        <g transform="translate(40,590)">
+          <rect width="560" height="120" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="24" class="l b">Ba luồng trong read MIC</text>
+          <line x1="16" y1="44" x2="52" y2="44" class="wire read" marker-end="url(#a-read)"/><text x="62" y="44" class="l small">Access: AGU → Addr FIFO → RSC → crossbar</text>
+          <line x1="16" y1="66" x2="52" y2="66" class="wire data" marker-end="url(#a-data)"/><text x="62" y="66" class="l small">Data: crossbar → Data FIFO → gather → extension → accelerator</text>
+          <line x1="16" y1="88" x2="52" y2="88" class="wire cfg" marker-end="url(#a-cfg)"/><text x="62" y="88" class="l small">Control: ORM credit, ReqReady/RspReady backpressure</text>
+          <text x="16" y="108" class="l tiny">RSC không chờ data: request được issue trước, FIFO hấp thụ latency.</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Cơ chế credit</h3><ul><li>ORM theo dõi số request đang bay và số slot FIFO còn trống.</li><li>RSC chỉ issue khi <span class="mono">outstanding + occupancy ≤ D_DBf</span>.</li><li>Nhờ vậy prefetch sâu mà không tràn FIFO.</li></ul></div>
+      <div class="card"><h3>Vì sao hiệu quả?</h3><ul><li>Request rộng bị tách thành N_C request hẹp, chạy độc lập.</li><li>Memory latency được che bởi data FIFO và nhiều outstanding request.</li><li>Khi một bank bận, các channel khác vẫn tiếp tục.</li></ul></div>
+      <div class="card"><h3>Điểm dễ nhầm</h3><ul><li><span class="mono">ReqReady</span> là backpressure từ crossbar, không phải data ready.</li><li><span class="mono">RspReady</span> là FIFO báo còn chỗ nhận response.</li><li><span class="mono">DataPopped</span> giải phóng slot cho ORM.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="mic-write">
+    <h2><span class="num">4.</span> Write MIC: mirror của read path</h2>
+    <p class="lede">Paper chỉ mô tả chi tiết read MIC. Write MIC dưới đây là sơ đồ đối xứng: dữ liệu từ accelerator được split thành <span class="mono">N_C</span> channel, buffer trong FIFO, rồi MIC issue write request. ORM vẫn giữ vai trò credit/backpressure.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 700" role="img" aria-label="DataMaestro write MIC datapath">
+        <rect width="1280" height="700" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">Write Memory Interface Controller (MIC)</text>
+        <text x="28" y="56" class="sub">Suy ra đối xứng từ read path · data stream → memory</text>
+
+        <!-- accelerator -->
+        <g class="node data" transform="translate(40,520)">
+          <rect width="180" height="70" rx="9"/>
+          <text x="90" y="28" class="c b">Accelerator</text>
+          <text x="90" y="48" class="c small">datapath output</text>
+        </g>
+        <!-- extension -->
+        <g class="node ext" transform="translate(40,430)">
+          <rect width="180" height="55" rx="8"/>
+          <text x="90" y="22" class="c b">optional extension</text>
+          <text x="90" y="40" class="c tiny">quantize / transpose</text>
+        </g>
+        <!-- split -->
+        <g class="node data" transform="translate(40,350)">
+          <rect width="180" height="55" rx="8"/>
+          <text x="90" y="22" class="c b">1 → N_C split</text>
+          <text x="90" y="40" class="c small">W_B per channel</text>
+        </g>
+        <path class="wire write" d="M130,520 V485" marker-end="url(#a-write)"/>
+        <path class="wire write" d="M130,430 V405" marker-end="url(#a-write)"/>
+        <path class="wire write" d="M220,377 H270" marker-end="url(#a-write)"/>
+
+        <!-- data FIFO -->
+        <g class="node fifo" transform="translate(270,350)">
+          <rect width="220" height="100" rx="9"/>
+          <text x="110" y="26" class="c b">Data FIFO</text>
+          <text x="110" y="47" class="c small">D_DBf × W_B / channel</text>
+          <text x="110" y="66" class="c tiny">buffer write data</text>
+          <text x="110" y="84" class="c tiny">FifoPopped → ORM</text>
+        </g>
+        <path class="wire write" d="M490,400 H550" marker-end="url(#a-write)"/>
+        <text x="500" y="390" class="tiny">WData</text>
+
+        <!-- AGU + addr FIFO -->
+        <g class="node data" transform="translate(270,160)">
+          <rect width="140" height="70" rx="8"/>
+          <text x="70" y="28" class="c b">AGU</text>
+          <text x="70" y="47" class="c small">N-D affine</text>
+        </g>
+        <g class="node fifo" transform="translate(450,165)">
+          <rect width="100" height="60" rx="8"/>
+          <text x="50" y="23" class="c b">Addr FIFO</text>
+          <text x="50" y="42" class="c small">D_ABf</text>
+        </g>
+        <path class="wire read" d="M410,195 H450" marker-end="url(#a-read)"/>
+        <path class="wire read" d="M550,195 V330" marker-end="url(#a-read)"/>
+        <text x="538" y="260" class="tiny">addr</text>
+        <path class="wire gray" d="M500,165 V140 H410 V160" marker-end="url(#a-gray)"/>
+        <text x="414" y="132" class="tiny">QueueReady</text>
+
+        <!-- MIC -->
+        <g class="node write" transform="translate(550,330)">
+          <rect width="170" height="120" rx="9"/>
+          <text x="85" y="27" class="c b">MIC write</text>
+          <text x="85" y="47" class="c small">RSC + ORM</text>
+          <text x="85" y="70" class="c tiny">issue write khi có</text>
+          <text x="85" y="85" class="c tiny">addr + data + credit</text>
+          <text x="85" y="105" class="c tiny">WrReady backpressure</text>
+        </g>
+
+        <!-- crossbar -->
+        <g class="node mem" transform="translate(790,55)">
+          <rect width="430" height="60" rx="9"/>
+          <text x="215" y="25" class="c b">Interleaved crossbar</text>
+          <text x="215" y="45" class="c small">write request → bank</text>
+        </g>
+        <path class="wire write" d="M635,330 V115 H850" marker-end="url(#a-write)"/>
+        <text x="650" y="108" class="small">WrAddr / WData / WValid</text>
+        <path class="wire write" d="M870,115 V300 H700 V330" marker-end="url(#a-write)"/>
+        <text x="708" y="293" class="tiny">WrReady</text>
+        <path class="wire gray" d="M900,115 V520 H770" marker-end="url(#a-gray)"/>
+        <text x="908" y="300" class="tiny">WrDone</text>
+
+        <!-- ORM -->
+        <g class="node cfg" transform="translate(550,490)">
+          <rect width="220" height="100" rx="10"/>
+          <text x="110" y="22" class="c b">ORM</text>
+          <text x="110" y="41" class="c small">write credits</text>
+          <text x="110" y="61" class="c tiny">outstanding writes + FIFO slots</text>
+          <text x="110" y="78" class="c tiny">grant khi còn slot</text>
+          <text x="110" y="93" class="c tiny">throttle RSC khi hết credit</text>
+        </g>
+        <path class="wire gray" d="M610,450 V490" marker-end="url(#a-gray)"/>
+        <text x="578" y="472" class="tiny">WrSubmitted</text>
+        <path class="wire gray" d="M650,490 V450" marker-end="url(#a-gray)"/>
+        <text x="656" y="472" class="tiny">grant</text>
+        <path class="wire gray" d="M490,450 V510 H550" marker-end="url(#a-gray)"/>
+        <text x="430" y="474" class="tiny">FifoPopped</text>
+
+        <!-- summary -->
+        <g transform="translate(40,615)">
+          <rect width="520" height="70" rx="10" fill="#fff" stroke="#dde4ec"/>
+          <text x="14" y="21" class="l b">Luồng write</text>
+          <text x="14" y="40" class="l small">Data: accelerator → ext → split → FIFO → MIC → crossbar → bank</text>
+          <text x="14" y="57" class="l small">Address: AGU → Addr FIFO → MIC · Control: ORM credit + WrReady/WrDone</text>
+        </g>
+        <g transform="translate(600,615)">
+          <rect width="620" height="70" rx="10" fill="#fff7f1" stroke="#c26a2e"/>
+          <text x="14" y="22" class="l b" fill="#8a4318">Lưu ý về mức độ chi tiết</text>
+          <text x="14" y="42" class="l small">Paper chỉ mô tả read MIC (Fig. 2b). Write MIC ở đây là suy luận đối xứng,</text>
+          <text x="14" y="59" class="l small">không phải sơ đồ chính thức của tác giả.</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Đối xứng với read</h3><ul><li>Read: crossbar → FIFO → gather → accelerator.</li><li>Write: accelerator → split → FIFO → crossbar.</li><li>MIC write issue <span class="mono">WrAddr + WData + WValid</span>; nhận <span class="mono">WrReady</span>.</li></ul></div>
+      <div class="card"><h3>Điểm khác biệt</h3><ul><li>Không có response data path; chỉ có write completion/ack.</li><li>ORM theo dõi write outstanding thay vì read response.</li><li>Split phải đảm bảo mỗi channel nhận đúng <span class="mono">W_B</span> bit theo layout.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="remapper">
+    <h2><span class="num">5.</span> Address remapper: đổi FIMA / GIMA / NIMA bằng hoán vị bit</h2>
+    <p class="lede">Đây là mẹo phần cứng đáng chú ý nhất của paper. Khi số bank trong một group là lũy thừa của 2, chuyển addressing mode chỉ là <b>hoán vị các bit địa chỉ</b> — không cần arithmetic, chỉ cần dây và mux. Nhờ vậy DataMaestro đổi cách map bank ở runtime với area gần như không đáng kể.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 680" role="img" aria-label="DataMaestro address remapper">
+        <rect width="1280" height="680" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">Address remapper: bank-select bit permutation</text>
+        <text x="28" y="56" class="sub">FIMA · GIMA · NIMA — chọn mode bằng RS tại runtime</text>
+
+        <!-- input -->
+        <g class="node read" transform="translate(30,90)">
+          <rect width="190" height="55" rx="9"/>
+          <text x="95" y="22" class="c b">linear addr</text>
+          <text x="95" y="42" class="c small">from spatial AGU</text>
+        </g>
+        <path class="wire read" d="M220,117 H240" marker-end="url(#a-read)"/>
+
+        <!-- address fields -->
+        <rect x="240" y="100" width="190" height="30" rx="4" fill="#cfe2f6" stroke="#2f6fb5"/>
+        <rect x="430" y="100" width="300" height="30" fill="#fdf2d0" stroke="#a97b0b"/>
+        <rect x="730" y="100" width="130" height="30" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/>
+        <text x="335" y="88" class="c small">bank select</text>
+        <text x="580" y="88" class="c small">wordline select</text>
+        <text x="795" y="88" class="c small">byte select</text>
+        <text x="240" y="150" class="l tiny">Thứ tự field thay đổi theo mode; chỉ các bit bank-select bị hoán vị.</text>
+
+        <!-- NIMA -->
+        <g transform="translate(60,190)">
+          <rect width="340" height="140" rx="10" fill="#fff" stroke="#2f6fb5"/>
+          <text x="170" y="24" class="c b">NIMA</text>
+          <text x="170" y="42" class="c small">non-interleaved</text>
+          <rect x="20" y="60" width="58" height="20" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="49" y="70" class="c tiny">A_hi</text>
+          <rect x="135" y="60" width="100" height="20" rx="3" fill="#cfe2f6" stroke="#2f6fb5"/><text x="185" y="70" class="c tiny">bank</text>
+          <path class="wire read thin" d="M78,70 H135" marker-end="url(#a-read)"/>
+          <rect x="20" y="88" width="58" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="49" y="98" class="c tiny">A_mid</text>
+          <rect x="135" y="88" width="100" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="185" y="98" class="c tiny">wordline</text>
+          <path class="wire thin" d="M78,98 H135" marker-end="url(#a)"/>
+          <rect x="20" y="116" width="58" height="20" rx="3" fill="#e8f6ec" stroke="#2e7d4f"/><text x="49" y="126" class="c tiny">A_lo</text>
+          <rect x="135" y="116" width="100" height="20" rx="3" fill="#e8f6ec" stroke="#2e7d4f"/><text x="185" y="126" class="c tiny">byte</text>
+          <path class="wire thin" d="M78,126 H135" marker-end="url(#a)"/>
+        </g>
+
+        <!-- GIMA -->
+        <g transform="translate(450,190)">
+          <rect width="340" height="140" rx="10" fill="#fff" stroke="#2f6fb5"/>
+          <text x="170" y="24" class="c b">GIMA</text>
+          <text x="170" y="42" class="c small">grouped-interleaved</text>
+          <rect x="20" y="60" width="58" height="20" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="49" y="70" class="c tiny">A_hi</text>
+          <rect x="135" y="60" width="100" height="20" rx="3" fill="#cfe2f6" stroke="#2f6fb5"/><text x="185" y="70" class="c tiny">group</text>
+          <path class="wire read thin" d="M78,70 H135" marker-end="url(#a-read)"/>
+          <rect x="20" y="88" width="58" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="49" y="98" class="c tiny">A_mid</text>
+          <rect x="135" y="88" width="100" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="185" y="98" class="c tiny">wordline</text>
+          <path class="wire thin" d="M78,98 H135" marker-end="url(#a)"/>
+          <rect x="20" y="116" width="58" height="20" rx="3" fill="#e8f6ec" stroke="#2e7d4f"/><text x="49" y="126" class="c tiny">A_lo</text>
+          <rect x="135" y="116" width="100" height="20" rx="3" fill="#cfe2f6" stroke="#2f6fb5"/><text x="185" y="126" class="c tiny">intra-group</text>
+          <path class="wire read thin" d="M78,126 H135" marker-end="url(#a-read)"/>
+        </g>
+
+        <!-- FIMA -->
+        <g transform="translate(840,190)">
+          <rect width="340" height="140" rx="10" fill="#fff" stroke="#2f6fb5"/>
+          <text x="170" y="24" class="c b">FIMA</text>
+          <text x="170" y="42" class="c small">fully-interleaved</text>
+          <rect x="20" y="60" width="58" height="20" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="49" y="70" class="c tiny">A_hi</text>
+          <rect x="135" y="60" width="100" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="185" y="70" class="c tiny">wordline</text>
+          <path class="wire thin" d="M78,70 H135" marker-end="url(#a)"/>
+          <rect x="20" y="88" width="58" height="20" rx="3" fill="#fdf2d0" stroke="#a97b0b"/><text x="49" y="98" class="c tiny">A_mid</text>
+          <rect x="135" y="88" width="100" height="20" rx="3" fill="#e8f6ec" stroke="#2e7d4f"/><text x="185" y="98" class="c tiny">byte</text>
+          <path class="wire thin" d="M78,98 H135" marker-end="url(#a)"/>
+          <rect x="20" y="116" width="58" height="20" rx="3" fill="#e8f6ec" stroke="#2e7d4f"/><text x="49" y="126" class="c tiny">A_lo</text>
+          <rect x="135" y="116" width="100" height="20" rx="3" fill="#cfe2f6" stroke="#2f6fb5"/><text x="185" y="126" class="c tiny">bank</text>
+          <path class="wire read thin" d="M78,126 H135" marker-end="url(#a-read)"/>
+        </g>
+
+        <!-- mux -->
+        <g class="node cfg" transform="translate(450,380)">
+          <rect width="340" height="60" rx="9"/>
+          <text x="170" y="24" class="c b">3:1 mux</text>
+          <text x="170" y="44" class="c small">chọn permutation bằng RS</text>
+        </g>
+        <path class="wire read" d="M230,330 V355 H450 V380" marker-end="url(#a-read)"/>
+        <path class="wire read" d="M620,330 V380" marker-end="url(#a-read)"/>
+        <path class="wire read" d="M1010,330 V355 H790 V380" marker-end="url(#a-read)"/>
+
+        <!-- output -->
+        <g class="node read" transform="translate(880,385)">
+          <rect width="250" height="50" rx="8"/>
+          <text x="125" y="20" class="c b">addr_out</text>
+          <text x="125" y="37" class="c small">to crossbar / bank decoder</text>
+        </g>
+        <path class="wire read" d="M790,410 H880" marker-end="url(#a-read)"/>
+        <g class="node mem" transform="translate(880,470)">
+          <rect width="250" height="70" rx="9"/>
+          <text x="125" y="24" class="c b">bank decoder</text>
+          <text x="125" y="44" class="c small">bank select → bank ID / one-hot</text>
+          <text x="125" y="60" class="c tiny">wordline + byte → row / column</text>
+        </g>
+        <path class="wire read" d="M1005,435 V470" marker-end="url(#a-read)"/>
+
+        <!-- RS -->
+        <g class="node cfg" transform="translate(60,380)">
+          <rect width="300" height="60" rx="9"/>
+          <text x="150" y="24" class="c b">RS — runtime mode select</text>
+          <text x="150" y="44" class="c small">NIMA / GIMA / FIMA</text>
+        </g>
+        <path class="wire cfg" d="M360,410 H450" marker-end="url(#a-cfg)"/>
+
+        <!-- note -->
+        <g transform="translate(60,560)">
+          <rect width="700" height="90" rx="10" fill="#f3f8fe" stroke="#2f6fb5"/>
+          <text x="16" y="24" class="l b">Vì sao rẻ?</text>
+          <text x="16" y="44" class="l small">Khi N_BG là lũy thừa của 2, đổi mode chỉ là hoán vị bit — không adder, không decoder phức tạp.</text>
+          <text x="16" y="62" class="l small">Hardware: các permutation network được instantiate theo (N_BF, N_BG) lúc design time; mux chọn bằng RS.</text>
+          <text x="16" y="80" class="l small">Area của address remapper: 0.49% diện tích DataMaestro A (Fig. 9b).</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Ba mode</h3><ul><li><b>NIMA:</b> bank = bit cao; địa chỉ liên tiếp nằm trong một bank; compiler phải tự allocate.</li><li><b>GIMA:</b> interleave trong group, contiguous giữa các group; trade-off.</li><li><b>FIMA:</b> bank = bit thấp; trải đều mọi bank; dễ cho compiler nhưng dễ conflict trong DSA.</li></ul></div>
+      <div class="card"><h3>Điều kiện hợp lệ</h3><ul><li>Group size phải là lũy thừa của 2 để phép map là hoán vị bit.</li><li>Chỉ các bit bank-select bị đổi chỗ; wordline/byte giữ nguyên thứ tự tương đối.</li><li>Mode được chọn bằng <span class="mono">RS</span> runtime, không cần re-synthesize.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="extension">
+    <h2><span class="num">6.</span> Datapath extension: biến đổi dữ liệu trên đường stream</h2>
+    <p class="lede">Thay vì đọc dữ liệu ra, biến đổi rồi ghi lại vào memory, DataMaestro cho phép chèn các extension vào giữa FIFO và accelerator. Các extension nối cascade, có bypass mux, và có thể bật/tắt runtime. Đây là chỗ xử lý transpose, broadcast, quantization… mà không tốn thêm một vòng memory access.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 1280 600" role="img" aria-label="DataMaestro datapath extension chain">
+        <rect width="1280" height="600" fill="#ffffff"/>
+        <text x="28" y="34" class="h2s">Datapath extension chain</text>
+        <text x="28" y="56" class="sub">Cascade · bypass runtime · không cần intermediate memory</text>
+
+        <!-- input -->
+        <g class="node data" transform="translate(30,120)">
+          <rect width="160" height="60" rx="9"/>
+          <text x="80" y="24" class="c b">Data in</text>
+          <text x="80" y="44" class="c small">W_B × N_C</text>
+        </g>
+        <path class="wire data" d="M190,150 H250" marker-end="url(#a-data)"/>
+
+        <!-- extension 1 -->
+        <g class="node ext" transform="translate(250,95)">
+          <rect width="240" height="130" rx="10"/>
+          <text x="120" y="20" class="c b">Extension #1</text>
+          <rect x="15" y="32" width="130" height="70" rx="7" fill="#fff" stroke="#2a7f7a"/>
+          <text x="80" y="59" class="c small">custom logic</text>
+          <text x="80" y="76" class="c tiny">transpose / broadcast</text>
+          <rect x="165" y="47" width="55" height="35" rx="5" fill="#f3e8f8" stroke="#7b4fa0"/>
+          <text x="192" y="65" class="c tiny">MUX</text>
+          <path class="wire data thin" d="M0,80 H15" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M145,80 H165" marker-end="url(#a-data)"/>
+          <path class="wire gray thin" d="M0,80 V28 H192 V47" marker-end="url(#a-gray)"/>
+          <path class="wire cfg thin" d="M192,110 V82" marker-end="url(#a-cfg)"/>
+          <text x="199" y="104" class="tiny">en</text>
+          <path class="wire data thin" d="M220,65 H240" marker-end="url(#a-data)"/>
+        </g>
+        <path class="wire data" d="M490,160 H520" marker-end="url(#a-data)"/>
+
+        <!-- pipeline cut -->
+        <g transform="translate(520,130)">
+          <rect width="55" height="60" rx="6" fill="#ede9f7" stroke="#5b4b8a"/>
+          <line x1="18" y1="10" x2="18" y2="50" stroke="#5b4b8a" stroke-width="2"/>
+          <line x1="37" y1="10" x2="37" y2="50" stroke="#5b4b8a" stroke-width="2"/>
+          <text x="27" y="30" class="c tiny">R</text>
+        </g>
+        <text x="522" y="210" class="tiny">pipeline cut</text>
+        <path class="wire data" d="M575,160 H620" marker-end="url(#a-data)"/>
+
+        <!-- extension 2 -->
+        <g class="node ext" transform="translate(620,95)">
+          <rect width="240" height="130" rx="10"/>
+          <text x="120" y="20" class="c b">Extension #2</text>
+          <rect x="15" y="32" width="130" height="70" rx="7" fill="#fff" stroke="#2a7f7a"/>
+          <text x="80" y="59" class="c small">custom logic</text>
+          <text x="80" y="76" class="c tiny">…</text>
+          <rect x="165" y="47" width="55" height="35" rx="5" fill="#f3e8f8" stroke="#7b4fa0"/>
+          <text x="192" y="65" class="c tiny">MUX</text>
+          <path class="wire data thin" d="M0,80 H15" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M145,80 H165" marker-end="url(#a-data)"/>
+          <path class="wire gray thin" d="M0,80 V28 H192 V47" marker-end="url(#a-gray)"/>
+          <path class="wire cfg thin" d="M192,110 V82" marker-end="url(#a-cfg)"/>
+          <path class="wire data thin" d="M220,65 H240" marker-end="url(#a-data)"/>
+        </g>
+        <path class="wire data" d="M860,160 H880" marker-end="url(#a-data)"/>
+        <text x="884" y="150" class="c b">···</text>
+
+        <!-- extension n -->
+        <g class="node ext" transform="translate(920,95)">
+          <rect width="240" height="130" rx="10"/>
+          <text x="120" y="20" class="c b">Extension #n</text>
+          <rect x="15" y="32" width="130" height="70" rx="7" fill="#fff" stroke="#2a7f7a"/>
+          <text x="80" y="59" class="c small">custom logic</text>
+          <text x="80" y="76" class="c tiny">…</text>
+          <rect x="165" y="47" width="55" height="35" rx="5" fill="#f3e8f8" stroke="#7b4fa0"/>
+          <text x="192" y="65" class="c tiny">MUX</text>
+          <path class="wire data thin" d="M0,80 H15" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M145,80 H165" marker-end="url(#a-data)"/>
+          <path class="wire gray thin" d="M0,80 V28 H192 V47" marker-end="url(#a-gray)"/>
+          <path class="wire cfg thin" d="M192,110 V82" marker-end="url(#a-cfg)"/>
+          <path class="wire data thin" d="M220,65 H240" marker-end="url(#a-data)"/>
+        </g>
+        <path class="wire data" d="M1160,160 H1180" marker-end="url(#a-data)"/>
+
+        <!-- output -->
+        <g class="node data" transform="translate(1180,130)">
+          <rect width="95" height="60" rx="9"/>
+          <text x="47" y="24" class="c b">to accel</text>
+          <text x="47" y="44" class="c tiny">W_B·N_C</text>
+        </g>
+
+        <!-- control bus -->
+        <g class="node cfg" transform="translate(250,270)">
+          <rect width="910" height="35" rx="8"/>
+          <text x="455" y="19" class="c b">cfg_en[1..n] · cfg_mode[1..n] · bypass select</text>
+        </g>
+        <path class="wire cfg" d="M370,270 V225" marker-end="url(#a-cfg)"/>
+        <path class="wire cfg" d="M740,270 V225" marker-end="url(#a-cfg)"/>
+        <path class="wire cfg" d="M1040,270 V225" marker-end="url(#a-cfg)"/>
+
+        <!-- insets -->
+        <g transform="translate(30,330)">
+          <rect width="300" height="180" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="14" y="22" class="l b">Transposer</text>
+          <g transform="translate(22,48)">
+            <rect x="0" y="0" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="14" y="14" class="c tiny">a</text>
+            <rect x="30" y="0" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="44" y="14" class="c tiny">b</text>
+            <rect x="60" y="0" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="74" y="14" class="c tiny">c</text>
+            <rect x="0" y="30" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="14" y="44" class="c tiny">d</text>
+            <rect x="30" y="30" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="44" y="44" class="c tiny">e</text>
+            <rect x="60" y="30" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="74" y="44" class="c tiny">f</text>
+            <rect x="0" y="60" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="14" y="74" class="c tiny">g</text>
+            <rect x="30" y="60" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="44" y="74" class="c tiny">h</text>
+            <rect x="60" y="60" width="28" height="28" rx="3" fill="#e8f1fb" stroke="#2f6fb5"/><text x="74" y="74" class="c tiny">i</text>
+          </g>
+          <path class="wire data thin" d="M130,90 C175,70 175,120 210,90" marker-end="url(#a-data)"/>
+          <text x="170" y="140" class="c tiny">row ↔ column, không qua memory</text>
+        </g>
+
+        <g transform="translate(360,330)">
+          <rect width="300" height="180" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="14" y="22" class="l b">Broadcaster</text>
+          <rect x="18" y="78" width="46" height="30" rx="5" fill="#e8f6ec" stroke="#2e7d4f"/><text x="41" y="93" class="c tiny">W_B</text>
+          <rect x="210" y="48" width="64" height="26" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/><text x="242" y="61" class="c tiny">ch 1</text>
+          <rect x="210" y="82" width="64" height="26" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/><text x="242" y="95" class="c tiny">ch 2</text>
+          <rect x="210" y="116" width="64" height="26" rx="4" fill="#e8f6ec" stroke="#2e7d4f"/><text x="242" y="129" class="c tiny">ch N_C</text>
+          <path class="wire data thin" d="M64,93 H130 V61 H210" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M64,93 H210" marker-end="url(#a-data)"/>
+          <path class="wire data thin" d="M64,93 H130 V129 H210" marker-end="url(#a-data)"/>
+          <text x="150" y="156" class="c tiny">duplicate dữ liệu cho per-channel quantization</text>
+        </g>
+
+        <g transform="translate(700,330)">
+          <rect width="540" height="180" rx="12" fill="#fff" stroke="#dde4ec"/>
+          <text x="16" y="24" class="l b">Điểm cốt lõi</text>
+          <text x="16" y="50" class="l small">• Cascade: output ext i là input ext i+1.</text>
+          <text x="16" y="70" class="l small">• Bypass mux được chèn tự động; runtime disable được từng ext.</text>
+          <text x="16" y="90" class="l small">• Không cần intermediate memory → giảm access count.</text>
+          <text x="16" y="110" class="l small">• Transposer: −15.86% access (transposed GeMM).</text>
+          <text x="16" y="130" class="l small">• Broadcaster: tối đa −14.58% access (mọi workload).</text>
+          <text x="16" y="150" class="l small">• Pipeline cut giữa các ext để giữ tần số.</text>
+          <text x="16" y="170" class="l tiny">Nguồn số liệu: §IV-B2, Fig. 7(b), trang 5.</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="notes">
+      <div class="card"><h3>Ví dụ trong paper</h3><ul><li><b>Transposer</b> cho transposed GeMM / K^T.</li><li><b>Broadcaster</b> cho per-channel quantization.</li><li>Extension được instantiate theo <span class="mono">D_Pext</span> lúc design time.</li></ul></div>
+      <div class="card"><h3>Lợi ích</h3><ul><li>Giảm memory footprint và access count.</li><li>Tránh các pass đọc/ghi trung gian.</li><li>Giữ datapath accelerator đơn giản hơn.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="glossary">
+    <h2><span class="num">7.</span> Tín hiệu và tham số cần nhớ</h2>
+    <p class="lede">Bảng dưới đây gom các tín hiệu xuất hiện trong các sơ đồ trên. Tên đúng như paper dùng; phần diễn giải là của tôi dựa trên §III.</p>
+
+    <table class="tbl">
+      <thead><tr><th style="width:20%">Tín hiệu</th><th style="width:12%">Loại</th><th>Ý nghĩa</th></tr></thead>
+      <tbody>
+        <tr><td><code>Addr / SA / TA</code></td><td><span class="pill read">address</span></td><td>Địa chỉ memory. TA là temporal address sinh mỗi cycle; SA là spatial address cho từng channel.</td></tr>
+        <tr><td><code>ReqValid / ReqReady</code></td><td><span class="pill read">handshake</span></td><td>Request từ MIC đi crossbar. <code>ReqReady</code> là backpressure từ crossbar, không phải data ready.</td></tr>
+        <tr><td><code>RspValid / RspReady</code></td><td><span class="pill data">handshake</span></td><td>Response data từ crossbar về MIC/FIFO; <code>RspReady</code> báo FIFO còn chỗ.</td></tr>
+        <tr><td><code>ReqSubmitted</code></td><td><span class="pill cfg">control</span></td><td>RSC báo ORM rằng một request mới đã được gửi đi; ORM tăng outstanding count.</td></tr>
+        <tr><td><code>DataPopped</code></td><td><span class="pill cfg">control</span></td><td>Accelerator/gather đã lấy dữ liệu khỏi FIFO; ORM giảm occupancy và giải phóng slot.</td></tr>
+        <tr><td><code>QueueReady</code></td><td><span class="pill cfg">control</span></td><td>Backpressure từ address FIFO/MIC về AGU; AGU không được làm tràn queue.</td></tr>
+        <tr><td><code>WrValid / WrReady / WrDone</code></td><td><span class="pill write">handshake</span></td><td>Handshake write: MIC gửi write request; crossbar báo ready; <code>WrDone</code> báo hoàn tất.</td></tr>
+        <tr><td><code>RS</code></td><td><span class="pill cfg">config</span></td><td>Chọn addressing mode: NIMA / GIMA / FIMA. Đổi mode bằng bit permutation + mux.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:28px">Tham số design-time và runtime</h2>
+    <table class="tbl">
+      <thead><tr><th style="width:16%">Tham số</th><th style="width:14%">Scope</th><th>Vai trò</th></tr></thead>
+      <tbody>
+        <tr><td><code>N_R / N_W</code></td><td>design</td><td>Số read / write DataMaestro trong hệ thống.</td></tr>
+        <tr><td><code>N_C</code></td><td>design</td><td>Số channel độc lập trong một engine; quyết định độ rộng stream <code>W_B·N_C</code>.</td></tr>
+        <tr><td><code>D_t / D_s</code></td><td>design</td><td>Số dimension temporal / spatial của AGU.</td></tr>
+        <tr><td><code>B_t</code></td><td>runtime</td><td>Bounds của vòng lặp temporal; nạp theo workload.</td></tr>
+        <tr><td><code>B_s</code></td><td>design</td><td>Bounds của vòng lặp spatial; cố định lúc thiết kế.</td></tr>
+        <tr><td><code>S_t / S_s</code></td><td>runtime</td><td>Strides của vòng lặp; thay đổi để phục vụ dataflow/layout khác nhau.</td></tr>
+        <tr><td><code>D_ABf / D_DBf</code></td><td>design</td><td>Độ sâu address FIFO / data FIFO.</td></tr>
+        <tr><td><code>W_B</code></td><td>design</td><td>Độ rộng một bank / một channel.</td></tr>
+        <tr><td><code>N_BF / N_BG</code></td><td>design</td><td>Tổng số bank / số bank trong một group; quyết định permutation của remapper.</td></tr>
+        <tr><td><code>D_Pext</code></td><td>design</td><td>Danh sách datapath extension được instantiate (transposer, broadcaster...).</td></tr>
+        <tr><td><code>AddrB</code></td><td>runtime</td><td>Base address của tensor.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout" style="margin-top:20px">
+      <b>Điểm dễ nhầm:</b> Table II xếp <code>B_t</code> vào runtime và <code>B_s</code> vào design-time; §III-B cũng nói spatial bounds là design-time. Vì vậy đừng giả định mọi bound đều runtime — khi đọc RTL, hãy kiểm tra thanh ghi nào thực sự writable.
+    </div>
+
+    <h2 style="margin-top:34px">Liên hệ với RTL trong repo này</h2>
+    <p class="lede">Repo <code>NPU_LOG</code> đang chứa một NPU VSQ/FP4 cho GeMM + FlashAttention. Một số block của bạn tương ứng về mặt chức năng với DataMaestro:</p>
+    <table class="tbl">
+      <thead><tr><th style="width:32%">Block trong repo</th><th>Tương ứng với DataMaestro</th></tr></thead>
+      <tbody>
+        <tr><td><code>weight_streamer.sv</code></td><td>Read streamer 1152-bit với 3D-AGU và transposer on-the-fly ≈ một read DataMaestro có <code>N_C=16</code>, <code>W_B=72</code>, cộng Transposer extension.</td></tr>
+        <tr><td><code>act_streamer.sv</code></td><td>Fine streamer 72-bit với AGU + prefetch FIFO ≈ một read DataMaestro hẹp, <code>N_C=1</code> hoặc vài channel, <code>D_DBf&gt;1</code>.</td></tr>
+        <tr><td><code>shared_sram_multibank.sv</code></td><td>16 bank × 72-bit + crossbar ≈ scratchpad subsystem. Có thể thêm address remapper kiểu DataMaestro để giảm bank conflict cho K^T.</td></tr>
+        <tr><td><code>p_fifo.sv</code></td><td>Probability FIFO tránh ghi vào SRAM ≈ tinh thần data FIFO/streaming, nhưng không phải cơ chế credit của ORM.</td></tr>
+      </tbody>
+    </table>
+    <p class="lede" style="margin-top:12px">Khác biệt: thiết kế của bạn chuyên biệt cho FP4/log-scale và FlashAttention; DataMaestro là engine streaming tổng quát. Phần có thể học hỏi trực tiếp là <b>AGU N-D</b>, <b>credit-based prefetch</b> và <b>address remapper</b>.</p>
+  </section>
+
+  <footer>
+    <p><b>Nguồn hình:</b> tái dựng từ Fig. 2 (trang 3), Fig. 4 (trang 4) và Fig. 5 (trang 4) của arXiv:2504.14091v2. Các nhãn tín hiệu là diễn giải theo mô tả trong §III; riêng write MIC được suy ra đối xứng vì paper chỉ mô tả chi tiết read MIC.</p>
+    <p>File này self-contained: không cần mạng, không dùng JavaScript. Có thể in trực tiếp hoặc mở bằng trình duyệt.</p>
+  </footer>
+</div>
+</body>
+</html>

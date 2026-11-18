@@ -731,65 +731,92 @@ module tb_snax_llm_layer_mid;
         end
     endtask
 
+    // Autonomous hardware SFU batch / 2D sequencer (1 CSR launch for entire tensor)
+    task automatic run_sfu_seq(input logic [2:0] op,
+                               input int m_tokens, input int n_tiles, input int k_vecs,
+                               input logic [31:0] a_base, input int a_t_16b, input int a_g_16b,
+                               input logic [31:0] b_base, input int b_t_16b, input int b_g_16b,
+                               input logic [31:0] o_base, input int o_t_16b, input int o_g_16b,
+                               input logic [31:0] inv_n);
+        int guard_s;
+        begin
+            cpu_csr_write(A_CTRL,       32'h0000_0001);
+            cpu_csr_write(A_GEMM_MT,    32'(m_tokens));
+            cpu_csr_write(A_GEMM_NT,    32'(n_tiles));
+            cpu_csr_write(A_SFU_CTRL,   32'h0040_0000 | (32'(k_vecs) << 5) | (32'(op) << 2) | 32'h2 | 32'h1);
+            cpu_csr_write(A_SFU_INV_N,  inv_n);
+            cpu_csr_write(A_SFU_EPS,    32'h3727C5AC);
+            cpu_csr_write(A_RD_BASE,    a_base);
+            cpu_csr_write(A_RD_NV,      32'(k_vecs));
+            cpu_csr_write(A_RD_LS,      {a_g_16b[15:0], a_t_16b[15:0]});
+            cpu_csr_write(A_SFU_B_BASE, b_base);
+            cpu_csr_write(A_SFU_B_NV,   32'(k_vecs));
+            cpu_csr_write(A_SFU_B_LS,   {b_g_16b[15:0], b_t_16b[15:0]});
+            cpu_csr_write(A_WO_MODE,    32'd1);
+            cpu_csr_write(A_WO_BASE,    o_base);
+            cpu_csr_write(A_WO_NV,      32'(k_vecs));
+            cpu_csr_write(A_WO_LS,      {o_g_16b[15:0], o_t_16b[15:0]});
+
+            cpu_csr_write(A_START,      32'h0000_0003); // bit0=commit + bit1=seq -> trigger u_sfu_seq
+            repeat (4) @(posedge clk);
+            guard_s = 0;
+            while (dut.sfu_seq_busy) begin
+                @(posedge clk); guard_s++;
+                if (guard_s > 200000) fatal("SFU sequencer timeout");
+            end
+            wait_sfu_idle("SFU seq job");
+            cpu_csr_write(A_SFU_CTRL, 32'h0);
+        end
+    endtask
+
     task automatic sfu_rms_tokens(input int x_bank, input int gamma_word,
                                   input int out_bank);
         begin
-            for (int t = 0; t < M_TOKENS; t++)
-                run_sfu(3'd2, 1'b1, K_PACKETS_QKV,
-                        t*ROW_WORDS, x_bank, gamma_word, GAMMA_BANK,
-                        t*ROW_WORDS, out_bank, 32'h3C000000); // 1/128
+            run_sfu_seq(3'd2, M_TOKENS, 1, K_PACKETS_QKV,
+                        tcdm_addr(0, x_bank),          ROW_WORDS * 32, 0,
+                        tcdm_addr(gamma_word, GAMMA_BANK), 0,          0,
+                        tcdm_addr(0, out_bank),        ROW_WORDS * 32, 0,
+                        32'h3C000000); // 1/128
         end
     endtask
 
     task automatic sfu_residual_rows(input int o_word, input int o_bank,
                                      input int x_word, input int x_bank,
                                      input int r_word, input int r_bank);
-        int src_word, xw_word, rw_word;
         begin
-            for (int t = 0; t < M_TOKENS; t++) begin
-                for (int g = 0; g < N_TILES_MODEL; g++) begin
-                    src_word = (g*M_TOKENS + t)*4;
-                    xw_word  = x_word + t*ROW_WORDS + g*4;
-                    rw_word  = r_word + t*ROW_WORDS + g*4;
-                    run_sfu(3'd1, 1'b0, 1, src_word, o_bank, xw_word, x_bank,
-                            rw_word, r_bank, 32'h3F800000);
-                end
-            end
+            run_sfu_seq(3'd1, M_TOKENS, N_TILES_MODEL, 1,
+                        tcdm_addr(o_word, o_bank), 4 * 32,         M_TOKENS * 4 * 32,
+                        tcdm_addr(x_word, x_bank), ROW_WORDS * 32, 4 * 32,
+                        tcdm_addr(r_word, r_bank), ROW_WORDS * 32, 4 * 32,
+                        32'h3F800000);
         end
     endtask
 
     task automatic sfu_residual_final(input int d_word, input int d_bank,
                                       input int r_word, input int r_bank,
                                       input int f_word, input int f_bank);
-        int src_word, rw_word, fw_word;
         begin
-            for (int t = 0; t < M_TOKENS; t++) begin
-                for (int g = 0; g < N_TILES_MODEL; g++) begin
-                    src_word = (g*M_TOKENS + t)*4;
-                    rw_word  = r_word + t*ROW_WORDS + g*4;
-                    fw_word  = f_word + t*ROW_WORDS + g*4;
-                    run_sfu(3'd1, 1'b0, 1, src_word, d_bank, rw_word, r_bank,
-                            fw_word, f_bank, 32'h3F800000);
-                end
-            end
+            run_sfu_seq(3'd1, M_TOKENS, N_TILES_MODEL, 1,
+                        tcdm_addr(d_word, d_bank), 4 * 32,         M_TOKENS * 4 * 32,
+                        tcdm_addr(r_word, r_bank), ROW_WORDS * 32, 4 * 32,
+                        tcdm_addr(f_word, f_bank), ROW_WORDS * 32, 4 * 32,
+                        32'h3F800000);
         end
     endtask
 
     task automatic sfu_silu_chunk(input int chunk);
-        int kb_final, wr_word, bank, vec;
         begin
-            for (int t = 0; t < M_TOKENS; t++) begin
-                for (int n = 0; n < 8; n++) begin
-                    kb_final = chunk*8 + n;
-                    if (t < 16) begin bank = FF1_BANK; vec = t*K_PACKETS_DOWN + kb_final; end
-                    else begin bank = FF2_BANK; vec = (t-16)*K_PACKETS_DOWN + kb_final; end
-                    wr_word = vec*4;
-                    run_sfu(3'd4, 1'b0, 1,
-                            (n*M_TOKENS + t)*4, G_STG_BANK,
-                            (n*M_TOKENS + t)*4, OUT_BANK,
-                            wr_word, bank, 32'h3F800000);
-                end
-            end
+            // First 16 tokens -> FF1_BANK; Next 16 tokens -> FF2_BANK (2 HW batch launches)
+            run_sfu_seq(3'd4, 16, 8, 1,
+                        tcdm_addr(0, G_STG_BANK), 4 * 32, M_TOKENS * 4 * 32,
+                        tcdm_addr(0, OUT_BANK),   4 * 32, M_TOKENS * 4 * 32,
+                        tcdm_addr((chunk * 8) * 4, FF1_BANK), K_PACKETS_DOWN * 4 * 32, 4 * 32,
+                        32'h3F800000);
+            run_sfu_seq(3'd4, 16, 8, 1,
+                        tcdm_addr(16 * 4, G_STG_BANK), 4 * 32, M_TOKENS * 4 * 32,
+                        tcdm_addr(16 * 4, OUT_BANK),   4 * 32, M_TOKENS * 4 * 32,
+                        tcdm_addr((chunk * 8) * 4, FF2_BANK), K_PACKETS_DOWN * 4 * 32, 4 * 32,
+                        32'h3F800000);
         end
     endtask
 
