@@ -13,6 +13,10 @@
 module tb_llama3_1b_layer;
 
     // --------------------------------------------------------- Llama-3.2-1B --
+    `ifndef N_KV
+        `define N_KV 16
+    `endif
+    localparam int N_KV           = `N_KV;
     localparam int M_TOKENS       = 16;
     localparam int D_MODEL        = 2048;
     localparam int D_FF           = 8192;
@@ -21,9 +25,22 @@ module tb_llama3_1b_layer;
     localparam int GQA_M1         = (H_Q / H_KV) - 1; // 3
     localparam int D_K            = 64;
     localparam int D_V            = 64;
-    localparam int M_Q            = 8;
-    localparam int Q_TILES        = M_TOKENS / M_Q;   // 2
-    localparam int KV_TILES       = M_TOKENS / 16;    // 1
+    `ifdef DECODE
+        localparam bit IS_DECODE = 1'b1;
+        localparam int M_Q       = 1;
+        localparam int Q_TILES   = 1;
+        localparam int EVAL_TOKENS = 1;
+    `else
+        localparam bit IS_DECODE = 1'b0;
+        localparam int M_Q       = 8;
+        localparam int Q_TILES   = 2; // M_TOKENS / M_Q
+        localparam int EVAL_TOKENS = 16;
+    `endif
+    localparam int KV_TILES       = N_KV / 16;        // 1 (or N_KV/16)
+    localparam int KV_TILES_PAST  = KV_TILES - 1;
+    localparam int TB_BANK_DEPTH  = (IS_DECODE || N_KV <= 16) ? 8192 : 32768;
+    localparam int KV_DRAM_BEATS  = H_KV * 4 * KV_TILES * 12; // 768B (12 beats) per (hkv, dvi, kj) tile
+    localparam int PAST_KV_WORDS  = (!IS_DECODE && N_KV > 16) ? (H_KV * KV_TILES_PAST * 4 * 16) : 1;
     localparam int DV_TILES       = D_V / 16;         // 4
     localparam int K_PACKETS_QKV  = D_MODEL / 16;     // 128
     localparam int K_PACKETS_QK   = D_K / 16;         // 4
@@ -37,8 +54,8 @@ module tb_llama3_1b_layer;
 
     localparam int NUM_FP16       = M_TOKENS * D_MODEL; // 32,768
     localparam int ROW_WORDS      = D_MODEL / 4;        // 512
-    localparam int NUM_VEC_XN     = M_TOKENS * K_PACKETS_QKV; // 2,048
-    localparam int NUM_PRELOAD    = 17408;
+    localparam int NUM_VEC_XN     = EVAL_TOKENS * K_PACKETS_QKV; // 2,048 (prefill) or 128 (decode)
+    localparam int NUM_PRELOAD    = IS_DECODE ? 9728 : 17408;
 
     localparam int CLK_PERIOD     = 10;
     localparam int DRAM_LATENCY   = 6;
@@ -62,7 +79,7 @@ module tb_llama3_1b_layer;
 
     localparam int GAMMA1_WORD    = 0;
     localparam int GAMMA2_WORD    = 512;
-    localparam int V_BASE_BLOCK   = 128; // max(H_Q * KV_TILES * K_ATTN = 32*1*4, 16) = 128
+    localparam int V_BASE_BLOCK   = ((H_Q * KV_TILES * K_PACKETS_QK) > 16) ? (H_Q * KV_TILES * K_PACKETS_QK) : 16;
 
     // --------------------------------------------------------- DRAM offsets --
     localparam logic [31:0] DRAM_WQ = 32'h0000_0000;
@@ -75,6 +92,7 @@ module tb_llama3_1b_layer;
     localparam logic [31:0] DRAM_KC  = 32'h0210_0000; // K-cache writeback (4,608 B)
     localparam logic [31:0] DRAM_VC  = 32'h0210_2000; // V-cache writeback (4,608 B)
     localparam logic [31:0] DRAM_OUT = 32'h0211_0000; // Final Output writeback (73,728 B)
+    localparam logic [31:0] DRAM_KV  = 32'h0220_0000; // Ring-Buffer KV-cache in DRAM (768 B/tile)
 
     // ------------------------------------------------------------- CSR map --
     localparam logic [11:0] A_CTRL      = 12'd0;
@@ -157,7 +175,7 @@ module tb_llama3_1b_layer;
     logic         busy, done_irq;
 
     snax_llm_top_clean #(
-        .BANK_DEPTH (8192)
+        .BANK_DEPTH (TB_BANK_DEPTH)
     ) dut (
         .clk                     (clk),
         .rst_n                   (rst_n),
@@ -270,6 +288,8 @@ module tb_llama3_1b_layer;
     // ----------------------------------------------------- Preload & Golden --
     logic [31:0] pre_addr     [0:NUM_PRELOAD-1];
     logic [71:0] pre_data     [0:NUM_PRELOAD-1];
+    logic [71:0] k_past_mem   [0:PAST_KV_WORDS-1];
+    logic [71:0] v_past_mem   [0:PAST_KV_WORDS-1];
     logic [15:0] g_xnorm      [0:NUM_FP16-1];
     logic [15:0] g_res1       [0:NUM_FP16-1];
     logic [15:0] g_n2         [0:NUM_FP16-1];
@@ -298,12 +318,28 @@ module tb_llama3_1b_layer;
         return sign ? -v : v;
     endfunction
 
+    function automatic real fp32_to_real(input logic [31:0] f);
+        logic sign;
+        int e;
+        logic [22:0] mf;
+        real v;
+        sign = f[31];
+        e    = int'(f[30:23]);
+        mf   = f[22:0];
+        if (e == 0 && mf == 0) return 0.0;
+        if (e == 255) return sign ? -1.0e38 : 1.0e38;
+        if (e == 0)  v = real'(mf) / 8388608.0 * (2.0 ** -126);
+        else         v = (1.0 + real'(mf) / 8388608.0) * (2.0 ** (e - 127));
+        return sign ? -v : v;
+    endfunction
+
     task automatic cpu_csr_write(input logic [11:0] a, input logic [31:0] d);
         @(negedge clk);
         csr_req_valid = 1'b1; csr_req_write = 1'b1;
         csr_req_addr  = a;    csr_req_data  = d;
-        while (!csr_req_ready) @(posedge clk);
         @(posedge clk);
+        while (!csr_req_ready) @(posedge clk);
+        @(negedge clk);
         csr_req_valid = 1'b0; csr_req_write = 1'b0;
     endtask
 
@@ -311,8 +347,9 @@ module tb_llama3_1b_layer;
         @(negedge clk);
         csr_req_valid = 1'b1; csr_req_write = 1'b0;
         csr_req_addr  = a;
-        while (!csr_req_ready) @(posedge clk);
         @(posedge clk);
+        while (!csr_req_ready) @(posedge clk);
+        @(negedge clk);
         csr_req_valid = 1'b0;
         while (!csr_rsp_valid) @(posedge clk);
         d = csr_rsp_data;
@@ -322,8 +359,9 @@ module tb_llama3_1b_layer;
         @(negedge clk);
         cpu_mem_req_valid = 1'b1; cpu_mem_req_write = 1'b1;
         cpu_mem_req_addr  = a;    cpu_mem_req_wdata = d; cpu_mem_req_strb = 9'h1FF;
-        while (!cpu_mem_req_ready) @(posedge clk);
         @(posedge clk);
+        while (!cpu_mem_req_ready) @(posedge clk);
+        @(negedge clk);
         cpu_mem_req_valid = 1'b0; cpu_mem_req_write = 1'b0; cpu_mem_req_strb = 9'h000;
     endtask
 
@@ -331,8 +369,9 @@ module tb_llama3_1b_layer;
         @(negedge clk);
         cpu_mem_req_valid = 1'b1; cpu_mem_req_write = 1'b0;
         cpu_mem_req_addr  = a;    cpu_mem_req_strb  = 9'h000;
-        while (!cpu_mem_req_ready) @(posedge clk);
         @(posedge clk);
+        while (!cpu_mem_req_ready) @(posedge clk);
+        @(negedge clk);
         cpu_mem_req_valid = 1'b0;
         while (!cpu_mem_rsp_valid) @(posedge clk);
         d = cpu_mem_rsp_rdata;
@@ -381,7 +420,7 @@ module tb_llama3_1b_layer;
         real sum_ref2, sum_err2, dot_p, sum_act2, v_a, v_g, sqnr, cos_s;
         logic [71:0] rw;
         sum_ref2 = 0.0; sum_err2 = 0.0; dot_p = 0.0; sum_act2 = 0.0;
-        for (int t = 0; t < M_TOKENS; t++)
+        for (int t = 0; t < EVAL_TOKENS; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
                 cpu_mem_read(tcdm_addr(t*ROW_WORDS + w, bank), rw);
                 for (int e = 0; e < 4; e++) begin
@@ -434,7 +473,7 @@ module tb_llama3_1b_layer;
     endtask
 
     task automatic sfu_rms_tokens(input int x_bank, input int gamma_word, input int out_bank);
-        run_sfu_seq(3'd2, M_TOKENS, 1, K_PACKETS_QKV,
+        run_sfu_seq(3'd2, EVAL_TOKENS, 1, K_PACKETS_QKV,
                     tcdm_addr(0, x_bank),          ROW_WORDS * 32, 0,
                     tcdm_addr(gamma_word, GAMMA_BANK), 0,          0,
                     tcdm_addr(0, out_bank),        ROW_WORDS * 32, 0,
@@ -442,17 +481,17 @@ module tb_llama3_1b_layer;
     endtask
 
     task automatic sfu_residual_rows(input int o_bank, input int x_bank, input int r_bank);
-        run_sfu_seq(3'd1, M_TOKENS, N_TILES_MODEL, 1,
-                    tcdm_addr(0, o_bank), 4 * 32,         M_TOKENS * 4 * 32,
+        run_sfu_seq(3'd1, EVAL_TOKENS, N_TILES_MODEL, 1,
+                    tcdm_addr(0, o_bank), 4 * 32,         EVAL_TOKENS * 4 * 32,
                     tcdm_addr(0, x_bank), ROW_WORDS * 32, 4 * 32,
                     tcdm_addr(0, r_bank), ROW_WORDS * 32, 4 * 32,
                     32'h3F800000);
     endtask
 
     task automatic sfu_silu_chunk(input int chunk);
-        run_sfu_seq(3'd4, M_TOKENS, CHUNK_NT, 1,
-                    tcdm_addr(0, G_STG_BANK), 4 * 32, M_TOKENS * 4 * 32,
-                    tcdm_addr(0, OUT_BANK),   4 * 32, M_TOKENS * 4 * 32,
+        run_sfu_seq(3'd4, EVAL_TOKENS, CHUNK_NT, 1,
+                    tcdm_addr(0, G_STG_BANK), 4 * 32, EVAL_TOKENS * 4 * 32,
+                    tcdm_addr(0, OUT_BANK),   4 * 32, EVAL_TOKENS * 4 * 32,
                     tcdm_addr(chunk * CHUNK_NT, FF1_BANK), K_PACKETS_DOWN * 32, 32,
                     32'h3F800000, 1'b1);
     endtask
@@ -471,9 +510,9 @@ module tb_llama3_1b_layer;
     task automatic run_fused_qk_rope_dma(input int n_tiles, input logic [31:0] dram_base,
                                          input logic [31:0] q_base, input int out_bank, input string name);
         int nvec;
-        nvec = M_TOKENS * n_tiles;
+        nvec = EVAL_TOKENS * n_tiles;
         cpu_csr_write(A_CTRL,       32'h0);
-        cpu_csr_write(A_SEQ_CTRL,   32'h18); // op 00 GEMM, out_mode=01 (FP4 linear), enable_dma=1
+        cpu_csr_write(A_SEQ_CTRL,   IS_DECODE ? 32'h98 : 32'h18); // op 00 GEMM, out_mode=01 (FP4 linear), enable_dma=1, bit7=decode
         cpu_csr_write(A_GEMM_NT,    n_tiles);
         cpu_csr_write(A_GEMM_MT,    M_TOKENS / 16);
         cpu_csr_write(A_GEMM_KB,    K_PACKETS_QKV);
@@ -498,7 +537,7 @@ module tb_llama3_1b_layer;
         cpu_csr_write(A_GEMM_NT,   32'd1);
         cpu_csr_write(A_GEMM_MT,   32'd1);
         cpu_csr_write(A_GEMM_KB,   K_PACKETS_QKV);
-        cpu_csr_write(A_RING_BASE, tcdm_addr(256, 0)); // disjoint from V_BASE_BLOCK=128..159
+        cpu_csr_write(A_RING_BASE, (N_KV <= 16) ? tcdm_addr(256, 0) : tcdm_addr(24576, 0));
         cpu_csr_write(A_DRAM_KV,   DRAM_WV + 32'(n_tile) * 32'(K_PACKETS_QKV) * 32'd144);
         cpu_csr_write(A_TILE_ST,   K_PACKETS_QKV * 144);
         cpu_csr_write(A_Q_BASE,    tcdm_addr(0, ACT_BANK));
@@ -512,7 +551,7 @@ module tb_llama3_1b_layer;
                                 input logic [31:0] dram_base, input int tile_stride_bytes,
                                 input logic [31:0] q_base, input logic [31:0] out_base, input string name);
         cpu_csr_write(A_CTRL,      32'h0);
-        cpu_csr_write(A_SEQ_CTRL,  (32'(k_tiles_m1) << 8) | 32'h8); // op 00, enable_dma=1, k_tiles_m1
+        cpu_csr_write(A_SEQ_CTRL,  (32'(k_tiles_m1) << 8) | (IS_DECODE ? 32'h88 : 32'h8)); // op 00, enable_dma=1, k_tiles_m1, bit7=decode
         cpu_csr_write(A_GEMM_NT,   n_tiles);
         cpu_csr_write(A_GEMM_MT,   M_TOKENS / 16);
         cpu_csr_write(A_GEMM_KB,   k_blks_per_tile);
@@ -527,7 +566,7 @@ module tb_llama3_1b_layer;
 
     task automatic run_attn_gqa(input string name);
         cpu_csr_write(A_CTRL,      32'h0);
-        cpu_csr_write(A_SEQ_CTRL,  (32'(GQA_M1) << 16) | 32'h25); // op 01, causal, 4D FP4 out, GQA 4:1
+        cpu_csr_write(A_SEQ_CTRL,  (32'(GQA_M1) << 16) | (IS_DECODE ? 32'h29 : ((N_KV == 16) ? 32'h25 : 32'h21))); // op 01, bit3=enable_dma for decode, 4D FP4 out, GQA 4:1
         cpu_csr_write(A_ATTN_H,    H_Q);
         cpu_csr_write(A_ATTN_QT,   Q_TILES);
         cpu_csr_write(A_ATTN_MQ,   M_Q);
@@ -535,6 +574,8 @@ module tb_llama3_1b_layer;
         cpu_csr_write(A_ATTN_KV,   KV_TILES);
         cpu_csr_write(A_ATTN_KB,   K_PACKETS_QK);
         cpu_csr_write(A_RING_BASE, 32'h0);
+        cpu_csr_write(A_DRAM_KV,   DRAM_KV);
+        cpu_csr_write(A_TILE_ST,   32'd768);
         cpu_csr_write(A_Q_BASE,    tcdm_addr(0, QPKT_BANK));
         cpu_csr_write(A_OUT_BASE,  tcdm_addr(0, O_ACT_BANK));
         cpu_csr_write(A_START,     32'h0000_0003);
@@ -610,6 +651,8 @@ module tb_llama3_1b_layer;
 
         $display("Loading Llama-3.2-1B DRAM weights (34.2 MB) & TCDM preload...");
         $readmemh("sim_llama3_1b/dram_weights.hex",      dram_mem);
+        if (IS_DECODE)
+            $readmemh("sim_llama3_1b/kv_dram.hex",       dram_mem, DRAM_KV >> 6, (DRAM_KV >> 6) + KV_DRAM_BEATS - 1);
         $readmemh("sim_llama3_1b/tcdm_preload_addr.hex", pre_addr);
         $readmemh("sim_llama3_1b/tcdm_preload_data.hex", pre_data);
         $readmemh("sim_llama3_1b/g_xnorm.hex",           g_xnorm);
@@ -654,11 +697,11 @@ module tb_llama3_1b_layer;
         $display("[3/12] Fused Q (2048x2048, DMA) + RoPE + LogQ...");
         run_fused_qk_rope_dma(N_TILES_MODEL, DRAM_WQ, tcdm_addr(0, ACT_BANK), OUT_BANK, "Fused Q+RoPE");
         for (int h = 0; h < H_Q; h++)
-            for (int t = 0; t < M_TOKENS; t++)
+            for (int t = 0; t < EVAL_TOKENS; t++)
                 for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
                     logic [71:0] qp;
-                    cpu_mem_read(tcdm_addr((h*K_PACKETS_QK + kp)*M_TOKENS + t, OUT_BANK), qp);
-                    cpu_mem_write(tcdm_addr((h*M_TOKENS + t)*K_PACKETS_QK + kp, QPKT_BANK), qp);
+                    cpu_mem_read(tcdm_addr((h*K_PACKETS_QK + kp)*EVAL_TOKENS + t, OUT_BANK), qp);
+                    cpu_mem_write(tcdm_addr((h*(Q_TILES*M_Q) + t)*K_PACKETS_QK + kp, QPKT_BANK), qp);
                 end
         $display("       cycles=%0d", cyc_total - t0);
 
@@ -668,27 +711,75 @@ module tb_llama3_1b_layer;
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;
-        $display("[5/12] Fused V + Transpose (32 jobs, H_KV=8, DV=4, DMA)...");
-        for (int hkv = 0; hkv < H_KV; hkv++)
-            for (int dvi = 0; dvi < DV_TILES; dvi++)
-                run_gemm_v_dma(hkv*DV_TILES + dvi, V_BASE_BLOCK + hkv*DV_TILES + dvi, "GEMM V");
-        // Scatter K[0..7] from OUT_BANK into Attention K region (banks 0..15, words 0..31)
-        for (int hkv = 0; hkv < H_KV; hkv++)
-            for (int kp = 0; kp < K_PACKETS_QK; kp++)
-                for (int l = 0; l < 16; l++) begin
+        if (IS_DECODE) begin
+            $display("[5/12] Decode GEMM V (M=1, FP16 -> TCDM) + Update DRAM K_new (N_KV=%0d)...", N_KV);
+            run_gemm_dma(N_TILES_KV, K_PACKETS_QKV, 0, DRAM_WV, K_PACKETS_QKV * 144,
+                         tcdm_addr(0, ACT_BANK), tcdm_addr(0, G_STG_BANK), "Decode GEMM V");
+            // Write HW K_new[0] into DRAM KV-cache slot (kj = KV_TILES_PAST, token 15) for Ring-Buffer DMA
+            for (int hkv = 0; hkv < H_KV; hkv++)
+                for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
                     logic [71:0] kp_pkt;
-                    cpu_mem_read(tcdm_addr((hkv*K_PACKETS_QK + kp)*M_TOKENS + l, OUT_BANK), kp_pkt);
-                    cpu_mem_write(tcdm_addr(hkv*K_PACKETS_QK + kp, l), kp_pkt);
+                    cpu_mem_read(tcdm_addr(hkv*K_PACKETS_QK + kp, OUT_BANK), kp_pkt);
+                    for (int dvi = 0; dvi < DV_TILES; dvi++) begin
+                        int tile_off, abs_byte;
+                        tile_off = ((hkv * DV_TILES + dvi) * KV_TILES + KV_TILES_PAST) * 768;
+                        abs_byte = tile_off + (kp * 16 + 15) * 9;
+                        for (int b = 0; b < 9; b++) begin
+                            int beat, boff;
+                            beat = (DRAM_KV >> 6) + ((abs_byte + b) >> 6);
+                            boff = (abs_byte + b) & 63;
+                            dram_mem[beat][boff*8 +: 8] = kp_pkt[b*8 +: 8];
+                        end
+                    end
                 end
-        // DMA Writeback: flush K-cache & V-cache (16-bank TCDM -> DRAM, 4608B each)
-        run_dma_writeback(2'b01, tcdm_addr(0, 0),            DRAM_KC, 512 * 9, "DMA WB K-cache");
-        verify_dram_vs_tcdm(1'b0, 0, 0,                      DRAM_KC, 512,     "Verify DRAM K-cache");
-        run_dma_writeback(2'b01, tcdm_addr(V_BASE_BLOCK, 0), DRAM_VC, 512 * 9, "DMA WB V-cache");
-        verify_dram_vs_tcdm(1'b0, V_BASE_BLOCK, 0,           DRAM_VC, 512,     "Verify DRAM V-cache");
+        end else begin
+            $display("[5/12] Fused V + Transpose (32 jobs, H_KV=8, DV=4, DMA)...");
+            for (int hkv = 0; hkv < H_KV; hkv++)
+                for (int dvi = 0; dvi < DV_TILES; dvi++)
+                    run_gemm_v_dma(hkv*DV_TILES + dvi,
+                                   V_BASE_BLOCK + hkv*DV_TILES*KV_TILES + dvi*KV_TILES + KV_TILES_PAST,
+                                   "GEMM V");
+            // Scatter K_new[0..7] from OUT_BANK into Attention K region (kj = KV_TILES_PAST)
+            for (int hkv = 0; hkv < H_KV; hkv++)
+                for (int kp = 0; kp < K_PACKETS_QK; kp++)
+                    for (int l = 0; l < 16; l++) begin
+                        logic [71:0] kp_pkt;
+                        cpu_mem_read(tcdm_addr((hkv*K_PACKETS_QK + kp)*M_TOKENS + l, OUT_BANK), kp_pkt);
+                        cpu_mem_write(tcdm_addr(hkv*KV_TILES*K_PACKETS_QK + KV_TILES_PAST*K_PACKETS_QK + kp, l), kp_pkt);
+                    end
+            if (N_KV == 16) begin
+                // DMA Writeback: flush K-cache & V-cache (16-bank TCDM -> DRAM, 4608B each)
+                run_dma_writeback(2'b01, tcdm_addr(0, 0),            DRAM_KC, 512 * 9, "DMA WB K-cache");
+                verify_dram_vs_tcdm(1'b0, 0, 0,                      DRAM_KC, 512,     "Verify DRAM K-cache");
+                run_dma_writeback(2'b01, tcdm_addr(V_BASE_BLOCK, 0), DRAM_VC, 512 * 9, "DMA WB V-cache");
+                verify_dram_vs_tcdm(1'b0, V_BASE_BLOCK, 0,           DRAM_VC, 512,     "Verify DRAM V-cache");
+            end else begin
+                int k_idx, v_idx;
+                $display("       Preloading N_past=%0d KV-cache tokens into TCDM (banks 0..15)...", N_KV - M_TOKENS);
+                $readmemh("sim_llama3_1b/k_past.hex", k_past_mem);
+                $readmemh("sim_llama3_1b/v_past.hex", v_past_mem);
+                k_idx = 0;
+                for (int hkv = 0; hkv < H_KV; hkv++)
+                    for (int kj = 0; kj < KV_TILES_PAST; kj++)
+                        for (int kp = 0; kp < K_PACKETS_QK; kp++)
+                            for (int l = 0; l < 16; l++) begin
+                                cpu_mem_write(tcdm_addr(hkv*KV_TILES*K_PACKETS_QK + kj*K_PACKETS_QK + kp, l), k_past_mem[k_idx]);
+                                k_idx++;
+                            end
+                v_idx = 0;
+                for (int hkv = 0; hkv < H_KV; hkv++)
+                    for (int dvi = 0; dvi < DV_TILES; dvi++)
+                        for (int kj = 0; kj < KV_TILES_PAST; kj++)
+                            for (int l = 0; l < 16; l++) begin
+                                cpu_mem_write(tcdm_addr(V_BASE_BLOCK + hkv*DV_TILES*KV_TILES + dvi*KV_TILES + kj, l), v_past_mem[v_idx]);
+                                v_idx++;
+                            end
+            end
+        end
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;
-        $display("[6/12] HW Causal FlashAttention (GQA 4:1, H_Q=32, H_KV=8, D=64)...");
+        $display("[6/12] HW FlashAttention (N_KV=%0d, GQA 4:1, H_Q=32, H_KV=8, D=64)...", N_KV);
         run_attn_gqa("FlashAttention GQA 4:1");
         $display("       cycles=%0d", cyc_total - t0);
 
@@ -741,12 +832,12 @@ module tb_llama3_1b_layer;
         check_sqnr_rows(FIN_BANK, g_final_fq, "Final vs PyFQ", 0.91);
 
         sum_ref2 = 0.0; sum_err2 = 0.0; dot_p = 0.0; sum_rtl2 = 0.0;
-        for (int t = 0; t < M_TOKENS; t++)
+        for (int t = 0; t < EVAL_TOKENS; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
                 cpu_mem_read(tcdm_addr(t*ROW_WORDS + w, FIN_BANK), rw);
                 for (int e = 0; e < 4; e++) begin
                     v_rtl  = fp16_to_real(rw[16*e +: 16]);
-                    v_fp32 = $itor($bitstoshortreal(g_final_fp32[t*D_MODEL + 4*w + e]));
+                    v_fp32 = fp32_to_real(g_final_fp32[t*D_MODEL + 4*w + e]);
                     sum_ref2 += v_fp32 * v_fp32;
                     sum_rtl2 += v_rtl  * v_rtl;
                     sum_err2 += (v_rtl - v_fp32) * (v_rtl - v_fp32);
@@ -758,8 +849,8 @@ module tb_llama3_1b_layer;
         check(cos_s >= 0.88, "Final Layer Output vs FP32");
 
         // DMA Writeback: flush Final Output (linear TCDM -> DRAM, 73,728 B)
-        run_dma_writeback(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, 8192 * 9, "DMA WB Final Out");
-        verify_dram_vs_tcdm(1'b1, 0, FIN_BANK,           DRAM_OUT, 8192,     "Verify DRAM Final Out");
+        run_dma_writeback(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, IS_DECODE ? (512 * 9) : (8192 * 9), "DMA WB Final Out");
+        verify_dram_vs_tcdm(1'b1, 0, FIN_BANK,           DRAM_OUT, IS_DECODE ? 512 : 8192, "Verify DRAM Final Out");
 
         $display("\n========================================================================");
         $display("  LLAMA-3.2-1B FULL PREFILL LAYER RESULT");

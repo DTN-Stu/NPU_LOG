@@ -40,6 +40,7 @@ module snax_llm_sequencer #(
     input  logic                                cfg_is_causal_i,     // 1: Enable causal autoregressive masking
     input  logic                                cfg_enable_dma_i,    // 1: Enable autonomous DMA prefetching via Ring Buffer
     input  logic                                cfg_dma_wb_i,        // 1: Standalone DMA transfer (TCDM <-> DRAM)
+    input  logic                                cfg_gemm_decode_i = 1'b0, // 1: GEMM Decode mode (M=1, slot 0 only)
     input  logic [1:0]                          cfg_out_mode_i,      // 00: FP16, 01: FP4 linear, 10: FP4 bank-scatter
     input  logic [7:0]                          cfg_gemm_k_tiles_m1_i, // GEMM K-tiles - 1 (0 => 1 K-tile)
     input  logic [7:0]                          cfg_gqa_group_m1_i,    // GQA group size - 1 (0 => MHA 1:1)
@@ -266,10 +267,13 @@ module snax_llm_sequencer #(
     logic [3:0]   cnt_m_q;
     logic [3:0]   cnt_dr_q;      // per-slot drain index (softmax / output)
 
-    // GEMM DMA Prefetch Counters (streams weights ahead into ring buffer)
+    // GEMM & Attention DMA Prefetch Counters (streams weights/KV ahead into ring buffer)
     logic [15:0]  dma_gn_q, dma_gm_q;
     logic [7:0]   dma_kt_q;
     logic         dma_pending_q;
+    logic [7:0]   dma_h_q, dma_hkv_q, dma_hgrp_q;
+    logic [15:0]  dma_qi_q, dma_dvi_q, dma_kj_q;
+    logic         dma_attn_pending_q;
     logic         kv_first_q;    // the current KV tile is the first of a row
     logic         last_group_q;  // the group just retired was the final one
 
@@ -408,7 +412,7 @@ module snax_llm_sequencer #(
     // tile accumulates into the SAME slots on Port A.  The 2R1W latch array and
     // the slot_cleared mask make this safe as long as each slot is drained (and
     // cleared) before the next tile's Stage-2 write to that slot.
-    logic         gemm_drain_active_q;
+    logic         gemm_drain_active_q, gemm_k_last_d1_q;
     logic [4:0]   gdr_idx_q;            // 0..15 = slot being issued, 16 = done
 
     // Sticky latch for the readback-requant one-cycle rd_done pulse: the write
@@ -434,7 +438,7 @@ module snax_llm_sequencer #(
     wire last_qi      = (cnt_qi_q == (cfg_attn_q_tiles_i - 16'd1));
     wire last_h       = (cnt_h_q == (cfg_attn_h_i - 8'd1));
 
-    wire last_gbeat   = (cnt_gbeat_q == 4'd15);
+    wire last_gbeat   = cfg_gemm_decode_i ? (cnt_gbeat_q == 4'd0) : (cnt_gbeat_q == 4'd15);
     wire last_gk      = (cnt_gk_q == (cfg_gemm_k_blocks_i - 16'd1));
     wire last_kt      = (cnt_kt_q == cfg_gemm_k_tiles_m1_i);
     wire last_gm      = (cnt_gm_q == (cfg_gemm_m_tiles_i - 16'd1));
@@ -492,7 +496,8 @@ module snax_llm_sequencer #(
     // GEMM compute beat t is gated on drain progress: slot t must already be
     // drained+cleared (t < gdr_idx_q) before the next tile's Stage-2 write to
     // that slot.  If the drain stalls (FIFO full), the compute beat stalls too.
-    wire gemm_beat_ok = !gemm_drain_active_q || ({1'b0, cnt_gbeat_q} < gdr_idx_q);
+    wire gemm_beat_ok = (!gemm_drain_active_q && !(cfg_gemm_decode_i && gemm_k_last_d1_q)) ||
+                        ({1'b0, cnt_gbeat_q} < gdr_idx_q);
 
     assign qk_compute_fire   = act_valid_i && (&wt_valid_i);
     assign pv_compute_fire   = !p_fifo_empty_i && (&wt_valid_i);
@@ -522,6 +527,19 @@ module snax_llm_sequencer #(
                                    (32'(dma_kt_q) * 32'(cfg_gemm_k_blocks_i) * 32'd144);
             dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
             dma_req_size_bytes_o = 32'(cfg_gemm_k_blocks_i) * 32'd144; // 16 ch * 9B * K_PACKETS
+            if (dma_req_ready_i) begin
+                dma_issue_fire = 1'b1;
+            end
+        end else if (cfg_enable_dma_i && (cfg_op_mode_i == 2'b01) && dma_attn_pending_q && dma_can_push &&
+                     (state_q != ST_IDLE) && (state_q != ST_DONE)) begin
+            // Background Attention KV-cache DMA Prefetch Producer (streams (K, V) tiles into Ring Buffer)
+            dma_req_valid_o      = 1'b1;
+            dma_req_dir_o        = 2'd0;
+            dma_req_dram_addr_o  = cfg_dram_kv_base_i +
+                                   ((((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
+                                      32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * cfg_stride_tile_i));
+            dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
+            dma_req_size_bytes_o = (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'd144; // K blocks + 1 V block
             if (dma_req_ready_i) begin
                 dma_issue_fire = 1'b1;
             end
@@ -591,31 +609,31 @@ module snax_llm_sequencer #(
                         case (cfg_out_mode_i)
                             2'd0: begin // FP16 linear
                                 wo_mode_o          = 2'd1;
-                                wo_num_vectors_o   = 32'(cfg_gemm_m_tiles_i) *
-                                                     32'(cfg_gemm_n_tiles_i) * 32'd16;
+                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
+                                                     (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
                                 wo_line_stride_o   = 32'h200;
                                 wo_num_batches_o   = 32'd1;
                                 wo_batch_stride_o  = 32'd0;
                             end
                             2'd1: begin // FP4 linear (packet per vector)
                                 wo_mode_o          = 2'd0;
-                                wo_num_vectors_o   = 32'(cfg_gemm_m_tiles_i) *
-                                                     32'(cfg_gemm_n_tiles_i) * 32'd16;
+                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
+                                                     (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
                                 wo_line_stride_o   = 32'h200;
                                 wo_num_batches_o   = 32'd1;
                                 wo_batch_stride_o  = 32'd0;
                             end
-                            2'd2: begin // FP4 bank scatter: 16 packets per N tile
+                            2'd2: begin // FP4 bank scatter: 16 packets per N tile (1 in decode)
                                 wo_mode_o          = 2'd2;
-                                wo_num_vectors_o   = 32'd16;
+                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'd1 : 32'd16;
                                 wo_line_stride_o   = 32'd16;    // +1 bank
                                 wo_num_batches_o   = {16'd0, cfg_gemm_n_tiles_i};
                                 wo_batch_stride_o  = 32'h200;   // +1 word
                             end
                             default: begin
                                 wo_mode_o          = 2'd1;
-                                wo_num_vectors_o   = 32'(cfg_gemm_m_tiles_i) *
-                                                     32'(cfg_gemm_n_tiles_i) * 32'd16;
+                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
+                                                     (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
                                 wo_line_stride_o   = 32'h200;
                                 wo_num_batches_o   = 32'd1;
                                 wo_batch_stride_o  = 32'd0;
@@ -651,22 +669,11 @@ module snax_llm_sequencer #(
             end
 
             ST_PREFETCH_INIT: begin
-                // For GEMM, the background prefetch producer handles all tiles.
-                if (cfg_enable_dma_i && (cfg_op_mode_i != 2'b00) && dma_can_push) begin
-                    dma_req_valid_o      = 1'b1;
-                    dma_req_dram_addr_o  = cfg_dram_kv_base_i;
-                    if (dma_req_ready_i) begin
-                        dma_issue_fire   = 1'b1;
-                        state_d          = (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
-                                           (cfg_op_mode_i == 2'b11) ? ST_RD_LAUNCH :
-                                                                      ST_ATTN_QK_LAUNCH;
-                    end
-                end else begin
-                    state_d = (cfg_op_mode_i == 2'b00) ? ST_GEMM_LAUNCH :
-                              (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
-                              (cfg_op_mode_i == 2'b11) ? ST_RD_LAUNCH :
-                                                         ST_ATTN_QK_LAUNCH;
-                end
+                // Both GEMM and Attention use background prefetch producers.
+                state_d = (cfg_op_mode_i == 2'b00) ? ST_GEMM_LAUNCH :
+                          (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
+                          (cfg_op_mode_i == 2'b11) ? ST_RD_LAUNCH :
+                                                     ST_ATTN_QK_LAUNCH;
             end
 
             // =================================================================
@@ -750,21 +757,22 @@ module snax_llm_sequencer #(
             // =================================================================
             ST_ATTN_QK_LAUNCH: begin
                 cfg_mode_o = 2'b01;
+                if (core_can_pop && !act_busy_i && !wt_busy_i) begin
+                    wt_start_o    = 1'b1;
+                    wt_base_o     = cfg_enable_dma_i ? core_curr_tcdm_addr : k_addr_calc;
+                    wt_repeat_o   = 32'(cfg_attn_m_q_i);       // replays per K block
+                    wt_k_blocks_o = 32'(cfg_attn_k_blocks_i);  // K blocks walked by the AGU
+                    wt_k_stride_o = 32'h200;
 
-                wt_start_o    = 1'b1;
-                wt_base_o     = cfg_enable_dma_i ? core_curr_tcdm_addr : k_addr_calc;
-                wt_repeat_o   = 32'(cfg_attn_m_q_i);       // replays per K block
-                wt_k_blocks_o = 32'(cfg_attn_k_blocks_i);  // K blocks walked by the AGU
-                wt_k_stride_o = 32'h200;
+                    act_start_o        = 1'b1;
+                    act_base_o         = q_addr_calc;
+                    act_tokens_o       = 32'(cfg_attn_m_q_i);
+                    act_token_stride_o = 32'(cfg_attn_k_blocks_i) * 32'h200;
+                    act_k_blocks_o     = 32'(cfg_attn_k_blocks_i);
+                    act_k_stride_o     = 32'h200;
 
-                act_start_o        = 1'b1;
-                act_base_o         = q_addr_calc;
-                act_tokens_o       = 32'(cfg_attn_m_q_i);
-                act_token_stride_o = 32'(cfg_attn_k_blocks_i) * 32'h200;
-                act_k_blocks_o     = 32'(cfg_attn_k_blocks_i);
-                act_k_stride_o     = 32'h200;
-
-                state_d = ST_ATTN_QK_RUN;
+                    state_d = ST_ATTN_QK_RUN;
+                end
             end
 
             ST_ATTN_QK_RUN: begin
@@ -813,7 +821,7 @@ module snax_llm_sequencer #(
                 // the previous group; PV would overwrite them.
                 if (!nrm_busy) begin
                 wt_start_o    = 1'b1;
-                wt_base_o     = cfg_enable_dma_i ? (core_curr_tcdm_addr + 32'h1000)
+                wt_base_o     = cfg_enable_dma_i ? (core_curr_tcdm_addr + (32'(cfg_attn_k_blocks_i) * 32'h200))
                                                  : v_addr_calc;
                 wt_repeat_o   = 32'(cfg_attn_m_q_i);
                 wt_k_blocks_o = 32'd1;   // V is reduced over keys, not over D_K
@@ -890,14 +898,14 @@ module snax_llm_sequencer #(
                     // replaying each K vector 16 times (tokens).  No per-K relaunch.
                     wt_start_o    = 1'b1;
                     wt_base_o     = cfg_enable_dma_i ? core_curr_tcdm_addr : gemm_wt_addr;
-                    wt_repeat_o   = 32'd16; // 16 Tokens
+                    wt_repeat_o   = cfg_gemm_decode_i ? 32'd1 : 32'd16; // 1 (Decode) or 16 Tokens
                     wt_k_blocks_o = cfg_gemm_k_blocks_i;
                     wt_k_stride_o = 32'h200;
 
                     // Launch Act Streamer ONCE: token inner, K-block outer.
                     act_start_o        = 1'b1;
                     act_base_o         = gemm_act_addr;
-                    act_tokens_o       = 32'd16;
+                    act_tokens_o       = cfg_gemm_decode_i ? 32'd1 : 32'd16;
                     act_token_stride_o = total_k_blocks * 32'h200;
                     act_k_blocks_o     = cfg_gemm_k_blocks_i;
                     act_k_stride_o     = 32'h200;
@@ -1027,8 +1035,16 @@ module snax_llm_sequencer #(
             dma_gm_q          <= '0;
             dma_kt_q          <= '0;
             dma_pending_q     <= 1'b0;
+            dma_h_q           <= '0;
+            dma_hkv_q         <= '0;
+            dma_hgrp_q        <= '0;
+            dma_qi_q          <= '0;
+            dma_dvi_q         <= '0;
+            dma_kj_q          <= '0;
+            dma_attn_pending_q<= 1'b0;
             gemm_drain_seen_q <= 1'b0;
             gemm_drain_active_q <= 1'b0;
+            gemm_k_last_d1_q    <= 1'b0;
             gdr_idx_q           <= 5'd0;
             rd_done_seen_q      <= 1'b0;
         end else begin
@@ -1053,8 +1069,16 @@ module snax_llm_sequencer #(
                 dma_gm_q          <= '0;
                 dma_kt_q          <= '0;
                 dma_pending_q     <= cfg_enable_dma_i && !cfg_dma_wb_i && (cfg_op_mode_i == 2'b00);
+                dma_h_q           <= '0;
+                dma_hkv_q         <= '0;
+                dma_hgrp_q        <= '0;
+                dma_qi_q          <= '0;
+                dma_dvi_q         <= '0;
+                dma_kj_q          <= '0;
+                dma_attn_pending_q<= cfg_enable_dma_i && !cfg_dma_wb_i && (cfg_op_mode_i == 2'b01);
                 gemm_drain_seen_q <= 1'b0;
                 gemm_drain_active_q <= 1'b0;
+                gemm_k_last_d1_q    <= 1'b0;
                 gdr_idx_q           <= 5'd0;
                 rd_done_seen_q      <= 1'b0;
                 kv_first_q        <= 1'b1;
@@ -1139,6 +1163,39 @@ module snax_llm_sequencer #(
                     end
                 end
 
+                // Background Attention KV-cache DMA Prefetch Counter Progression
+                if (dma_issue_fire && (cfg_op_mode_i == 2'b01) && dma_attn_pending_q) begin
+                    if (dma_kj_q == (cfg_attn_kv_tiles_i - 16'd1)) begin
+                        dma_kj_q <= '0;
+                        if (dma_dvi_q == (cfg_attn_dv_tiles_i - 16'd1)) begin
+                            dma_dvi_q <= '0;
+                            if (dma_qi_q == (cfg_attn_q_tiles_i - 16'd1)) begin
+                                dma_qi_q <= '0;
+                                if (dma_h_q == (cfg_attn_h_i - 8'd1)) begin
+                                    dma_h_q            <= '0;
+                                    dma_hkv_q          <= '0;
+                                    dma_hgrp_q         <= '0;
+                                    dma_attn_pending_q <= 1'b0;
+                                end else begin
+                                    dma_h_q <= dma_h_q + 8'd1;
+                                    if (dma_hgrp_q == cfg_gqa_group_m1_i) begin
+                                        dma_hgrp_q <= '0;
+                                        dma_hkv_q  <= dma_hkv_q + 8'd1;
+                                    end else begin
+                                        dma_hgrp_q <= dma_hgrp_q + 8'd1;
+                                    end
+                                end
+                            end else begin
+                                dma_qi_q <= dma_qi_q + 16'd1;
+                            end
+                        end else begin
+                            dma_dvi_q <= dma_dvi_q + 16'd1;
+                        end
+                    end else begin
+                        dma_kj_q <= dma_kj_q + 16'd1;
+                    end
+                end
+
                 // GEMM Counter Progression
                 if (state_q == ST_GEMM_RUN && gemm_compute_fire) begin
                     if (last_gbeat) begin
@@ -1168,13 +1225,14 @@ module snax_llm_sequencer #(
                     end
                 end
 
-                // Background GEMM drain engine: start on the tile's K_last and
-                // issue slot 0..15 one per cycle, gated by write-out FIFO space.
-                if (gemm_k_last_fire) begin
+                // Background GEMM drain engine: in Decode (M=1), wait 1 cycle so
+                // slot 0 reaches Stage 2 (q1) before Port-B drain reads it.
+                gemm_k_last_d1_q <= gemm_k_last_fire;
+                if (cfg_gemm_decode_i ? gemm_k_last_d1_q : gemm_k_last_fire) begin
                     gemm_drain_active_q <= 1'b1;
                     gdr_idx_q           <= 5'd0;
                 end else if (gemm_drain_active_q && core_out_fifo_ready_i) begin
-                    if (gdr_idx_q == 5'd15) begin
+                    if (gdr_idx_q == (cfg_gemm_decode_i ? 5'd0 : 5'd15)) begin
                         gemm_drain_active_q <= 1'b0;
                         gdr_idx_q           <= 5'd16;
                     end else begin

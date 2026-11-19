@@ -92,7 +92,19 @@ module snax_streamer_wt_16ch #(
     // =========================================================================
     logic [NUM_LANES-1:0] skid_ready, skid_valid;
     logic [DATA_WIDTH-1:0] skid_data_out [0:NUM_LANES-1];
-    logic [1:0]            skid_level   [0:NUM_LANES-1];
+    logic [2:0]            skid_level   [0:NUM_LANES-1];
+
+    localparam int unsigned SKID_DEPTH = 4;
+
+    logic [31:0]           f_kb_q, f_tile_q;
+    logic [ADDR_WIDTH-1:0] f_addr_q;
+    logic                  f_done_q;
+    logic [2:0]            inflight_q [0:NUM_LANES-1];
+    logic [NUM_LANES-1:0]  lane_credit_ok;
+
+    wire stream_mode = (repeat_q == 32'd1);
+    wire f_kb_last   = (f_kb_q   == k_blocks_q  - 1'b1);
+    wire f_tile_last = (f_tile_q == num_tiles_q - 1'b1);
 
     wire all_skids_ready = &skid_ready;
     wire all_lanes_ready = &skid_valid;
@@ -113,12 +125,14 @@ module snax_streamer_wt_16ch #(
     // the current one is being replayed.  The second uses the free slot of the
     // depth-2 skid buffers, so the next replay starts with no TCDM latency
     // bubble.  It is only issued once the current head is actually present.
-    wire fetch_ok    = (state_q == RUN) && !replay_active_q && all_skids_ready;
-    wire prefetch_ok = (state_q == RUN) && replay_active_q && all_lanes_ready &&
+    wire fetch_ok    = !stream_mode && (state_q == RUN) && !replay_active_q && all_skids_ready;
+    wire prefetch_ok = !stream_mode && (state_q == RUN) && replay_active_q && all_lanes_ready &&
                        !next_fetched_q && all_skids_ready && has_next &&
                        !core_pop_last;
-    wire fetch_fire    = fetch_ok    && tcdm_all_gnt;
-    wire prefetch_fire = prefetch_ok && tcdm_all_gnt;
+    wire fetch_fire        = fetch_ok    && tcdm_all_gnt;
+    wire prefetch_fire     = prefetch_ok && tcdm_all_gnt;
+    wire stream_fetch_ok   = stream_mode && (state_q == RUN) && !f_done_q && (&lane_credit_ok);
+    wire stream_fetch_fire = stream_fetch_ok && tcdm_all_gnt;
 
     // =========================================================================
     // 3. FSM & AGU
@@ -209,6 +223,11 @@ module snax_streamer_wt_16ch #(
             num_tiles_q     <= 32'd1;
             k_stride_q      <= '0;
             tile_step_q     <= '0;
+            f_kb_q          <= '0;
+            f_tile_q        <= '0;
+            f_addr_q        <= '0;
+            f_done_q        <= 1'b0;
+            for (int l = 0; l < NUM_LANES; l++) inflight_q[l] <= '0;
         end else begin
             state_q         <= state_d;
             rep_cnt_q       <= rep_cnt_d;
@@ -218,12 +237,35 @@ module snax_streamer_wt_16ch #(
             replay_active_q <= replay_active_d;
             next_fetched_q  <= next_fetched_d;
 
+            for (int l = 0; l < NUM_LANES; l++) begin
+                inflight_q[l] <= inflight_q[l]
+                               + ((stream_fetch_fire || fetch_fire || prefetch_fire) ? 3'd1 : 3'd0)
+                               - (m_tcdm_rsp_valid_i[l] ? 3'd1 : 3'd0);
+            end
+
             if (state_q == IDLE && csr_start_i) begin
                 repeat_q    <= cfg_repeat_tokens_i;
                 k_blocks_q  <= cfg_k_blocks_i;
                 num_tiles_q <= cfg_num_tiles_i;
                 k_stride_q  <= cfg_k_stride_i;
                 tile_step_q <= cfg_tile_step_i;
+                f_kb_q      <= '0;
+                f_tile_q    <= '0;
+                f_addr_q    <= cfg_base_addr_i;
+                f_done_q    <= 1'b0;
+            end else if (stream_fetch_fire) begin
+                if (!f_kb_last) begin
+                    f_kb_q   <= f_kb_q + 32'd1;
+                    f_addr_q <= f_addr_q + k_stride_q;
+                end else begin
+                    f_kb_q <= '0;
+                    if (!f_tile_last) begin
+                        f_tile_q <= f_tile_q + 32'd1;
+                        f_addr_q <= f_addr_q + tile_step_q;
+                    end else begin
+                        f_done_q <= 1'b1;
+                    end
+                end
             end
         end
     end
@@ -234,14 +276,14 @@ module snax_streamer_wt_16ch #(
     genvar w;
     generate
         for (w = 0; w < NUM_LANES; w++) begin : GEN_TCDM_REQS
-            assign m_tcdm_req_valid_o[w] =
-                fetch_ok || prefetch_ok;
+            assign lane_credit_ok[w]     = ({1'b0, skid_level[w]} + {1'b0, inflight_q[w]}) < 4'd4;
+            assign m_tcdm_req_valid_o[w] = stream_mode ? stream_fetch_ok : (fetch_ok || prefetch_ok);
             assign m_tcdm_req_write_o[w] = 1'b0;
             // cfg_base_addr_i is the real TCDM address of lane 0.
             // Lane w is 16 bytes higher, i.e. the next bank at the same word.
-            assign m_tcdm_req_addr_o[w]  = prefetch_ok
-                ? (next_base_addr + (w << 4))
-                : (base_addr_q    + (w << 4));
+            assign m_tcdm_req_addr_o[w]  = stream_mode ? (f_addr_q + (w << 4)) :
+                                           (prefetch_ok ? (next_base_addr + (w << 4))
+                                                        : (base_addr_q    + (w << 4)));
             assign m_tcdm_req_wdata_o[w] = '0;
             assign m_tcdm_req_strb_o[w]  = '0;
         end
@@ -254,7 +296,7 @@ module snax_streamer_wt_16ch #(
         for (w = 0; w < NUM_LANES; w++) begin : GEN_SKID_BUFFERS
             skid_buffer #(
                 .DATA_WIDTH (DATA_WIDTH),
-                .DEPTH      (2)
+                .DEPTH      (SKID_DEPTH)
             ) u_skid_buffer (
                 .clk        (clk),
                 .rst_n      (rst_n),

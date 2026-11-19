@@ -157,33 +157,105 @@ def write_fp32_hex(path, arr_f32):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--real", action="store_true",
+                        help="Load real weights & hidden states from NousResearch/Llama-3.2-1B")
+    parser.add_argument("--layer", type=int, default=1,
+                        help="Transformer layer index to extract (default: 1)")
+    parser.add_argument("--n-kv", type=int, default=16,
+                        help="Total KV context length (must be >= 16 and multiple of 16)")
+    parser.add_argument("--decode", action="store_true",
+                        help="Generate single-token Decode data (token 0 = pos N_KV-1, attending to N_KV tokens)")
+    args = parser.parse_args()
+    assert args.n_kv >= M_TOKENS and args.n_kv % 16 == 0, "--n-kv must be >= 16 and divisible by 16"
+    n_kv = args.n_kv
+    n_past = n_kv - M_TOKENS
+    kv_tiles = n_kv // 16
+    kv_tiles_past = n_past // 16
+
     t0 = time.time()
     os.makedirs(OUT_DIR, exist_ok=True)
     rng = np.random.default_rng(2026)
 
     print("=== Generating Llama-3.2-1B Prefill Layer Data ===")
-    print(f"M_TOKENS={M_TOKENS}, D_MODEL={D_MODEL}, D_FF={D_FF}, H_Q={H_Q}, H_KV={H_KV}, D_K={D_K}")
-
-    # 1. Generate realistic Llama-3.2-1B activations & weights
-    x_f32  = rng.normal(0.0, 0.04, (M_TOKENS, D_MODEL)).astype(np.float32)
-    g1_f32 = rng.normal(1.0, 0.08, (D_MODEL,)).astype(np.float32)
-    g2_f32 = rng.normal(1.0, 0.08, (D_MODEL,)).astype(np.float32)
+    print(f"M_TOKENS={M_TOKENS}, N_KV={n_kv}, D_MODEL={D_MODEL}, D_FF={D_FF}, H_Q={H_Q}, H_KV={H_KV}, D_K={D_K}")
 
     qk_scale = D_K ** -0.25
-    w_q = rng.normal(0.0, 0.025, (D_MODEL, D_MODEL)).astype(np.float32) * qk_scale
-    w_k = rng.normal(0.0, 0.025, (H_KV * D_K, D_MODEL)).astype(np.float32) * qk_scale
-    w_v = rng.normal(0.0, 0.025, (H_KV * D_V, D_MODEL)).astype(np.float32)
-    w_o = rng.normal(0.0, 0.025, (D_MODEL, D_MODEL)).astype(np.float32)
-    w_g = rng.normal(0.0, 0.025, (D_FF, D_MODEL)).astype(np.float32)
-    w_u = rng.normal(0.0, 0.025, (D_FF, D_MODEL)).astype(np.float32)
-    w_d = rng.normal(0.0, 0.025, (D_MODEL, D_FF)).astype(np.float32)
+    if args.real:
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        model_id = "NousResearch/Llama-3.2-1B"
+        print(f"Loading REAL model weights & input from {model_id} (layer {args.layer}) ...")
+        tok = AutoTokenizer.from_pretrained(model_id)
+        model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float32)
+        model.eval()
+        prompt = (
+            "In computer architecture, systolic arrays and specialized neural processing units "
+            "accelerate transformer inference by minimizing off-chip memory traffic."
+        )
+        ids = tok(prompt, return_tensors="pt")["input_ids"]
+        while ids.shape[1] < n_kv:
+            ids = torch.cat([ids, ids], dim=1)
+        ids = ids[:, :n_kv]
+        captured = {}
+        def hook_fn(mod, inp, out):
+            captured["x"] = inp[0].detach().cpu().numpy()[0]
+        h = model.model.layers[args.layer].register_forward_hook(hook_fn)
+        with torch.no_grad():
+            _ = model(ids)
+        h.remove()
+
+        lyr = model.model.layers[args.layer]
+        x_all  = captured["x"][:n_kv, :D_MODEL].astype(np.float32)
+        if args.decode:
+            x_f32 = np.zeros((M_TOKENS, D_MODEL), dtype=np.float32)
+            x_f32[0] = x_all[n_kv - 1]
+        else:
+            x_f32  = x_all[n_past:, :]
+        g1_f32 = lyr.input_layernorm.weight.detach().cpu().numpy().astype(np.float32)
+        g2_f32 = lyr.post_attention_layernorm.weight.detach().cpu().numpy().astype(np.float32)
+        w_q = lyr.self_attn.q_proj.weight.detach().cpu().numpy().astype(np.float32) * qk_scale
+        w_k = lyr.self_attn.k_proj.weight.detach().cpu().numpy().astype(np.float32) * qk_scale
+        w_v = lyr.self_attn.v_proj.weight.detach().cpu().numpy().astype(np.float32)
+        w_o = lyr.self_attn.o_proj.weight.detach().cpu().numpy().astype(np.float32)
+        w_g = lyr.mlp.gate_proj.weight.detach().cpu().numpy().astype(np.float32)
+        w_u = lyr.mlp.up_proj.weight.detach().cpu().numpy().astype(np.float32)
+        w_d = lyr.mlp.down_proj.weight.detach().cpu().numpy().astype(np.float32)
+        print(f"Real x_f32: std={x_f32.std():.4f}, max_abs={np.max(np.abs(x_f32)):.4f}")
+    else:
+        # 1. Generate realistic Llama-3.2-1B activations & weights
+        x_all  = rng.normal(0.0, 0.04, (n_kv, D_MODEL)).astype(np.float32)
+        if args.decode:
+            x_f32 = np.zeros((M_TOKENS, D_MODEL), dtype=np.float32)
+            x_f32[0] = x_all[n_kv - 1]
+        else:
+            x_f32  = x_all[n_past:, :]
+        g1_f32 = rng.normal(1.0, 0.08, (D_MODEL,)).astype(np.float32)
+        g2_f32 = rng.normal(1.0, 0.08, (D_MODEL,)).astype(np.float32)
+
+        w_q = rng.normal(0.0, 0.025, (D_MODEL, D_MODEL)).astype(np.float32) * qk_scale
+        w_k = rng.normal(0.0, 0.025, (H_KV * D_K, D_MODEL)).astype(np.float32) * qk_scale
+        w_v = rng.normal(0.0, 0.025, (H_KV * D_V, D_MODEL)).astype(np.float32)
+        w_o = rng.normal(0.0, 0.025, (D_MODEL, D_MODEL)).astype(np.float32)
+        w_g = rng.normal(0.0, 0.025, (D_FF, D_MODEL)).astype(np.float32)
+        w_u = rng.normal(0.0, 0.025, (D_FF, D_MODEL)).astype(np.float32)
+        w_d = rng.normal(0.0, 0.025, (D_MODEL, D_FF)).astype(np.float32)
 
     # RoPE cos/sin (theta = 500000.0 for Llama-3.2)
-    pos = np.arange(M_TOKENS, dtype=np.float32)[:, None]
+    pos_all = np.arange(n_kv, dtype=np.float32)[:, None]
     inv_freq = 1.0 / (500000.0 ** (np.arange(0, D_K, 2, dtype=np.float32) / D_K))[None, :]
-    freqs = pos * inv_freq  # (M_TOKENS, D_K//2)
-    cos_f32 = np.cos(freqs).astype(np.float16).astype(np.float32)
-    sin_f32 = np.sin(freqs).astype(np.float16).astype(np.float32)
+    freqs_all = pos_all * inv_freq  # (n_kv, D_K//2)
+    cos_all = np.cos(freqs_all).astype(np.float16).astype(np.float32)
+    sin_all = np.sin(freqs_all).astype(np.float16).astype(np.float32)
+    if args.decode:
+        cos_f32 = np.zeros((M_TOKENS, D_K // 2), dtype=np.float32)
+        sin_f32 = np.zeros((M_TOKENS, D_K // 2), dtype=np.float32)
+        cos_f32[0] = cos_all[n_kv - 1]
+        sin_f32[0] = sin_all[n_kv - 1]
+    else:
+        cos_f32 = cos_all[n_past:]
+        sin_f32 = sin_all[n_past:]
 
     # 2. FP32 Golden Forward Pass (exact Llama-3.2-1B math)
     eps = 1e-5
@@ -198,12 +270,13 @@ def main():
     k_lin = xn_f32 @ w_k.T  # (M, 512)
     v_lin = xn_f32 @ w_v.T  # (M, 512)
 
-    def apply_rope(t_mat, n_heads):
-        t_h = t_mat.reshape(M_TOKENS, n_heads, D_K)
+    def apply_rope(t_mat, n_heads, cos_t=cos_f32, sin_t=sin_f32):
+        ntok = t_mat.shape[0]
+        t_h = t_mat.reshape(ntok, n_heads, D_K)
         x1 = t_h[:, :, :D_K // 2]
         x2 = t_h[:, :, D_K // 2:]
-        c = cos_f32[:, None, :]
-        s = sin_f32[:, None, :]
+        c = cos_t[:, None, :]
+        s = sin_t[:, None, :]
         y1 = x1 * c - x2 * s
         y2 = x1 * s + x2 * c
         return np.concatenate([y1, y2], axis=-1)
@@ -212,10 +285,33 @@ def main():
     k_rope = apply_rope(k_lin, H_KV)   # (M, 8, 64)
     v_h    = v_lin.reshape(M_TOKENS, H_KV, D_V)
 
-    # GQA 4:1 Causal Attention (note: 1/sqrt(D_K) is already fused into w_q, w_k!)
-    k_rep = np.repeat(k_rope, H_Q // H_KV, axis=1)  # (M, 32, 64)
-    v_rep = np.repeat(v_h,    H_Q // H_KV, axis=1)  # (M, 32, 64)
-    mask = np.triu(np.full((M_TOKENS, M_TOKENS), -1e9, dtype=np.float32), k=1)
+    if args.decode:
+        n_ctx_past = n_kv - 1
+        x_p_fp16 = x_all[:n_ctx_past].astype(np.float16).astype(np.float32)
+        rms1_p = 1.0 / np.sqrt(np.mean(x_p_fp16 ** 2, axis=1, keepdims=True) + eps)
+        xn_p = x_p_fp16 * rms1_p * g1_fp16
+        k_p_rope = apply_rope(xn_p @ w_k.T, H_KV, cos_all[:n_ctx_past], sin_all[:n_ctx_past])
+        v_p_h    = (xn_p @ w_v.T).reshape(n_ctx_past, H_KV, D_V)
+        k_all = np.concatenate([k_p_rope, k_rope[0:1]], axis=0)
+        v_all = np.concatenate([v_p_h,    v_h[0:1]],    axis=0)
+        mask = np.zeros((M_TOKENS, n_kv), dtype=np.float32)
+    elif n_past > 0:
+        x_p_fp16 = x_all[:n_past].astype(np.float16).astype(np.float32)
+        rms1_p = 1.0 / np.sqrt(np.mean(x_p_fp16 ** 2, axis=1, keepdims=True) + eps)
+        xn_p = x_p_fp16 * rms1_p * g1_fp16
+        k_p_rope = apply_rope(xn_p @ w_k.T, H_KV, cos_all[:n_past], sin_all[:n_past])
+        v_p_h    = (xn_p @ w_v.T).reshape(n_past, H_KV, D_V)
+        k_all = np.concatenate([k_p_rope, k_rope], axis=0)
+        v_all = np.concatenate([v_p_h,    v_h],    axis=0)
+        mask = np.zeros((M_TOKENS, n_kv), dtype=np.float32)
+    else:
+        k_all = k_rope
+        v_all = v_h
+        mask = np.triu(np.full((M_TOKENS, M_TOKENS), -1e9, dtype=np.float32), k=1)
+
+    # GQA 4:1 Attention (note: 1/sqrt(D_K) is already fused into w_q, w_k!)
+    k_rep = np.repeat(k_all, H_Q // H_KV, axis=1)  # (N_KV, 32, 64)
+    v_rep = np.repeat(v_all, H_Q // H_KV, axis=1)  # (N_KV, 32, 64)
     attn_out = np.zeros((M_TOKENS, H_Q, D_V), dtype=np.float32)
     for h in range(H_Q):
         scores = q_rope[:, h, :] @ k_rep[:, h, :].T + mask
@@ -243,8 +339,43 @@ def main():
     q_fq = fq_rtl_vec(apply_rope(xn_fq @ fq_rtl_vec(w_q).T, H_Q).reshape(M_TOKENS, D_MODEL)).reshape(M_TOKENS, H_Q, D_K)
     k_fq = fq_rtl_vec(apply_rope(xn_fq @ fq_rtl_vec(w_k).T, H_KV).reshape(M_TOKENS, H_KV * D_K)).reshape(M_TOKENS, H_KV, D_K)
     v_fq = fq_rtl_vec(xn_fq @ fq_rtl_vec(w_v).T).reshape(M_TOKENS, H_KV, D_V)
-    k_fq_rep = np.repeat(k_fq, H_Q // H_KV, axis=1)
-    v_fq_rep = np.repeat(v_fq, H_Q // H_KV, axis=1)
+    if args.decode:
+        n_ctx_past = n_kv - 1
+        xn_p_fq = fq_rtl_vec(xn_p)
+        k_p_raw = apply_rope(xn_p_fq @ fq_rtl_vec(w_k).T, H_KV, cos_all[:n_ctx_past], sin_all[:n_ctx_past])
+        k_p_perm = np.empty_like(k_p_raw)
+        k_p_perm[:, :, 0::2] = k_p_raw[:, :, :D_K // 2]
+        k_p_perm[:, :, 1::2] = k_p_raw[:, :, D_K // 2:]
+        k_p_fq_perm = fq_rtl_vec(k_p_perm.reshape(n_ctx_past * H_KV, D_K)).reshape(n_ctx_past, H_KV, D_K)
+        k_p_fq = np.empty_like(k_p_fq_perm)
+        k_p_fq[:, :, :D_K // 2] = k_p_fq_perm[:, :, 0::2]
+        k_p_fq[:, :, D_K // 2:] = k_p_fq_perm[:, :, 1::2]
+        v_p_raw = (xn_p_fq @ fq_rtl_vec(w_v).T).reshape(n_ctx_past, H_KV, D_V)
+        v_all_fq_in = np.concatenate([v_p_raw, v_fq[0:1]], axis=0)
+        v_p_t = np.transpose(v_all_fq_in, (1, 2, 0)).reshape(H_KV * D_V, n_kv)
+        v_fq_all = np.transpose(fq_rtl_vec(v_p_t).reshape(H_KV, D_V, n_kv), (2, 0, 1))
+        k_fq_all = np.concatenate([k_p_fq, k_fq[0:1]], axis=0)
+    elif n_past > 0:
+        xn_p_fq = fq_rtl_vec(xn_p)
+        k_p_raw = apply_rope(xn_p_fq @ fq_rtl_vec(w_k).T, H_KV, cos_all[:n_past], sin_all[:n_past])
+        k_p_perm = np.empty_like(k_p_raw)
+        k_p_perm[:, :, 0::2] = k_p_raw[:, :, :D_K // 2]
+        k_p_perm[:, :, 1::2] = k_p_raw[:, :, D_K // 2:]
+        k_p_fq_perm = fq_rtl_vec(k_p_perm.reshape(n_past * H_KV, D_K)).reshape(n_past, H_KV, D_K)
+        k_p_fq = np.empty_like(k_p_fq_perm)
+        k_p_fq[:, :, :D_K // 2] = k_p_fq_perm[:, :, 0::2]
+        k_p_fq[:, :, D_K // 2:] = k_p_fq_perm[:, :, 1::2]
+        v_p_raw = (xn_p_fq @ fq_rtl_vec(w_v).T).reshape(n_past, H_KV, D_V)
+        # V in TCDM is transposed: 16 tokens packed per packet along token axis
+        v_p_t   = np.transpose(v_p_raw, (1, 2, 0)).reshape(H_KV * D_V, n_past)
+        v_p_fq  = np.transpose(fq_rtl_vec(v_p_t).reshape(H_KV, D_V, n_past), (2, 0, 1))
+        k_fq_all = np.concatenate([k_p_fq, k_fq], axis=0)
+        v_fq_all = np.concatenate([v_p_fq, v_fq], axis=0)
+    else:
+        k_fq_all = k_fq
+        v_fq_all = v_fq
+    k_fq_rep = np.repeat(k_fq_all, H_Q // H_KV, axis=1)
+    v_fq_rep = np.repeat(v_fq_all, H_Q // H_KV, axis=1)
     attn_fq = np.zeros((M_TOKENS, H_Q, D_V), dtype=np.float32)
     for h in range(H_Q):
         sc_fq = q_fq[:, h, :] @ k_fq_rep[:, h, :].T + mask
@@ -300,15 +431,24 @@ def main():
     sin_u16 = sin_f32.astype(np.float16).view(np.uint16)
     for nt in range(N_TILES_MODEL):
         half_idx = (nt % 4) * 8
-        for t in range(M_TOKENS):
-            vec_idx = nt * M_TOKENS + t
+        if args.decode:
             for w in range(4):
                 j0 = half_idx + w * 2
                 j1 = half_idx + w * 2 + 1
-                pk = (int(sin_u16[t, j1]) << 48) | (int(cos_u16[t, j1]) << 32) | \
-                     (int(sin_u16[t, j0]) << 16) | int(cos_u16[t, j0])
-                pre_addr_list.append(tcdm_addr(vec_idx * 4 + w, ROPE_BANK))
+                pk = (int(sin_u16[0, j1]) << 48) | (int(cos_u16[0, j1]) << 32) | \
+                     (int(sin_u16[0, j0]) << 16) | int(cos_u16[0, j0])
+                pre_addr_list.append(tcdm_addr(nt * 4 + w, ROPE_BANK))
                 pre_data_list.append(pk)
+        else:
+            for t in range(M_TOKENS):
+                vec_idx = nt * M_TOKENS + t
+                for w in range(4):
+                    j0 = half_idx + w * 2
+                    j1 = half_idx + w * 2 + 1
+                    pk = (int(sin_u16[t, j1]) << 48) | (int(cos_u16[t, j1]) << 32) | \
+                         (int(sin_u16[t, j0]) << 16) | int(cos_u16[t, j0])
+                    pre_addr_list.append(tcdm_addr(vec_idx * 4 + w, ROPE_BANK))
+                    pre_data_list.append(pk)
 
     with open(os.path.join(OUT_DIR, "tcdm_preload_addr.hex"), "w") as fa, \
          open(os.path.join(OUT_DIR, "tcdm_preload_data.hex"), "w") as fd:
@@ -324,6 +464,42 @@ def main():
     write_fp16_hex(os.path.join(OUT_DIR, "g_res1_fq.hex"), res1_fq)
     write_fp16_hex(os.path.join(OUT_DIR, "g_n2_fq.hex"), n2_fq)
     write_fp16_hex(os.path.join(OUT_DIR, "g_final_fq.hex"), final_fq)
+
+    if args.decode:
+        k_all_perm = np.zeros((n_kv, H_KV, D_K), dtype=np.float32)
+        k_all_perm[:n_kv - 1] = k_p_perm
+        k_p_pkts = quantize_rtl_vec(k_all_perm.reshape(n_kv * H_KV, D_K)) \
+            .reshape(kv_tiles, 16, H_KV, D_K // 16, 9) \
+            .transpose(2, 0, 3, 1, 4)  # (H_KV, kv_tiles, 4, 16, 9)
+        v_p_pkts = quantize_rtl_vec(v_p_t) \
+            .reshape(H_KV, D_V // 16, 16, kv_tiles, 9) \
+            .transpose(0, 1, 3, 2, 4)  # (H_KV, DV_TILES, kv_tiles, 16, 9)
+        # Pack DRAM KV-cache in Ring-Buffer tile order: (hkv, dvi, kj) -> 768B/tile (5*144=720B + 48B pad)
+        dv_tiles = D_V // 16
+        kv_tiles_bytes = np.zeros((H_KV, dv_tiles, kv_tiles, 768), dtype=np.uint8)
+        k_tile_bytes = np.broadcast_to(
+            k_p_pkts[:, None, :, :, :, :].reshape(H_KV, 1, kv_tiles, 576),
+            (H_KV, dv_tiles, kv_tiles, 576)
+        )
+        v_tile_bytes = v_p_pkts.reshape(H_KV, dv_tiles, kv_tiles, 144)
+        kv_tiles_bytes[:, :, :, :576] = k_tile_bytes
+        kv_tiles_bytes[:, :, :, 576:720] = v_tile_bytes
+        kv_dram_beats = kv_tiles_bytes.reshape(-1, 64)[:, ::-1]
+        with open(os.path.join(OUT_DIR, "kv_dram.hex"), "w") as fkv:
+            fkv.write("\n".join(row.tobytes().hex() for row in kv_dram_beats) + "\n")
+        print(f"Wrote DECODE kv_dram.hex ({len(kv_dram_beats)} DRAM beats = {kv_tiles_bytes.size} bytes)")
+    elif n_past > 0:
+        k_p_pkts = quantize_rtl_vec(k_p_perm.reshape(n_past * H_KV, D_K)) \
+            .reshape(kv_tiles_past, 16, H_KV, D_K // 16, 9) \
+            .transpose(2, 0, 3, 1, 4).reshape(-1, 9)
+        v_p_pkts = quantize_rtl_vec(v_p_t) \
+            .reshape(H_KV, D_V // 16, 16, kv_tiles_past, 9) \
+            .transpose(0, 1, 3, 2, 4).reshape(-1, 9)
+        with open(os.path.join(OUT_DIR, "k_past.hex"), "w") as fk:
+            fk.write("\n".join(f"{int.from_bytes(r.tobytes(), 'little'):018x}" for r in k_p_pkts) + "\n")
+        with open(os.path.join(OUT_DIR, "v_past.hex"), "w") as fv:
+            fv.write("\n".join(f"{int.from_bytes(r.tobytes(), 'little'):018x}" for r in v_p_pkts) + "\n")
+        print(f"Wrote k_past.hex ({len(k_p_pkts)} pkts) and v_past.hex ({len(v_p_pkts)} pkts)")
 
     print(f"Done in {time.time() - t0:.2f}s! Preload words={len(pre_addr_list)}, DRAM beats={len(dram_beats)}")
 
