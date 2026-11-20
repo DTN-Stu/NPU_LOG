@@ -163,12 +163,23 @@ def main():
                         help="Load real weights & hidden states from NousResearch/Llama-3.2-1B")
     parser.add_argument("--layer", type=int, default=1,
                         help="Transformer layer index to extract (default: 1)")
+    parser.add_argument("--m-tokens", type=int, default=16,
+                        help="Number of prefill tokens (multiple of 16, default: 16)")
     parser.add_argument("--n-kv", type=int, default=16,
-                        help="Total KV context length (must be >= 16 and multiple of 16)")
+                        help="Total KV context length (must be >= m-tokens and multiple of 16)")
+    parser.add_argument("--out-dir", type=str, default=None,
+                        help="Output directory (default: sim/sim_llama3_1b)")
+    parser.add_argument("--skip-weights", action="store_true",
+                        help="Skip writing 69MB dram_weights.hex (reuse sim_llama3_1b/dram_weights.hex)")
     parser.add_argument("--decode", action="store_true",
                         help="Generate single-token Decode data (token 0 = pos N_KV-1, attending to N_KV tokens)")
     args = parser.parse_args()
-    assert args.n_kv >= M_TOKENS and args.n_kv % 16 == 0, "--n-kv must be >= 16 and divisible by 16"
+    global M_TOKENS, OUT_DIR
+    M_TOKENS = args.m_tokens
+    if args.out_dir is not None:
+        OUT_DIR = args.out_dir
+    assert M_TOKENS >= 16 and M_TOKENS % 16 == 0, "--m-tokens must be >= 16 and divisible by 16"
+    assert args.n_kv >= M_TOKENS and args.n_kv % 16 == 0, "--n-kv must be >= m-tokens and divisible by 16"
     n_kv = args.n_kv
     n_past = n_kv - M_TOKENS
     kv_tiles = n_kv // 16
@@ -393,24 +404,28 @@ def main():
     final_fq = res1_fq + h_fq @ fq_rtl_vec(w_d).T
 
     # 3. Quantize & pack all 7 weight matrices into 512-bit DRAM image
-    dram_buf = np.zeros(DRAM_TOTAL_BYTES, dtype=np.uint8)
-    w_q_perm = permute_qk_weights_for_rope(w_q, H_Q, D_K)
-    w_k_perm = permute_qk_weights_for_rope(w_k, H_KV, D_K)
+    dram_beats = []
+    if not args.skip_weights:
+        dram_buf = np.zeros(DRAM_TOTAL_BYTES, dtype=np.uint8)
+        w_q_perm = permute_qk_weights_for_rope(w_q, H_Q, D_K)
+        w_k_perm = permute_qk_weights_for_rope(w_k, H_KV, D_K)
 
-    print("Quantizing & packing 34.2 MB weights to DRAM...")
-    pack_proj_to_dram(dram_buf, DRAM_WQ, quantize_rtl_vec(w_q_perm))
-    pack_proj_to_dram(dram_buf, DRAM_WK, quantize_rtl_vec(w_k_perm))
-    pack_proj_to_dram(dram_buf, DRAM_WV, quantize_rtl_vec(w_v))
-    pack_proj_to_dram(dram_buf, DRAM_WO, quantize_rtl_vec(w_o))
-    pack_proj_to_dram(dram_buf, DRAM_WG, quantize_rtl_vec(w_g))
-    pack_proj_to_dram(dram_buf, DRAM_WU, quantize_rtl_vec(w_u))
-    pack_proj_to_dram(dram_buf, DRAM_WD, quantize_rtl_vec(w_d))
+        print("Quantizing & packing 34.2 MB weights to DRAM...")
+        pack_proj_to_dram(dram_buf, DRAM_WQ, quantize_rtl_vec(w_q_perm))
+        pack_proj_to_dram(dram_buf, DRAM_WK, quantize_rtl_vec(w_k_perm))
+        pack_proj_to_dram(dram_buf, DRAM_WV, quantize_rtl_vec(w_v))
+        pack_proj_to_dram(dram_buf, DRAM_WO, quantize_rtl_vec(w_o))
+        pack_proj_to_dram(dram_buf, DRAM_WG, quantize_rtl_vec(w_g))
+        pack_proj_to_dram(dram_buf, DRAM_WU, quantize_rtl_vec(w_u))
+        pack_proj_to_dram(dram_buf, DRAM_WD, quantize_rtl_vec(w_d))
 
-    # Write dram_weights.hex (each line = 64 bytes = 128 hex chars, MSB-first for $readmemh)
-    dram_beats = dram_buf.reshape(-1, 64)[:, ::-1]
-    dram_hex_path = os.path.join(OUT_DIR, "dram_weights.hex")
-    with open(dram_hex_path, "w") as f:
-        f.write("\n".join(row.tobytes().hex() for row in dram_beats) + "\n")
+        # Write dram_weights.hex (each line = 64 bytes = 128 hex chars, MSB-first for $readmemh)
+        dram_beats = dram_buf.reshape(-1, 64)[:, ::-1]
+        dram_hex_path = os.path.join(OUT_DIR, "dram_weights.hex")
+        with open(dram_hex_path, "w") as f:
+            f.write("\n".join(row.tobytes().hex() for row in dram_beats) + "\n")
+    else:
+        print("Skipping dram_weights.hex (--skip-weights)...")
 
     # 4. Write TCDM preload (X, gamma1, gamma2, interleaved RoPE cos/sin)
     pre_addr_list = []
@@ -423,7 +438,7 @@ def main():
             pre_addr_list.append(tcdm_addr(word_off + i, bank))
             pre_data_list.append(w64)
 
-    add_fp16_rows(X_BANK, 0, x_fp16_in)
+    add_fp16_rows(X_BANK, 0, x_fp16_in[:1] if args.decode else x_fp16_in)
     add_fp16_rows(GAMMA_BANK, GAMMA1_WORD, g1_fp16)
     add_fp16_rows(GAMMA_BANK, GAMMA2_WORD, g2_fp16)
 
@@ -454,6 +469,22 @@ def main():
          open(os.path.join(OUT_DIR, "tcdm_preload_data.hex"), "w") as fd:
         fa.write("\n".join(f"{a:08x}" for a in pre_addr_list) + "\n")
         fd.write("\n".join(f"{d:018x}" for d in pre_data_list) + "\n")
+
+    if not args.decode:
+        rope_mbatch = []
+        for mb in range(M_TOKENS // 16):
+            for nt in range(4):
+                half_idx = nt * 8
+                for t in range(16):
+                    tok = mb * 16 + t
+                    for w in range(4):
+                        j0 = half_idx + w * 2
+                        j1 = half_idx + w * 2 + 1
+                        pk = (int(sin_u16[tok, j1]) << 48) | (int(cos_u16[tok, j1]) << 32) | \
+                             (int(sin_u16[tok, j0]) << 16) | int(cos_u16[tok, j0])
+                        rope_mbatch.append(pk)
+        with open(os.path.join(OUT_DIR, "rope_mbatch.hex"), "w") as fr:
+            fr.write("\n".join(f"{d:018x}" for d in rope_mbatch) + "\n")
 
     # 5. Write golden references
     write_fp16_hex(os.path.join(OUT_DIR, "g_xnorm.hex"), xn_f32)

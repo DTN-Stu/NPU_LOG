@@ -51,6 +51,8 @@ module snax_streamer_write_out #(
     input  logic [31:0]                     cfg_dim2_stride_i,   // dim2 stride (4D)
     input  logic [31:0]                     cfg_dim3_cnt_i,      // dim3 count (4D)
     input  logic [31:0]                     cfg_dim3_stride_i,   // dim3 stride (4D)
+    input  logic                            cfg_wrap_en_i,
+    input  logic [15:0]                     cfg_wrap_words_m1_i,
 
     input  logic [NUM_LANES*16-1:0]         core_out_fp16_data_i,
     input  logic                            core_out_fp16_valid_i,
@@ -90,10 +92,12 @@ module snax_streamer_write_out #(
     logic [31:0]           d2_cnt_q,     d2_cnt_d;
     logic [31:0]           d3_cnt_q,     d3_cnt_d;
     logic [ADDR_WIDTH-1:0] write_addr_q, write_addr_d;
+    logic [ADDR_WIDTH-1:0] vec_base_q,   vec_base_d;
     logic [ADDR_WIDTH-1:0] batch_base_q, batch_base_d;
     logic [ADDR_WIDTH-1:0] d2_base_q,    d2_base_d;
     logic [ADDR_WIDTH-1:0] d3_base_q,    d3_base_d;
     logic [1:0]            word_cnt_q,   word_cnt_d;
+    logic [15:0]           bank_word_cnt_q, bank_word_cnt_d;
     logic                  start_q;
 
     // Job descriptor, sampled once at start.  The producer is free to change
@@ -107,9 +111,15 @@ module snax_streamer_write_out #(
     logic [31:0]           bstride_q;
     logic [31:0]           d2_cnt_max_q, d2_stride_q;
     logic [31:0]           d3_cnt_max_q, d3_stride_q;
+    logic                  wrap_en_q;
+    logic [15:0]           wrap_words_m1_q;
 
     wire tcdm_fire   = m_tcdm_req_valid_o && m_tcdm_req_ready_i;
     wire start_pulse = csr_start_i && !start_q;
+    wire wrap_hit    = wrap_en_q && (bank_word_cnt_q == wrap_words_m1_q);
+    wire [ADDR_WIDTH-1:0] next_linear_addr = wrap_hit
+        ? {base_q[ADDR_WIDTH-1:9], write_addr_q[8:4] + 5'd1, base_q[3:0]}
+        : (write_addr_q + lstride_q);
 
     // Inside IDLE the live descriptor is used (it is what the launch samples);
     // once the job runs, only the latched copy is read.
@@ -176,10 +186,12 @@ module snax_streamer_write_out #(
         d2_cnt_d      = d2_cnt_q;
         d3_cnt_d      = d3_cnt_q;
         write_addr_d  = write_addr_q;
+        vec_base_d    = vec_base_q;
         batch_base_d  = batch_base_q;
         d2_base_d     = d2_base_q;
         d3_base_d     = d3_base_q;
         word_cnt_d    = word_cnt_q;
+        bank_word_cnt_d = bank_word_cnt_q;
         done_irq_o    = 1'b0;
         in_fifo_pop   = 1'b0;
 
@@ -201,11 +213,13 @@ module snax_streamer_write_out #(
                         batch_cnt_d   = '0;
                         d2_cnt_d      = '0;
                         d3_cnt_d      = '0;
-                        write_addr_d  = base;
-                        batch_base_d  = base;
-                        d2_base_d     = base;
-                        d3_base_d     = base;
-                        word_cnt_d    = '0;
+                        write_addr_d    = base;
+                        vec_base_d      = base;
+                        batch_base_d    = base;
+                        d2_base_d       = base;
+                        d3_base_d       = base;
+                        word_cnt_d      = '0;
+                        bank_word_cnt_d = 16'd0;
                         case (mode)
                             MODE_FP16:   state_d = WRITE_FP16;
                             MODE_V:      state_d = WRITE_V;
@@ -224,8 +238,9 @@ module snax_streamer_write_out #(
                     m_tcdm_req_wdata_o = in_fifo_rdata[DATA_WIDTH-1:0];
 
                     if (tcdm_fire) begin
-                        in_fifo_pop  = 1'b1;
-                        write_addr_d = write_addr_q + lstride;
+                        in_fifo_pop     = 1'b1;
+                        write_addr_d    = next_linear_addr;
+                        bank_word_cnt_d = wrap_hit ? 16'd0 : (bank_word_cnt_q + 16'd1);
 
                         if (vec_cnt_q < nvec - 1'b1) begin
                             vec_cnt_d = vec_cnt_q + 1'b1;
@@ -248,19 +263,47 @@ module snax_streamer_write_out #(
                     m_tcdm_req_wdata_o = pack_fp16_word(in_fifo_rdata, word_cnt_q);
 
                     if (tcdm_fire) begin
-                        write_addr_d = write_addr_q + lstride;
-
-                        if (word_cnt_q < 2'd3) begin
-                            word_cnt_d = word_cnt_q + 1'b1;
-                        end else begin
-                            word_cnt_d  = '0;
-                            in_fifo_pop = 1'b1;   // whole vector committed
-
-                            if (vec_cnt_q < nvec - 1'b1) begin
-                                vec_cnt_d = vec_cnt_q + 1'b1;
+                        if (nbatch > 32'd1) begin
+                            if (word_cnt_q < 2'd3) begin
+                                word_cnt_d   = word_cnt_q + 1'b1;
+                                write_addr_d = write_addr_q + 32'h200;
                             end else begin
-                                done_irq_o = 1'b1;
-                                state_d    = IDLE;
+                                word_cnt_d  = '0;
+                                in_fifo_pop = 1'b1;
+
+                                if (vec_cnt_q < nvec - 1'b1) begin
+                                    vec_cnt_d    = vec_cnt_q + 1'b1;
+                                    vec_base_d   = vec_base_q + lstride;
+                                    write_addr_d = vec_base_q + lstride;
+                                end else begin
+                                    vec_cnt_d = '0;
+                                    if (batch_cnt_q < nbatch - 1'b1) begin
+                                        batch_cnt_d  = batch_cnt_q + 1'b1;
+                                        batch_base_d = batch_base_q + bstride;
+                                        vec_base_d   = batch_base_q + bstride;
+                                        write_addr_d = batch_base_q + bstride;
+                                    end else begin
+                                        done_irq_o = 1'b1;
+                                        state_d    = IDLE;
+                                    end
+                                end
+                            end
+                        end else begin
+                            write_addr_d    = next_linear_addr;
+                            bank_word_cnt_d = wrap_hit ? 16'd0 : (bank_word_cnt_q + 16'd1);
+
+                            if (word_cnt_q < 2'd3) begin
+                                word_cnt_d = word_cnt_q + 1'b1;
+                            end else begin
+                                word_cnt_d  = '0;
+                                in_fifo_pop = 1'b1;   // whole vector committed
+
+                                if (vec_cnt_q < nvec - 1'b1) begin
+                                    vec_cnt_d = vec_cnt_q + 1'b1;
+                                end else begin
+                                    done_irq_o = 1'b1;
+                                    state_d    = IDLE;
+                                end
                             end
                         end
                     end
@@ -276,8 +319,9 @@ module snax_streamer_write_out #(
                     m_tcdm_req_wdata_o = in_fifo_rdata[DATA_WIDTH-1:0];
 
                     if (tcdm_fire) begin
-                        in_fifo_pop  = 1'b1;
-                        write_addr_d = write_addr_q + lstride;
+                        in_fifo_pop     = 1'b1;
+                        write_addr_d    = next_linear_addr;
+                        bank_word_cnt_d = wrap_hit ? 16'd0 : (bank_word_cnt_q + 16'd1);
 
                         if (vec_cnt_q < nvec - 1'b1) begin
                             vec_cnt_d = vec_cnt_q + 1'b1;
@@ -353,38 +397,46 @@ module snax_streamer_write_out #(
             batch_cnt_q   <= '0;
             d2_cnt_q      <= '0;
             d3_cnt_q      <= '0;
-            write_addr_q  <= '0;
-            batch_base_q  <= '0;
-            d2_base_q     <= '0;
-            d3_base_q     <= '0;
-            word_cnt_q    <= '0;
-            start_q       <= 1'b0;
+            write_addr_q    <= '0;
+            vec_base_q      <= '0;
+            batch_base_q    <= '0;
+            d2_base_q       <= '0;
+            d3_base_q       <= '0;
+            word_cnt_q      <= '0;
+            bank_word_cnt_q <= '0;
+            start_q         <= 1'b0;
+            wrap_en_q       <= 1'b0;
+            wrap_words_m1_q <= '0;
         end else begin
-            state_q       <= state_d;
-            vec_cnt_q     <= vec_cnt_d;
-            batch_cnt_q   <= batch_cnt_d;
-            d2_cnt_q      <= d2_cnt_d;
-            d3_cnt_q      <= d3_cnt_d;
-            write_addr_q  <= write_addr_d;
-            batch_base_q  <= batch_base_d;
-            d2_base_q     <= d2_base_d;
-            d3_base_q     <= d3_base_d;
-            word_cnt_q    <= word_cnt_d;
-            start_q       <= csr_start_i;
+            state_q         <= state_d;
+            vec_cnt_q       <= vec_cnt_d;
+            batch_cnt_q     <= batch_cnt_d;
+            d2_cnt_q        <= d2_cnt_d;
+            d3_cnt_q        <= d3_cnt_d;
+            write_addr_q    <= write_addr_d;
+            vec_base_q      <= vec_base_d;
+            batch_base_q    <= batch_base_d;
+            d2_base_q       <= d2_base_d;
+            d3_base_q       <= d3_base_d;
+            word_cnt_q      <= word_cnt_d;
+            bank_word_cnt_q <= bank_word_cnt_d;
+            start_q         <= csr_start_i;
 
             // Sample the whole descriptor on the launch edge; it stays valid for
             // the entire job even if the producer changes it afterwards.
             if (start_pulse) begin
-                mode_q       <= cfg_mode_i;
-                base_q       <= cfg_base_addr_i;
-                nvec_q       <= cfg_num_vectors_i;
-                lstride_q    <= cfg_line_stride_i;
-                nbatch_q     <= cfg_num_batches_i;
-                bstride_q    <= cfg_batch_stride_i;
-                d2_cnt_max_q <= cfg_dim2_cnt_i;
-                d2_stride_q  <= cfg_dim2_stride_i;
-                d3_cnt_max_q <= cfg_dim3_cnt_i;
-                d3_stride_q  <= cfg_dim3_stride_i;
+                mode_q          <= cfg_mode_i;
+                base_q          <= cfg_base_addr_i;
+                nvec_q          <= cfg_num_vectors_i;
+                lstride_q       <= cfg_line_stride_i;
+                nbatch_q        <= cfg_num_batches_i;
+                bstride_q       <= cfg_batch_stride_i;
+                d2_cnt_max_q    <= cfg_dim2_cnt_i;
+                d2_stride_q     <= cfg_dim2_stride_i;
+                d3_cnt_max_q    <= cfg_dim3_cnt_i;
+                d3_stride_q     <= cfg_dim3_stride_i;
+                wrap_en_q       <= cfg_wrap_en_i;
+                wrap_words_m1_q <= cfg_wrap_words_m1_i;
             end
         end
     end

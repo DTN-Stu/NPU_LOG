@@ -105,6 +105,15 @@ module snax_flash_csr_snax (
     output logic        seq_gemm_decode,   // 1: GEMM Decode mode (M=1, slot 0 only)
     output logic [7:0]  seq_gemm_k_tiles_m1, // K-tiles - 1 (0 => 1 K-tile)
     output logic [7:0]  seq_gqa_group_m1,    // GQA group size - 1 (0 => MHA 1:1)
+    output logic        seq_act_bank_layout, // 1: 1 token per bank across banks 16..31 (stride 0x10)
+    output logic        seq_out_bank_layout, // 1: 1 token per bank FP16 output scatter
+    output logic        wo_wrap_en,
+    output logic        rd_wrap_en,
+    output logic        rd_b_wrap_en,
+    output logic        rd_b_wrap_bank_inc,
+    output logic [15:0] wo_wrap_words_m1,
+    output logic [15:0] rd_wrap_words_m1,
+    output logic [15:0] rd_b_wrap_words_m1,
     output logic [7:0]  seq_attn_h,
     output logic [15:0] seq_attn_q_tiles,
     output logic [3:0]  seq_attn_m_q,
@@ -179,6 +188,7 @@ module snax_flash_csr_snax (
     localparam int RW_SFU_B_BASE  = 49;
     localparam int RW_SFU_B_NV    = 50;
     localparam int RW_SFU_B_LS    = 51;
+    localparam int RW_WRAP_CFG    = 52;
     // The CSR manager reserves the last RW slot as START.
     localparam int RW_START       = 53;
 
@@ -295,6 +305,15 @@ module snax_flash_csr_snax (
     assign seq_gemm_decode     = cfg_rw[RW_SEQ_CTRL][7];
     assign seq_gemm_k_tiles_m1 = cfg_rw[RW_SEQ_CTRL][15:8];
     assign seq_gqa_group_m1    = cfg_rw[RW_SEQ_CTRL][23:16];
+    assign seq_act_bank_layout = cfg_rw[RW_SEQ_CTRL][24];
+    assign seq_out_bank_layout = cfg_rw[RW_SEQ_CTRL][25];
+    assign wo_wrap_en          = cfg_rw[RW_SEQ_CTRL][26];
+    assign rd_wrap_en          = cfg_rw[RW_SEQ_CTRL][27];
+    assign rd_b_wrap_en        = cfg_rw[RW_SEQ_CTRL][28];
+    assign rd_b_wrap_bank_inc  = cfg_rw[RW_SEQ_CTRL][29];
+    assign wo_wrap_words_m1    = {5'd0, cfg_rw[RW_WRAP_CFG][10:0]};
+    assign rd_wrap_words_m1    = {5'd0, cfg_rw[RW_WRAP_CFG][21:11]};
+    assign rd_b_wrap_words_m1  = {6'd0, cfg_rw[RW_WRAP_CFG][31:22]};
     assign seq_attn_h       = cfg_rw[RW_SEQ_ATTN_H][7:0];
     assign seq_attn_q_tiles = cfg_rw[RW_SEQ_ATTN_QT][15:0];
     assign seq_attn_m_q     = cfg_rw[RW_SEQ_ATTN_MQ][3:0];

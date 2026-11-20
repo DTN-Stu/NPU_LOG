@@ -93,12 +93,21 @@ module snax_llm_top_clean #(
     input  logic                    dma_desc_done_i,
 
     // Optional 3 extra DMA TCDM ports (Masters 22..24) for 4-word/cycle (288b) DMA
+`ifdef VERILATOR
+    input  logic [2:0]                  dma_aux_mem_req_valid_i,
+    output logic [2:0]                  dma_aux_mem_req_ready_o,
+    input  logic [2:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i,
+    input  logic [2:0]                  dma_aux_mem_req_write_i,
+    input  logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i,
+    input  logic [2:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i,
+`else
     input  logic [2:0]                  dma_aux_mem_req_valid_i = 3'b0,
     output logic [2:0]                  dma_aux_mem_req_ready_o,
     input  logic [2:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i  = '0,
     input  logic [2:0]                  dma_aux_mem_req_write_i = 3'b0,
     input  logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i = '0,
     input  logic [2:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i  = '0,
+`endif
     output logic [2:0]                  dma_aux_mem_rsp_valid_o,
     output logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_rsp_rdata_o,
 
@@ -269,6 +278,10 @@ module snax_llm_top_clean #(
     logic [1:0]  csr_seq_out_mode;
     logic        csr_seq_dma_wb, csr_seq_gemm_decode;
     logic [7:0]  csr_seq_gemm_k_tiles_m1, csr_seq_gqa_group_m1;
+    logic        csr_seq_act_bank_layout;
+    logic        csr_seq_out_bank_layout;
+    logic        csr_wo_wrap_en, csr_rd_wrap_en, csr_rd_b_wrap_en, csr_rd_b_wrap_bank_inc;
+    logic [15:0] csr_wo_wrap_words_m1, csr_rd_wrap_words_m1, csr_rd_b_wrap_words_m1;
     logic [7:0]  csr_seq_attn_h;
     logic [15:0] csr_seq_attn_q_tiles, csr_seq_attn_dv_tiles;
     logic [15:0] csr_seq_attn_kv_tiles, csr_seq_attn_k_blocks;
@@ -544,6 +557,15 @@ module snax_llm_top_clean #(
         .seq_gemm_decode          (csr_seq_gemm_decode),
         .seq_gemm_k_tiles_m1      (csr_seq_gemm_k_tiles_m1),
         .seq_gqa_group_m1         (csr_seq_gqa_group_m1),
+        .seq_act_bank_layout      (csr_seq_act_bank_layout),
+        .seq_out_bank_layout      (csr_seq_out_bank_layout),
+        .wo_wrap_en               (csr_wo_wrap_en),
+        .rd_wrap_en               (csr_rd_wrap_en),
+        .rd_b_wrap_en             (csr_rd_b_wrap_en),
+        .rd_b_wrap_bank_inc       (csr_rd_b_wrap_bank_inc),
+        .wo_wrap_words_m1         (csr_wo_wrap_words_m1),
+        .rd_wrap_words_m1         (csr_rd_wrap_words_m1),
+        .rd_b_wrap_words_m1       (csr_rd_b_wrap_words_m1),
         .seq_attn_h               (csr_seq_attn_h),
         .seq_attn_q_tiles         (csr_seq_attn_q_tiles),
         .seq_attn_m_q             (csr_seq_attn_m_q),
@@ -581,6 +603,8 @@ module snax_llm_top_clean #(
         .cfg_out_mode_i        (csr_seq_out_mode),
         .cfg_gemm_k_tiles_m1_i (csr_seq_gemm_k_tiles_m1),
         .cfg_gqa_group_m1_i    (csr_seq_gqa_group_m1),
+        .cfg_act_bank_layout_i (csr_seq_act_bank_layout),
+        .cfg_out_bank_layout_i (csr_seq_out_bank_layout),
         .cfg_attn_h_i          (csr_seq_attn_h),
         .cfg_attn_q_tiles_i    (csr_seq_attn_q_tiles),
         .cfg_attn_m_q_i        (csr_seq_attn_m_q),
@@ -748,6 +772,7 @@ module snax_llm_top_clean #(
     assign wo_cfg_nb   = csr_src_sel ? 32'd1              : seq_wo_num_batches;
     assign wo_cfg_bs   = csr_src_sel ? 32'd0              : seq_wo_batch_stride;
 
+    logic v_start;
     assign v_start            = csr_src_sel ? csr_v_start : seq_v_start;
     assign rd_start           = sfu_seq_active ? sfu_seq_rd_start : (csr_src_sel ? csr_rd_start : seq_rd_start);
     assign rd_b_start         = sfu_seq_active ? sfu_seq_rd_b_start : csr_rd_b_start;
@@ -1011,6 +1036,8 @@ module snax_llm_top_clean #(
         .cfg_dim2_stride_i     (csr_src_sel ? 32'd0 : seq_wo_dim2_stride),
         .cfg_dim3_cnt_i        (csr_src_sel ? 32'd1 : seq_wo_dim3_cnt),
         .cfg_dim3_stride_i     (csr_src_sel ? 32'd0 : seq_wo_dim3_stride),
+        .cfg_wrap_en_i         (csr_wo_wrap_en),
+        .cfg_wrap_words_m1_i   (csr_wo_wrap_words_m1),
 
         // LUỒNG FP16 (Nối trực tiếp từ Core ra ngoài TCDM cho CPU RoPE/RMSNorm)
         .core_out_fp16_data_i  ((sfu_en && sfu_out_dst) ? sfu_out_data : core_fp16_packed),
@@ -1043,6 +1070,9 @@ module snax_llm_top_clean #(
         .cfg_base_addr_i    (rd_base),
         .cfg_num_vectors_i  (rd_num_vectors),
         .cfg_line_stride_i  (rd_line_stride),
+        .cfg_wrap_en_i      (csr_rd_wrap_en),
+        .cfg_wrap_bank_inc_i(1'b1),
+        .cfg_wrap_words_m1_i(csr_rd_wrap_words_m1),
         .m_tcdm_req_valid_o (rd_m_req_valid),
         .m_tcdm_req_write_o (rd_m_req_write),
         .m_tcdm_req_addr_o  (rd_m_req_addr),
@@ -1068,6 +1098,9 @@ module snax_llm_top_clean #(
         .cfg_base_addr_i    (rd_b_base),
         .cfg_num_vectors_i  (rd_b_num_vectors),
         .cfg_line_stride_i  (rd_b_line_stride),
+        .cfg_wrap_en_i      (csr_rd_b_wrap_en),
+        .cfg_wrap_bank_inc_i(csr_rd_b_wrap_bank_inc),
+        .cfg_wrap_words_m1_i(csr_rd_b_wrap_words_m1),
         .m_tcdm_req_valid_o (rd_b_m_req_valid),
         .m_tcdm_req_write_o (rd_b_m_req_write),
         .m_tcdm_req_addr_o  (rd_b_m_req_addr),

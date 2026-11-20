@@ -26,6 +26,9 @@ module snax_stream_read_fp16 #(
     input  logic [ADDR_WIDTH-1:0]   cfg_base_addr_i,
     input  logic [31:0]             cfg_num_vectors_i,
     input  logic [31:0]             cfg_line_stride_i,
+    input  logic                    cfg_wrap_en_i,
+    input  logic                    cfg_wrap_bank_inc_i,
+    input  logic [15:0]             cfg_wrap_words_m1_i,
 
     output logic                    m_tcdm_req_valid_o,
     output logic                    m_tcdm_req_write_o,
@@ -45,21 +48,29 @@ module snax_stream_read_fp16 #(
     typedef enum logic [1:0] { IDLE, REQ, RSP, EMIT } state_t;
     state_t state_q, state_d;
 
-    logic [31:0]           vec_cnt_q,  vec_cnt_d;
-    logic [1:0]            word_cnt_q, word_cnt_d;
-    logic [ADDR_WIDTH-1:0] addr_q,     addr_d;
+    logic [31:0]           vec_cnt_q,       vec_cnt_d;
+    logic [1:0]            word_cnt_q,      word_cnt_d;
+    logic [ADDR_WIDTH-1:0] addr_q,          addr_d;
+    logic [15:0]           bank_word_cnt_q, bank_word_cnt_d;
     logic [63:0]           word_buf_q[0:3];
     logic [63:0]           word_buf_d[0:3];
     logic                  start_q;
 
-    wire start_pulse = csr_start_i && !start_q;
+    wire start_pulse   = csr_start_i && !start_q;
+    wire bank_wrap_hit = cfg_wrap_en_i && (bank_word_cnt_q == cfg_wrap_words_m1_i);
+    wire [ADDR_WIDTH-1:0] next_tcdm_addr = bank_wrap_hit
+        ? {cfg_base_addr_i[ADDR_WIDTH-1:9],
+           addr_q[8:4] + (cfg_wrap_bank_inc_i ? 5'd1 : 5'd0),
+           cfg_base_addr_i[3:0]}
+        : (addr_q + cfg_line_stride_i);
 
     always_comb begin
-        state_d    = state_q;
-        vec_cnt_d  = vec_cnt_q;
-        word_cnt_d = word_cnt_q;
-        addr_d     = addr_q;
-        done_irq_o = 1'b0;
+        state_d         = state_q;
+        vec_cnt_d       = vec_cnt_q;
+        word_cnt_d      = word_cnt_q;
+        addr_d          = addr_q;
+        bank_word_cnt_d = bank_word_cnt_q;
+        done_irq_o      = 1'b0;
 
         m_tcdm_req_valid_o = 1'b0;
         m_tcdm_req_write_o = 1'b0;
@@ -75,10 +86,11 @@ module snax_stream_read_fp16 #(
                     if (cfg_num_vectors_i == 0) begin
                         done_irq_o = 1'b1;
                     end else begin
-                        vec_cnt_d  = '0;
-                        word_cnt_d = '0;
-                        addr_d     = cfg_base_addr_i;
-                        state_d    = REQ;
+                        vec_cnt_d       = '0;
+                        word_cnt_d      = '0;
+                        addr_d          = cfg_base_addr_i;
+                        bank_word_cnt_d = 16'd0;
+                        state_d         = REQ;
                     end
                 end
             end
@@ -92,9 +104,10 @@ module snax_stream_read_fp16 #(
             RSP: begin
                 if (m_tcdm_rsp_valid_i) begin
                     if (word_cnt_q < 2'd3) begin
-                        word_cnt_d = word_cnt_q + 1'b1;
-                        addr_d     = addr_q + cfg_line_stride_i;
-                        state_d    = REQ;
+                        word_cnt_d      = word_cnt_q + 1'b1;
+                        addr_d          = next_tcdm_addr;
+                        bank_word_cnt_d = bank_wrap_hit ? 16'd0 : (bank_word_cnt_q + 16'd1);
+                        state_d         = REQ;
                     end else begin
                         state_d = EMIT;
                     end
@@ -104,9 +117,10 @@ module snax_stream_read_fp16 #(
             EMIT: begin
                 fp16_valid_o = 1'b1;
                 if (fp16_ready_i) begin
-                    vec_cnt_d  = vec_cnt_q + 1'b1;
-                    word_cnt_d = '0;
-                    addr_d     = addr_q + cfg_line_stride_i;
+                    vec_cnt_d       = vec_cnt_q + 1'b1;
+                    word_cnt_d      = '0;
+                    addr_d          = next_tcdm_addr;
+                    bank_word_cnt_d = bank_wrap_hit ? 16'd0 : (bank_word_cnt_q + 16'd1);
 
                     if (vec_cnt_q < cfg_num_vectors_i - 1'b1) begin
                         state_d = REQ;
@@ -127,17 +141,19 @@ module snax_stream_read_fp16 #(
         if (!rst_n) begin
             state_q    <= IDLE;
             vec_cnt_q  <= '0;
-            word_cnt_q <= '0;
-            addr_q     <= '0;
-            start_q    <= 1'b0;
+            word_cnt_q      <= '0;
+            addr_q          <= '0;
+            bank_word_cnt_q <= '0;
+            start_q         <= 1'b0;
             for (int w = 0; w < 4; w++)
                 word_buf_q[w] <= 64'd0;
         end else begin
-            state_q    <= state_d;
-            vec_cnt_q  <= vec_cnt_d;
-            word_cnt_q <= word_cnt_d;
-            addr_q     <= addr_d;
-            start_q    <= csr_start_i;
+            state_q         <= state_d;
+            vec_cnt_q       <= vec_cnt_d;
+            word_cnt_q      <= word_cnt_d;
+            addr_q          <= addr_d;
+            bank_word_cnt_q <= bank_word_cnt_d;
+            start_q         <= csr_start_i;
 
             if (state_q == RSP && m_tcdm_rsp_valid_i)
                 word_buf_q[word_cnt_q] <= m_tcdm_rsp_rdata_i[63:0];

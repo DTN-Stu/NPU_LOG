@@ -730,7 +730,7 @@ module tb_llm_decode_small;
             $dumpfile("tb_snax_llm_decode_small.vcd");
 `endif
             if ($test$plusargs("WAVE_DEEP"))
-                $dumpvars(0, tb_snax_llm_top_gemm);
+                $dumpvars(0, tb_llm_decode_small);
             else
                 $dumpvars(0, dut);
         end

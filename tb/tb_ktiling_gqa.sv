@@ -398,7 +398,49 @@ module tb_ktiling_gqa;
         end
         $display("[PASS] TEST 3: GQA 4:1 (H_Q=8, H_KV=2) bit-exact vs MHA (1024/1024 words = 4096 FP16)");
 
-        $display("\n=== ALL K-TILING + 128KB RING + GQA TESTS PASSED (0 errors) ===");
+        // =====================================================================
+        // TEST 4: Multi-Bank Activation Layout (1 token/bank across banks 16..31)
+        //         M=16, N=16, K=8192 (512 K-blocks) on true 288 KB TCDM (BANK_DEPTH=1024)
+        // =====================================================================
+        begin
+            logic [71:0] wt_8k [0:8191];
+            for (int t = 0; t < 16; t++)
+                for (int kb = 0; kb < 512; kb++)
+                    cpu_write(tcdm_addr(kb, 16 + t), make_pkt(t*19 + kb*3 + 77));
+            for (int kb = 0; kb < 512; kb++)
+                for (int ln = 0; ln < 16; ln++)
+                    wt_8k[kb*16 + ln] = make_pkt(kb*11 + ln + 333);
+            pack_wt_to_dram(32'h0, 8192, wt_8k);
+
+            // Reference: 4 K-tiles x 128 K-blocks (act_bank_layout=1)
+            csr_write(A_SEQ_CTRL,  (32'd1 << 24) | (32'd3 << 8) | 32'h8);
+            csr_write(A_GEMM_NT,   32'd1);
+            csr_write(A_GEMM_MT,   32'd1);
+            csr_write(A_GEMM_KB,   32'd128);
+            csr_write(A_RING_BASE, 32'h0);
+            csr_write(A_DRAM_KV,   32'h0);
+            csr_write(A_TILE_ST,   32'd512 * 32'd144);
+            csr_write(A_Q_BASE,    tcdm_addr(0, 16));
+            csr_write(A_OUT_BASE,  tcdm_addr(512, 16));
+            csr_write(A_START,     32'h3);
+            wait_seq();
+            for (int w = 0; w < 64; w++) cpu_read(tcdm_addr(512 + w, 16), gold_o[w]);
+
+            // DUT: 2 K-tiles x 256 K-blocks (act_bank_layout=1)
+            csr_write(A_SEQ_CTRL,  (32'd1 << 24) | (32'd1 << 8) | 32'h8);
+            csr_write(A_GEMM_KB,   32'd256);
+            csr_write(A_OUT_BASE,  tcdm_addr(576, 16));
+            csr_write(A_START,     32'h3);
+            wait_seq();
+            for (int w = 0; w < 64; w++) begin
+                cpu_read(tcdm_addr(576 + w, 16), act_o[w]);
+                if (act_o[w] !== gold_o[w])
+                    $fatal(1, "TEST 4 Multi-Bank Act K=8192 mismatch at word %0d: %h != %h", w, act_o[w], gold_o[w]);
+            end
+            $display("[PASS] TEST 4: Multi-Bank Act (banks 16..31) K=8192 (2x256 vs 4x128) on 288KB TCDM bit-exact (64/64 words)");
+        end
+
+        $display("\n=== ALL K-TILING + 128KB RING + GQA + MULTI-BANK ACT TESTS PASSED (0 errors) ===");
         $finish;
     end
 endmodule
