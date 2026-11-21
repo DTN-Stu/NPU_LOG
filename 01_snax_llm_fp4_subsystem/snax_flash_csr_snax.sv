@@ -127,11 +127,25 @@ module snax_flash_csr_snax (
     output logic [31:0] seq_tcdm_q_base,
     output logic [31:0] seq_tcdm_out_base,
     output logic [31:0] seq_dram_kv_base,
-    output logic [31:0] seq_stride_tile
+    output logic [31:0] seq_stride_tile,
+    // Opt-in Macro-Tiling & Extended Attention DMA controls
+    output logic        seq_gemm_macro_dma,
+    output logic        seq_use_legacy_gemm,
+    output logic [7:0]  seq_gemm_m_sub_tiles,
+    output logic [7:0]  seq_gemm_n_sub_tiles,
+    output logic [31:0] seq_dram_act_base,
+    output logic [31:0] seq_dram_out_base,
+    output logic [31:0] seq_macro_a_buf_stride,
+    output logic [31:0] seq_macro_o_buf_stride,
+    output logic        seq_attn_kv_pin_en,
+    output logic        seq_attn_sep_kv_dram,
+    output logic [31:0] seq_dram_v_base,
+    output logic [13:0] seq_attn_kv_past_tiles
 );
 
-    localparam int NUM_RW         = 54;
+    localparam int NUM_RW         = 70;
     localparam int NUM_RO         = 10;
+    localparam int START_IDX      = 53;
 
     localparam int RW_CTRL        = 0;
     localparam int RW_ACT_BASE    = 1;
@@ -189,8 +203,15 @@ module snax_flash_csr_snax (
     localparam int RW_SFU_B_NV    = 50;
     localparam int RW_SFU_B_LS    = 51;
     localparam int RW_WRAP_CFG    = 52;
-    // The CSR manager reserves the last RW slot as START.
-    localparam int RW_START       = 53;
+    // The CSR manager reserves the slot at START_IDX as START.
+    localparam int RW_START       = START_IDX;
+    // Extended non-aliased Macro-Tiling & Attention DMA CSRs (past RO slots 54..63)
+    localparam int RW_MACRO_SUB   = 64;   // [7:0] m_sub, [15:8] n_sub, [16] attn_kv_pin_en, [17] attn_sep_kv_dram
+    localparam int RW_MACRO_ACT   = 65;   // DRAM Q/Act base
+    localparam int RW_MACRO_OUT   = 66;   // DRAM O/Out base
+    localparam int RW_MACRO_A_STR = 67;   // Q/A Ping-Pong TCDM buffer stride
+    localparam int RW_MACRO_O_STR = 68;   // O Ping-Pong TCDM buffer stride
+    localparam int RW_DRAM_V_BASE = 69;   // Separate DRAM V base for FlashAttention
 
     logic [NUM_RW-1:0][31:0] cfg_rw;
     logic [31:0]             start_mask;
@@ -212,7 +233,8 @@ module snax_flash_csr_snax (
     snax_csr_manager #(
         .NUM_RW     (NUM_RW),
         .NUM_RO     (NUM_RO),
-        .ADDR_WIDTH (12)
+        .ADDR_WIDTH (12),
+        .START_IDX  (START_IDX)
     ) u_manager (
         .clk                (clk),
         .rst_n              (rst_n),
@@ -325,8 +347,26 @@ module snax_flash_csr_snax (
     assign seq_gemm_k_blocks= cfg_rw[RW_SEQ_GEMM_KB][15:0];
     assign seq_tcdm_ring_base= cfg_rw[RW_SEQ_RING];
     assign seq_tcdm_q_base  = cfg_rw[RW_SEQ_Q_BASE];
-    assign seq_tcdm_out_base= cfg_rw[RW_SEQ_OUT];
-    assign seq_dram_kv_base = cfg_rw[RW_SEQ_DRAM_KV];
-    assign seq_stride_tile  = cfg_rw[RW_SEQ_TILE_ST];
+    assign seq_tcdm_out_base      = cfg_rw[RW_SEQ_OUT];
+    assign seq_dram_kv_base       = cfg_rw[RW_SEQ_DRAM_KV];
+    assign seq_stride_tile        = cfg_rw[RW_SEQ_TILE_ST];
+    wire use_ext_macro = (cfg_rw[RW_MACRO_SUB][15:0] != 16'd0) ||
+                         (cfg_rw[RW_MACRO_ACT]       != 32'd0) ||
+                         (cfg_rw[RW_MACRO_OUT]       != 32'd0) ||
+                         (cfg_rw[RW_MACRO_A_STR]     != 32'd0) ||
+                         (cfg_rw[RW_MACRO_O_STR]     != 32'd0);
+
+    assign seq_gemm_macro_dma     = cfg_rw[RW_SEQ_CTRL][30];
+    assign seq_use_legacy_gemm    = cfg_rw[RW_SEQ_CTRL][31];
+    assign seq_gemm_m_sub_tiles   = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_SUB][7:0]  : cfg_rw[RW_SEQ_ATTN_H][7:0];
+    assign seq_gemm_n_sub_tiles   = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_SUB][15:8] : cfg_rw[RW_SEQ_ATTN_H][15:8];
+    assign seq_dram_act_base      = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_ACT]       : cfg_rw[RW_SEQ_ATTN_QT];
+    assign seq_dram_out_base      = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_OUT]       : cfg_rw[RW_SEQ_ATTN_DV];
+    assign seq_macro_a_buf_stride = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_A_STR]     : cfg_rw[RW_SEQ_ATTN_KV];
+    assign seq_macro_o_buf_stride = (use_ext_macro || (seq_op_mode == 2'b01)) ? cfg_rw[RW_MACRO_O_STR]     : cfg_rw[RW_SEQ_ATTN_KB];
+    assign seq_attn_kv_pin_en     = cfg_rw[RW_MACRO_SUB][16];
+    assign seq_attn_sep_kv_dram   = cfg_rw[RW_MACRO_SUB][17];
+    assign seq_dram_v_base        = cfg_rw[RW_DRAM_V_BASE];
+    assign seq_attn_kv_past_tiles = cfg_rw[RW_MACRO_SUB][31:18];
 
 endmodule

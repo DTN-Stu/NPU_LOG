@@ -2,7 +2,7 @@
 // tb_llama3_1b_layer.sv
 //
 // Full-scale NousResearch/Llama-3.2-1B end-to-end prefill layer on
-// snax_llm_top_clean + 4-port snax_simple_dma + 512-bit External DRAM:
+// snax_llm_top_clean + 8-port snax_simple_dma + 512-bit External DRAM:
 //   M_TOKENS = 16, D_MODEL = 2048, D_FF = 8192,
 //   H_Q = 32, H_KV = 8 (GQA 4:1, gqa_group_m1 = 3), D_K = D_V = 64,
 //   All 7 weight matrices (~34.2 MB FP4+Log8) streamed from DRAM via 4-slot x 128 KB
@@ -20,7 +20,13 @@ module tb_llama3_1b_layer;
         `define N_KV `M_TOKENS
     `endif
     `ifndef DATA_DIR
-        `define DATA_DIR "sim_llama3_1b"
+        `ifdef DATA_DIR_PREFILL
+            `define DATA_DIR "sim_llama3_1b_prefill"
+        `elsif DECODE
+            `define DATA_DIR "sim_llama3_1b_decode"
+        `else
+            `define DATA_DIR "sim_llama3_1b"
+        `endif
     `endif
     localparam int N_KV           = `N_KV;
     localparam int M_TOKENS       = `M_TOKENS;
@@ -170,10 +176,10 @@ module tb_llama3_1b_layer;
     logic        cpu_mem_rsp_valid;
     logic [71:0] cpu_mem_rsp_rdata;
 
-    logic [3:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
-    logic [3:0][31:0]  dma_tcdm_req_addr;
-    logic [3:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
-    logic [3:0][8:0]   dma_tcdm_req_strb;
+    logic [7:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
+    logic [7:0][31:0]  dma_tcdm_req_addr;
+    logic [7:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
+    logic [7:0][8:0]   dma_tcdm_req_strb;
 
     logic        dma_desc_valid, dma_desc_ready, dma_desc_done;
     logic [1:0]  dma_desc_dir;
@@ -216,14 +222,14 @@ module tb_llama3_1b_layer;
         .dma_mem_req_strb_i      (dma_tcdm_req_strb[0]),
         .dma_mem_rsp_valid_o     (dma_tcdm_rsp_valid[0]),
         .dma_mem_rsp_rdata_o     (dma_tcdm_rsp_rdata[0]),
-        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[3:1]),
-        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[3:1]),
-        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[3:1]),
-        .dma_aux_mem_req_write_i (dma_tcdm_req_write[3:1]),
-        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[3:1]),
-        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[3:1]),
-        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[3:1]),
-        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[3:1]),
+        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[7:1]),
+        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[7:1]),
+        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[7:1]),
+        .dma_aux_mem_req_write_i (dma_tcdm_req_write[7:1]),
+        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[7:1]),
+        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[7:1]),
+        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[7:1]),
+        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[7:1]),
         .dma_desc_valid_o        (dma_desc_valid),
         .dma_desc_ready_i        (dma_desc_ready),
         .dma_desc_dir_o          (dma_desc_dir),
@@ -235,7 +241,7 @@ module tb_llama3_1b_layer;
         .subsystem_done_irq_o    (done_irq)
     );
 
-    snax_simple_dma #(.TCDM_PORTS(4)) u_dma (
+    snax_simple_dma #(.TCDM_PORTS(8)) u_dma (
         .clk                  (clk),
         .rst_n                (rst_n),
         .desc_valid_i         (dma_desc_valid),
@@ -621,11 +627,14 @@ module tb_llama3_1b_layer;
     task automatic run_gemm_dma_ex(input int n_tiles, input int k_blks_per_tile, input int k_tiles_m1,
                                    input logic [31:0] dram_base, input int tile_stride_bytes,
                                    input logic [31:0] q_base, input logic [31:0] out_base,
-                                   input bit act_16bank, input string name, input bit out_16bank = 1'b0);
+                                   input bit act_16bank, input string name,
+                                   input bit out_16bank = 1'b0, input logic [1:0] out_mode = 2'd0);
         cpu_csr_write(A_CTRL,      32'h0);
         cpu_csr_write(A_SEQ_CTRL,  (out_16bank ? (32'd1 << 25) : 32'd0) |
                                    (act_16bank ? (32'd1 << 24) : 32'd0) |
-                                   (32'(k_tiles_m1) << 8) | (IS_DECODE ? 32'h88 : 32'h8));
+                                   (32'(k_tiles_m1) << 8) |
+                                   ({26'd0, out_mode, 4'b1000}) |
+                                   (IS_DECODE ? 32'h80 : 32'h0));
         cpu_csr_write(A_GEMM_NT,   n_tiles);
         cpu_csr_write(A_GEMM_MT,   32'd1);
         cpu_csr_write(A_GEMM_KB,   k_blks_per_tile);
@@ -811,10 +820,31 @@ module tb_llama3_1b_layer;
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;
-        $display("[5/12] Decode GEMM V (M=1, FP16 -> TCDM) + Update DRAM K_new (N_KV=%0d)...", N_KV);
-        run_gemm_dma(N_TILES_KV, K_PACKETS_QKV, 0, DRAM_WV, K_PACKETS_QKV * 144,
-                     tcdm_addr(0, ACT_BANK), tcdm_addr(0, G_STG_BANK), "Decode GEMM V");
-        for (int hkv = 0; hkv < H_KV; hkv++)
+        $display("[5/12] Decode GEMM V (M=1, FP16 -> Bank 15 words 640..767) + HW V-Transpose (op=2'b10) + Update DRAM KV (N_KV=%0d)...", N_KV);
+        begin
+            logic [71:0] v_tail_fp16 [0:15 * N_TILES_KV * 4 - 1];
+            $readmemh({`DATA_DIR, "/v_tail_past_fp16.hex"}, v_tail_fp16);
+            for (int tok = 0; tok < 15; tok++)
+                for (int w = 0; w < N_TILES_KV * 4; w++)
+                    cpu_mem_write(tcdm_addr(640 + w, tok), v_tail_fp16[tok * (N_TILES_KV * 4) + w]);
+        end
+        // Decode GEMM V outputs FP16 (out_mode=00) into Bank 15 words 640..767 directly
+        run_gemm_dma_ex(N_TILES_KV, K_PACKETS_QKV, 0, DRAM_WV, K_PACKETS_QKV * 144,
+                        tcdm_addr(0, ACT_BANK), tcdm_addr(640, 15), 1'b0, "Decode GEMM V (FP16)", 1'b0, 2'd0);
+
+        // Hardware Decode V-Transpose (op_mode=2'b10, act_bank_layout=1): Banks 0..15 words 640..767 -> Banks 0..15 words 128..159
+        cpu_csr_write(A_CTRL,      32'h0);
+        cpu_csr_write(A_RD_LS,     32'd0);
+        cpu_csr_write(A_SEQ_CTRL,  (32'd1 << 24) | 32'h2);
+        cpu_csr_write(A_Q_BASE,    tcdm_addr(640, 0));
+        cpu_csr_write(A_V_BASE,    tcdm_addr(128, 0));
+        cpu_csr_write(A_V_NB,      N_TILES_KV);
+        cpu_csr_write(A_TILE_ST,   32'h200);
+        cpu_csr_write(A_START,     32'h0000_0003);
+        wait_job("Decode V-Transpose");
+
+        // Update DRAM_KV tail tile (kj = KV_TILES_PAST) with new K row (l=15) and HW-transposed V packets (l=0..15)
+        for (int hkv = 0; hkv < H_KV; hkv++) begin
             for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
                 logic [71:0] kp_pkt;
                 cpu_mem_read(tcdm_addr(hkv*K_PACKETS_QK + kp, OUT_BANK), kp_pkt);
@@ -830,6 +860,23 @@ module tb_llama3_1b_layer;
                     end
                 end
             end
+            for (int dvi = 0; dvi < DV_TILES; dvi++) begin
+                int tile_off;
+                tile_off = ((hkv * DV_TILES + dvi) * KV_TILES + KV_TILES_PAST) * 768 + 576;
+                for (int l = 0; l < 16; l++) begin
+                    logic [71:0] vp_pkt;
+                    int abs_byte;
+                    cpu_mem_read(tcdm_addr(128 + hkv * DV_TILES + dvi, l), vp_pkt);
+                    abs_byte = tile_off + l * 9;
+                    for (int b = 0; b < 9; b++) begin
+                        int beat, boff;
+                        beat = (DRAM_KV >> 6) + ((abs_byte + b) >> 6);
+                        boff = (abs_byte + b) & 63;
+                        dram_mem[beat][boff*8 +: 8] = vp_pkt[b*8 +: 8];
+                    end
+                end
+            end
+        end
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;

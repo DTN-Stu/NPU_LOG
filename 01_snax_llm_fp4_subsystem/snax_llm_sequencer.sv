@@ -1,76 +1,81 @@
 // =============================================================================
 // Module: snax_llm_sequencer.sv
-// Description: Complete, Production-Grade Hardware Orchestration Sequencer for
-//              SNAX FP4 LLM Subsystem.
+// Description: Unified Hardware Orchestration Sequencer for SNAX FP4 LLM
+//              Subsystem (Single Sequencer Architecture).
 //
-// Key Features:
-//   1. Multi-Mode Workload Support:
-//      - OP_ATTN (FlashAttention: 4-level nested loops: Head, Q-tile, DV-slice, KV-tile)
-//      - OP_GEMM (Dense GeMM: Output-Stationary over 16 Lanes x 16 Latch Slots)
-//   2. Credit-Based TCDM Ring Buffer Management:
-//      - Treats TCDM as an N-slot circular sliding window.
-//      - Asynchronously issues DMA prefetch commands to hide DRAM latency.
-//      - Credit tracking guarantees zero RAW / WAR hazards without lockstep stalls.
-//   3. Dynamic Hardware Causal Mask Generator:
-//      - Computes 16-bit causal masks on-the-fly from (q_idx, kv_idx).
-//   4. Decoupled Event-Driven Execution:
-//      - Zero-bubble handshakes, robust p_fifo backpressure handling.
+// Supported Workloads:
+//   - cfg_dma_wb_i == 1          : Standalone Gearbox DMA (TCDM <-> DRAM)
+//   - cfg_op_mode_i == 2'b00     : 4-Loop Output-Stationary GEMM
+//                                  (M_macro -> N_16 -> M_sub -> K_TILES)
+//                                  with Ping-Pong A/O Macro-DMA, W Ring Reuse,
+//                                  Port-B Rolling Drain, and Fused V-Transpose
+//   - cfg_op_mode_i == 2'b01     : FlashAttention + GQA + Online Softmax
+//                                  (h_kv -> h_grp -> Q_macro -> qi -> dvi -> kj)
+//                                  with KV-Pinning, Ring Prefetch, Macro-DMA
+//                                  Q/O Ping-Pong, and Dynamic Causal Masking
+//   - cfg_op_mode_i == 2'b10     : Hardware Decode / TCDM V-Transpose + LogQ
+//                                  (u_read_fp16 2D -> u_transpose_buffer ->
+//                                   u_log_quantizer -> u_write_out MODE_V)
+//   - cfg_op_mode_i == 2'b11     : TCDM FP16 Readback + Requantize
+//
+// Decoupled 3-Sub-FSM Architecture:
+//   - Sub-FSM 1 (cmp_state_q): Compute, Streamer, V/RD & Loop Coordinator
+//   - Sub-FSM 2 (dr_state_q) : Port-B Drain & OUT_PIPE_CREDITS Guard + WAR Guard
+//   - Sub-FSM 3 (dma_state_q): DMA Arbiter & Ring/Ping-Pong/KV-Pin Controller
 // =============================================================================
 
 `timescale 1ns/1ps
 
 module snax_llm_sequencer #(
-    parameter int unsigned ADDR_WIDTH      = 32,
-    parameter int unsigned NUM_LANES       = 16,
-    parameter int unsigned NUM_RING_SLOTS  = 4,   // TCDM Circular Buffer Depth
-    parameter int unsigned SLOT_SIZE_BYTES = 128 * 1024 // 128 KB per Ring Slot (256 K-packets, Kmax=4096)
+    parameter int unsigned ADDR_WIDTH       = 32,
+    parameter int unsigned NUM_LANES        = 16,
+    parameter int unsigned NUM_RING_SLOTS   = 4,
+    parameter int unsigned SLOT_SIZE_BYTES  = 128 * 1024,
+    parameter int unsigned OUT_PIPE_CREDITS = 4,
+    parameter int unsigned CAP_O_TILES      = 16
 )(
     input  logic                                clk,
     input  logic                                rst_n,
 
     // =========================================================================
-    // 1. TOP-LEVEL JOB CONTROL & CONFIGURATION DESCRIPTOR
+    // 1. JOB CONTROL & CONFIGURATION DESCRIPTOR
     // =========================================================================
     input  logic                                start_i,
     output logic                                busy_o,
     output logic                                done_o,
 
-    // Opcode selection
-    input  logic [1:0]                          cfg_op_mode_i,       // 00: GEMM, 01: FlashAttention, 10: Transpose/Quant, 11: readback
-    input  logic                                cfg_is_causal_i,     // 1: Enable causal autoregressive masking
-    input  logic                                cfg_enable_dma_i,    // 1: Enable autonomous DMA prefetching via Ring Buffer
-    input  logic                                cfg_dma_wb_i,        // 1: Standalone DMA transfer (TCDM <-> DRAM)
-    input  logic                                cfg_gemm_decode_i, // 1: GEMM Decode mode (M=1, slot 0 only)
-    input  logic [1:0]                          cfg_out_mode_i,      // 00: FP16, 01: FP4 linear, 10: FP4 bank-scatter
-    input  logic [7:0]                          cfg_gemm_k_tiles_m1_i, // GEMM K-tiles - 1 (0 => 1 K-tile)
-    input  logic [7:0]                          cfg_gqa_group_m1_i,    // GQA group size - 1 (0 => MHA 1:1)
-    input  logic                                cfg_act_bank_layout_i, // 1: 1 token per bank (banks 16..31, stride 0x10)
-    input  logic                                cfg_out_bank_layout_i, // 1: 1 token per bank FP16 output scatter
+    input  logic [1:0]                          cfg_op_mode_i,
+    input  logic                                cfg_is_causal_i,
+    input  logic                                cfg_enable_dma_i,
+    input  logic                                cfg_dma_wb_i,
+    input  logic                                cfg_gemm_decode_i,
+    input  logic [1:0]                          cfg_out_mode_i,
+    input  logic [7:0]                          cfg_gemm_k_tiles_m1_i,
+    input  logic [7:0]                          cfg_gqa_group_m1_i,
+    input  logic                                cfg_act_bank_layout_i,
+    input  logic                                cfg_out_bank_layout_i,
 
-    // Attention Dimensions
-    input  logic [7:0]                          cfg_attn_h_i,        // Number of Heads (H)
-    input  logic [15:0]                         cfg_attn_q_tiles_i,  // Total Q-Tiles (N_Q / M_Q)
-    input  logic [3:0]                          cfg_attn_m_q_i,      // Query tokens per tile (Default: 8)
-    input  logic [15:0]                         cfg_attn_dv_tiles_i, // D_V Slices (D_V / 16)
-    input  logic [15:0]                         cfg_attn_kv_tiles_i, // KV Tiles (SeqLen_KV / 16)
-    input  logic [15:0]                         cfg_attn_k_blocks_i, // D_K Blocks (D_K / 16)
+    // Attention dimensions
+    input  logic [7:0]                          cfg_attn_h_i,
+    input  logic [15:0]                         cfg_attn_q_tiles_i,
+    input  logic [3:0]                          cfg_attn_m_q_i,
+    input  logic [15:0]                         cfg_attn_dv_tiles_i,
+    input  logic [15:0]                         cfg_attn_kv_tiles_i,
+    input  logic [15:0]                         cfg_attn_k_blocks_i,
 
-    // GEMM Dimensions
-    // cfg_gemm_k_blocks_i is K_PACKETS = K_TILE / 16, not the number of K
-    // tiles.  The GEMM FSM loops only over M/N output tiles; the weight and
-    // activation streamers walk these K packets internally in one start.
-    input  logic [15:0]                         cfg_gemm_n_tiles_i,  // N Output Channel Tiles (N / 16)
-    input  logic [15:0]                         cfg_gemm_m_tiles_i,  // M Token Tiles (M / 16)
-    input  logic [15:0]                         cfg_gemm_k_blocks_i, // K Reduction Blocks (K / 16)
+    // GEMM dimensions
+    input  logic [15:0]                         cfg_gemm_n_tiles_i,
+    input  logic [15:0]                         cfg_gemm_m_tiles_i,
+    input  logic [15:0]                         cfg_gemm_k_blocks_i,
 
-    // Base Addresses & Strides (TCDM & DRAM)
-    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_ring_base_i,// TCDM Base for circular buffer
-    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_q_base_i,   // TCDM Base for Q/Act
-    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_out_base_i, // TCDM Base for Result Output
-    input  logic [ADDR_WIDTH-1:0]               cfg_dram_kv_base_i,  // DRAM Base for KV-Cache / Weights
-    input  logic [31:0]                         cfg_stride_tile_i,   // Stride between tiles in bytes
+    // Base addresses & strides
+    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_ring_base_i,
+    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_q_base_i,
+    input  logic [ADDR_WIDTH-1:0]               cfg_tcdm_out_base_i,
+    input  logic [ADDR_WIDTH-1:0]               cfg_dram_kv_base_i,
+    input  logic [31:0]                         cfg_stride_tile_i,
 
-    // V transpose / readback descriptors
+    // V-Transpose / Readback descriptors
     input  logic [ADDR_WIDTH-1:0]               cfg_v_base_i,
     input  logic [31:0]                         cfg_v_num_batches_i,
     input  logic [ADDR_WIDTH-1:0]               cfg_v_out_base_i,
@@ -79,19 +84,32 @@ module snax_llm_sequencer #(
     input  logic [31:0]                         cfg_rd_line_stride_i,
     input  logic [ADDR_WIDTH-1:0]               cfg_rd_out_base_i,
 
+    // Macro-Tiling & Attention Extended DMA controls
+    input  logic                                cfg_gemm_macro_dma_i     = 1'b0,
+    input  logic [7:0]                          cfg_gemm_m_sub_tiles_i   = 8'd0,
+    input  logic [7:0]                          cfg_gemm_n_sub_tiles_i   = 8'd0,
+    input  logic [ADDR_WIDTH-1:0]               cfg_dram_act_base_i      = '0,
+    input  logic [ADDR_WIDTH-1:0]               cfg_dram_out_base_i      = '0,
+    input  logic [31:0]                         cfg_macro_a_buf_stride_i = 32'd0,
+    input  logic [31:0]                         cfg_macro_o_buf_stride_i = 32'd0,
+    input  logic                                cfg_attn_kv_pin_i        = 1'b0,
+    input  logic                                cfg_attn_sep_kv_i        = 1'b0,
+    input  logic [ADDR_WIDTH-1:0]               cfg_dram_v_base_i        = '0,
+    input  logic [13:0]                         cfg_attn_kv_past_tiles_i = 14'd0,
+
     // =========================================================================
-    // 2. DMA MASTER INTERFACE (MASTER 0 CO-PROCESSOR HANDSHAKE)
+    // 2. DMA MASTER INTERFACE
     // =========================================================================
     output logic                                dma_req_valid_o,
     input  logic                                dma_req_ready_i,
-    output logic [1:0]                          dma_req_dir_o,       // 0: DRAM -> TCDM, 1: TCDM -> DRAM
+    output logic [1:0]                          dma_req_dir_o,
     output logic [ADDR_WIDTH-1:0]               dma_req_dram_addr_o,
     output logic [ADDR_WIDTH-1:0]               dma_req_tcdm_addr_o,
     output logic [31:0]                         dma_req_size_bytes_o,
     input  logic                                dma_done_i,
 
     // =========================================================================
-    // 3. ACTIVATION STREAMER INTERFACE (MASTER 2)
+    // 3. ACTIVATION STREAMER INTERFACE
     // =========================================================================
     output logic                                act_start_o,
     output logic [ADDR_WIDTH-1:0]               act_base_o,
@@ -104,7 +122,7 @@ module snax_llm_sequencer #(
     output logic                                act_ready_o,
 
     // =========================================================================
-    // 4. 16-CHANNEL WEIGHT / KV STREAMER INTERFACE (MASTERS 3..18)
+    // 4. 16-CHANNEL WEIGHT / KV STREAMER INTERFACE
     // =========================================================================
     output logic                                wt_start_o,
     output logic [ADDR_WIDTH-1:0]               wt_base_o,
@@ -118,13 +136,10 @@ module snax_llm_sequencer #(
     output logic [NUM_LANES-1:0]                wt_ready_o,
 
     // =========================================================================
-    // 5. WRITE-OUT STREAMER INTERFACE (MASTER 19)
-    //    The sequencer owns the full descriptor: the top-level must not derive
-    //    any of these from the mode, because the engine samples them live for
-    //    the entire job.
+    // 5. WRITE-OUT STREAMER INTERFACE
     // =========================================================================
     output logic                                wo_start_o,
-    output logic [1:0]                          wo_mode_o,           // 0: FP4 linear, 1: FP16 linear, 2: V FP4 batch, 3: FP4 4D
+    output logic [1:0]                          wo_mode_o,
     output logic [ADDR_WIDTH-1:0]               wo_base_o,
     output logic [31:0]                         wo_num_vectors_o,
     output logic [31:0]                         wo_line_stride_o,
@@ -138,20 +153,26 @@ module snax_llm_sequencer #(
     input  logic                                wo_done_i,
 
     // =========================================================================
-    // 6. V TRANSPOSE / TCDM READBACK ENGINES (also sequenced here so that the
-    //    write-out descriptor has exactly one owner)
+    // 6. V-TRANSPOSE & TCDM FP16 READBACK STREAMER INTERFACES
     // =========================================================================
     output logic                                v_start_o,
+    output logic [31:0]                         v_num_batches_o,
     input  logic                                v_busy_i,
     input  logic                                v_done_i,
     output logic                                rd_start_o,
+    output logic [ADDR_WIDTH-1:0]               rd_base_o,
+    output logic [31:0]                         rd_num_vectors_o,
+    output logic [31:0]                         rd_line_stride_o,
+    output logic [31:0]                         rd_vec_stride_o,
+    output logic [31:0]                         rd_num_batches_o,
+    output logic [31:0]                         rd_batch_stride_o,
     input  logic                                rd_busy_i,
     input  logic                                rd_done_i,
 
     // =========================================================================
-    // 6. SNAX FUSED LLM COMPUTE CORE CONTROL
+    // 7. COMPUTE CORE CONTROL INTERFACE
     // =========================================================================
-    output logic [1:0]                          cfg_mode_o,          // 00: GEMM, 01: QK, 10: PV
+    output logic [1:0]                          cfg_mode_o,
     output logic                                cfg_row_start_o,
     output logic [NUM_LANES-1:0]                cfg_key_mask_o,
     output logic                                cfg_enable_slq_o,
@@ -163,940 +184,913 @@ module snax_llm_sequencer #(
     input  logic                                p_fifo_empty_i,
     input  logic                                p_fifo_almost_full_i,
     input  logic                                core_fp16_valid_i,
-    // Core output FIFO can still take the vector a new drain would produce.
-    input  logic                                core_out_fifo_ready_i
+    input  logic                                core_out_fifo_ready_i,
+    input  logic                                core_fp16_ready_i = 1'b0
 );
 
     // =========================================================================
-    // LOCAL TYPEDEFS & PARAMETERS
+    // SECTION 0: PARAMETERS, STATE TYPES & SHARED GEOMETRY
     // =========================================================================
     localparam int unsigned PTR_W = (NUM_RING_SLOTS > 1) ? $clog2(NUM_RING_SLOTS) : 1;
     localparam int unsigned CNT_W = $clog2(NUM_RING_SLOTS + 1);
 
     typedef enum logic [4:0] {
-        ST_IDLE,
-        ST_PREP_DRAIN,
-        ST_PREFETCH_INIT,
-        // FlashAttention Phases
-        ST_ATTN_QK_LAUNCH,
-        ST_ATTN_QK_RUN,
-        ST_ATTN_SM_DRAIN,
-        ST_ATTN_SM_WAIT,
-        ST_ATTN_PV_LAUNCH,
-        ST_ATTN_PV_RUN,
-        ST_ATTN_PV_DRAIN,
-        ST_ATTN_LAST_DRAIN,
-        // GEMM Phases
-        ST_GEMM_LAUNCH,
-        ST_GEMM_RUN,
-        // Standalone engine opcodes
-        ST_V_LAUNCH,
-        ST_V_RUN,
-        ST_RD_LAUNCH,
-        ST_RD_RUN,
-        // Standalone DMA Writeback / Transfer
-        ST_DMA_WB_LAUNCH,
-        ST_DMA_WB_WAIT,
-        // Epilogue
-        ST_WAIT_WRITE_OUT,
-        ST_DONE
-    } state_t;
+        CMP_IDLE            = 5'd0,
+        CMP_O_INIT          = 5'd1,
+        CMP_GEMM_LAUNCH     = 5'd2,
+        CMP_GEMM_RUN        = 5'd3,
+        CMP_ATTN_QK_LAUNCH  = 5'd4,
+        CMP_ATTN_QK_RUN     = 5'd5,
+        CMP_ATTN_SM_DRAIN   = 5'd6,
+        CMP_ATTN_PV_LAUNCH  = 5'd7,
+        CMP_ATTN_PV_RUN     = 5'd8,
+        CMP_ATTN_PV_DRAIN   = 5'd9,
+        CMP_O_COMMIT        = 5'd10,
+        CMP_V_LAUNCH        = 5'd11,
+        CMP_V_RUN           = 5'd12,
+        CMP_RD_LAUNCH       = 5'd13,
+        CMP_RD_RUN          = 5'd14,
+        CMP_DMA_WB_ISSUE    = 5'd15,
+        CMP_DMA_WB_WAIT     = 5'd16,
+        CMP_WAIT_DONE       = 5'd17,
+        CMP_DONE            = 5'd18
+    } cmp_state_t;
 
-    state_t state_q, state_d;
+    typedef enum logic [1:0] {
+        DR_IDLE    = 2'd0,
+        DR_WAIT_D1 = 2'd1,
+        DR_RUN     = 2'd2
+    } dr_state_t;
 
-    // =========================================================================
-    // 1. CREDIT-BASED TCDM RING BUFFER CONTROLLER
-    // =========================================================================
-    logic [PTR_W-1:0] ring_wr_ptr_q;
+    typedef enum logic {
+        DMA_IDLE     = 1'b0,
+        DMA_INFLIGHT = 1'b1
+    } dma_state_t;
+
+    typedef enum logic [1:0] {
+        DMA_TAG_W  = 2'd0,
+        DMA_TAG_A  = 2'd1,
+        DMA_TAG_O  = 2'd2,
+        DMA_TAG_WB = 2'd3
+    } dma_tag_t;
+
+    // Mode classification
+    wire is_dma_wb      = cfg_dma_wb_i;
+    wire is_gemm        = !cfg_dma_wb_i && (cfg_op_mode_i == 2'b00);
+    wire is_attn        = !cfg_dma_wb_i && (cfg_op_mode_i == 2'b01);
+    wire is_vtrans      = !cfg_dma_wb_i && (cfg_op_mode_i == 2'b10);
+    wire is_rdback      = !cfg_dma_wb_i && (cfg_op_mode_i == 2'b11);
+
+    wire macro_dma_en        = cfg_gemm_macro_dma_i && cfg_enable_dma_i && (is_gemm || is_attn);
+    wire attn_kv_pin_en      = cfg_attn_kv_pin_i && cfg_enable_dma_i && is_attn;
+    wire w_ring_reuse_active = is_gemm && cfg_enable_dma_i && (cfg_gemm_k_tiles_m1_i == 8'd0);
+
+    // Sub-FSM state registers
+    cmp_state_t cmp_state_q, cmp_state_d;
+    dr_state_t  dr_state_q,  dr_state_d;
+    dma_state_t dma_state_q, dma_state_d;
+
+    // Inter-FSM handshakes
+    logic       drain_start_pulse;
+    logic       dr_busy;
+    logic [4:0] dr_slot_q, dr_slot_d;
+    logic [3:0] inflight_out_cnt_q;
+    logic       gemm_beat_ok;
+
+    logic       dma_window_active;
+    logic       w_release_credit_pulse;
+    logic       o_flush_commit_pulse;
+    logic       macro_a_rel_pulse;
+    logic       kv_pin_rel_hkv_pulse;
+    logic       w_buf_ready;
+    logic       a_buf_ready;
+    logic       dma_busy_q;
+
+    // Macro / Ping-Pong geometry and tracking
+    logic [15:0] cmp_m_base_q, o_col_start_q;
+    logic        a_cmp_rd_sel_q, o_cmp_sel_q;
+    logic [1:0]  a_buf_ready_q, o_buf_wb_busy_q;
+    logic [CNT_W-1:0] w_ready_tiles_q;
     logic [PTR_W-1:0] ring_rd_ptr_q;
-    logic [CNT_W-1:0] free_credits_q;
-    logic [CNT_W-1:0] ready_tiles_q;
 
-    wire dma_can_push = (free_credits_q > '0) && cfg_enable_dma_i;
-    wire core_can_pop = (ready_tiles_q > '0)  || !cfg_enable_dma_i; // Bypass if DMA disabled
+    // KV-Pin synchronization tracking
+    logic [7:0]  pin_active_hkv_q;
+    logic [15:0] k_pinned_cnt_q;
+    logic [31:0] v_pinned_cnt_q;
+    logic        kv_pin_hkv_done_q;
 
-    logic dma_issue_fire;
-    logic core_release_credit_pulse;
-    logic [ADDR_WIDTH-1:0] dma_curr_tcdm_addr;
-    logic [ADDR_WIDTH-1:0] core_curr_tcdm_addr;
+    // Macro M / Q_macro bounds
+    wire [15:0] macro_m_total = is_attn ? cfg_attn_q_tiles_i : cfg_gemm_m_tiles_i;
+    wire [15:0] eff_m_sub     = (!macro_dma_en || (cfg_gemm_m_sub_tiles_i == 8'd0) ||
+                                 ({8'd0, cfg_gemm_m_sub_tiles_i} >= macro_m_total))
+                                ? macro_m_total : {8'd0, cfg_gemm_m_sub_tiles_i};
+    wire [15:0] cmp_m_rem     = macro_m_total - cmp_m_base_q;
+    wire [15:0] cur_m_sub     = (cmp_m_rem > eff_m_sub) ? eff_m_sub : cmp_m_rem;
+    wire        last_macro_m  = ((cmp_m_base_q + cur_m_sub) >= macro_m_total);
 
-    assign dma_curr_tcdm_addr  = cfg_tcdm_ring_base_i + ({16'd0, ring_wr_ptr_q} * SLOT_SIZE_BYTES);
-    assign core_curr_tcdm_addr = cfg_enable_dma_i ? (cfg_tcdm_ring_base_i + ({16'd0, ring_rd_ptr_q} * SLOT_SIZE_BYTES)): cfg_tcdm_ring_base_i; // Fallback to direct base
+    // GEMM O-buffer chunking bounds
+    wire [15:0] auto_o_cols   = (cur_m_sub <= 16'd1) ? 16'(CAP_O_TILES)     :
+                                (cur_m_sub <= 16'd2) ? 16'(CAP_O_TILES / 2) :
+                                (cur_m_sub <= 16'd4) ? 16'(CAP_O_TILES / 4) :
+                                (cur_m_sub <= 16'd8) ? 16'(CAP_O_TILES / 8) : 16'd1;
+    wire [15:0] o_max_cols    = !macro_dma_en                    ? cfg_gemm_n_tiles_i :
+                                (cfg_gemm_n_sub_tiles_i != 8'd0) ? {8'd0, cfg_gemm_n_sub_tiles_i} :
+                                                                   auto_o_cols;
+    wire [15:0] rem_n_cols    = cfg_gemm_n_tiles_i - o_col_start_q;
+    wire [15:0] cur_o_cols    = (rem_n_cols > o_max_cols) ? o_max_cols : rem_n_cols;
+    wire        last_o_chunk  = ((o_col_start_q + cur_o_cols) >= cfg_gemm_n_tiles_i);
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            ring_wr_ptr_q   <= '0;
-            ring_rd_ptr_q   <= '0;
-            free_credits_q  <= NUM_RING_SLOTS[CNT_W-1:0];
-            ready_tiles_q   <= '0;
-        end else if (start_i) begin
-            ring_wr_ptr_q   <= '0;
-            ring_rd_ptr_q   <= '0;
-            free_credits_q  <= NUM_RING_SLOTS[CNT_W-1:0];
-            ready_tiles_q   <= '0;
-        end else begin
-            // Producer (DMA) credit consumption
-            if (dma_issue_fire && !core_release_credit_pulse)
-                free_credits_q <= free_credits_q - 1'b1;
-            else if (!dma_issue_fire && core_release_credit_pulse)
-                free_credits_q <= free_credits_q + 1'b1;
+    wire [31:0] a_stride_eff   = (cfg_macro_a_buf_stride_i != 32'd0) ? cfg_macro_a_buf_stride_i : 32'h0002_0000;
+    wire [31:0] o_stride_eff   = (cfg_macro_o_buf_stride_i != 32'd0) ? cfg_macro_o_buf_stride_i : 32'h0002_0000;
+    wire [31:0] total_k_blocks = (32'(cfg_gemm_k_tiles_m1_i) + 32'd1) * 32'(cfg_gemm_k_blocks_i);
 
-            if (dma_issue_fire)
-                ring_wr_ptr_q <= (ring_wr_ptr_q == PTR_W'(NUM_RING_SLOTS - 1)) ? '0 : ring_wr_ptr_q + 1'b1;
+    wire [31:0] a_cmp_base     = cfg_tcdm_q_base_i + (macro_dma_en ? (a_cmp_rd_sel_q ? a_stride_eff : 32'd0) : 32'd0);
+    wire [31:0] o_cmp_base_0   = (is_gemm && (cfg_out_mode_i == 2'd3)) ? cfg_v_out_base_i : cfg_tcdm_out_base_i;
+    wire [31:0] o_cmp_base     = o_cmp_base_0 + (macro_dma_en ? (o_cmp_sel_q ? o_stride_eff : 32'd0) : 32'd0);
 
-            // Consumer (Core) ready tile update
-            if (dma_done_i && !core_release_credit_pulse)
-                ready_tiles_q <= ready_tiles_q + 1'b1;
-            else if (!dma_done_i && core_release_credit_pulse)
-                ready_tiles_q <= ready_tiles_q - 1'b1;
+    wire [31:0] gemm_tile_out_bytes = cfg_gemm_decode_i
+                                      ? ((cfg_out_mode_i == 2'd0) ? 32'd36  : 32'd9)
+                                      : ((cfg_out_mode_i == 2'd0) ? 32'd576 : 32'd144);
+    wire [31:0] attn_vec_bytes      = (cfg_out_mode_i == 2'd0) ? 32'd36 : 32'd9;
+    wire        o_dma_is_16bank     = is_gemm &&
+                                      ((cfg_out_mode_i == 2'd2) || (cfg_out_mode_i == 2'd3) ||
+                                       ((cfg_out_mode_i == 2'd0) && cfg_out_bank_layout_i && !cfg_gemm_decode_i));
 
-            if (core_release_credit_pulse)
-                ring_rd_ptr_q <= (ring_rd_ptr_q == PTR_W'(NUM_RING_SLOTS - 1)) ? '0 : ring_rd_ptr_q + 1'b1;
-        end
-    end
+    wire [31:0] v_nb_eff = (cfg_v_num_batches_i == 32'd0) ? 32'd1 : cfg_v_num_batches_i;
+    assign v_num_batches_o = is_vtrans ? v_nb_eff : (32'(cur_m_sub) * 32'(cur_o_cols));
 
     // =========================================================================
-    // 2. 5D HIERARCHICAL LOOP NEST ENGINE
+    // SECTION 1: SUB-FSM 1 -- COMPUTE, ATTENTION, V-TRANSPOSE & READBACK
     // =========================================================================
-    // Attention Counters
-    logic [7:0]   cnt_h_q;
-    logic [7:0]   cnt_hkv_q, cnt_hgrp_q;
-    logic [15:0]  cnt_qi_q;
-    logic [15:0]  cnt_dvi_q;
-    logic [15:0]  cnt_kj_q;
-    logic [3:0]   cnt_m_q;
-    logic [3:0]   cnt_dr_q;      // per-slot drain index (softmax / output)
+    // GEMM counters (4-Loop: M_macro -> N_16 -> M_sub -> K_TILES)
+    logic [15:0] cnt_gn_q, cnt_gm_q, cnt_gk_q;
+    logic [7:0]  cnt_kt_q;
+    logic [3:0]  cnt_gbeat_q;
 
-    // GEMM & Attention DMA Prefetch Counters (streams weights/KV ahead into ring buffer)
-    logic [15:0]  dma_gn_q, dma_gm_q;
-    logic [7:0]   dma_kt_q;
-    logic         dma_pending_q;
-    logic [7:0]   dma_h_q, dma_hkv_q, dma_hgrp_q;
-    logic [15:0]  dma_qi_q, dma_dvi_q, dma_kj_q;
-    logic         dma_attn_pending_q;
-    logic         kv_first_q;    // the current KV tile is the first of a row
-    logic         last_group_q;  // the group just retired was the final one
+    // Attention counters (h_kv -> h_grp -> Q_macro -> qi -> dvi -> kj)
+    logic [7:0]  cnt_h_q, cnt_hkv_q, cnt_hgrp_q;
+    logic [15:0] cnt_qi_q, cnt_dvi_q, cnt_kj_q;
+    logic [3:0]  cnt_m_q, cnt_dr_q;
+    logic [3:0]  causal_q_idx_q, causal_m;
+    logic        kv_first_q;
+    logic        attn_chunk_done_q, attn_all_done_q;
+    logic        kv_pin_hkv_end_q;
+    logic        v_done_seen_q, rd_done_seen_q;
+    int          mask_l;
 
-    // -------------------------------------------------------------------------
-    // Background O-slot drain engine.
-    //
-    // The core exposes the accumulator drain on a second read port and does not
-    // gate the write port with it, so the O vectors of group N can be drained
-    // while the S slots of group N+1 are being filled.  O lives in slots 0..7
-    // and S in 8..15, so the two engines never address the same entry, and each
-    // drain masks its own slot on completion (tile_clear_on_drain).
-    //
-    // The SM drain owns tile_drain_req while it runs; the engine waits for a
-    // free cycle instead of stealing the port.
-    // -------------------------------------------------------------------------
-    typedef enum logic [1:0] { NRM_IDLE, NRM_ISSUE, NRM_TAIL } nrm_state_t;
-    nrm_state_t nrm_state_q, nrm_state_d;
+    // GEMM terminal flags
+    wire last_gbeat  = cfg_gemm_decode_i ? (cnt_gbeat_q == 4'd0) : (cnt_gbeat_q == 4'd15);
+    wire last_gk     = (cnt_gk_q == (cfg_gemm_k_blocks_i - 16'd1));
+    wire last_kt     = (cnt_kt_q == cfg_gemm_k_tiles_m1_i);
+    wire last_gm     = (cnt_gm_q == (cur_m_sub - 16'd1));
+    wire last_o_col  = (cnt_gn_q == (cur_o_cols - 16'd1));
+    wire [15:0] abs_gn = o_col_start_q + cnt_gn_q;
+    wire [15:0] abs_gm = cmp_m_base_q + cnt_gm_q;
 
-    logic [3:0] nrm_dr_q, nrm_dr_d;          // slot currently being issued
-    logic [3:0] nrm_issued_q, nrm_issued_d;  // drain requests sent in this group
-    logic [3:0] nrm_done_q, nrm_done_d;      // vectors completed (valid & ready)
-    logic       nrm_req;        // drain pulse generated by the engine
-    logic       nrm_start_o;    // main FSM hands a finished group over
+    // Attention terminal flags
+    wire [15:0] eff_qi_bound = macro_dma_en ? cur_m_sub : cfg_attn_q_tiles_i;
+    wire        last_m_beat  = (cnt_m_q == (cfg_attn_m_q_i - 4'd1));
+    wire        last_kj      = (cnt_kj_q == (cfg_attn_kv_tiles_i - 16'd1));
+    wire        last_dvi     = (cnt_dvi_q == (cfg_attn_dv_tiles_i - 16'd1));
+    wire        last_qi      = (cnt_qi_q == (eff_qi_bound - 16'd1));
+    wire        last_h       = (cnt_h_q == (cfg_attn_h_i - 8'd1));
+    wire        is_last_h_of_hkv = (cnt_hgrp_q == cfg_gqa_group_m1_i) || last_h;
 
-    wire nrm_busy = (nrm_state_q != NRM_IDLE);
-    // A vector is retired when the core output handshake completes.  The O
-    // drain can then be issued back-to-back; only the output FIFO/quantizer
-    // space gates it, not the per-slot valid deassertion.
-    wire nrm_beat = core_fp16_valid_i && core_out_fifo_ready_i;
+    // TCDM address calculation: Ring vs Preloaded/KV-Pin
+    wire [31:0] ring_rd_tcdm_addr = cfg_tcdm_ring_base_i + ({16'd0, ring_rd_ptr_q} * SLOT_SIZE_BYTES);
 
-    always_comb begin
-        nrm_state_d  = nrm_state_q;
-        nrm_dr_d     = nrm_dr_q;
-        nrm_issued_d = nrm_issued_q;
-        nrm_done_d   = nrm_done_q;
-        nrm_req      = 1'b0;
+    // GEMM TCDM addresses
+    wire [31:0] preload_wt_addr = cfg_tcdm_ring_base_i +
+                                  ((32'(abs_gn) * total_k_blocks +
+                                    32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i)) * 32'h200);
+    wire [31:0] core_wt_addr = cfg_enable_dma_i
+                               ? ring_rd_tcdm_addr
+                               : (preload_wt_addr + (32'(cnt_gk_q) * 32'h200));
 
-        if ((nrm_state_q != NRM_IDLE) && nrm_beat &&
-            (nrm_done_q != cfg_attn_m_q_i))
-            nrm_done_d = nrm_done_q + 4'd1;
+    wire [31:0] act_tile_tcdm_addr = a_cmp_base +
+                                     (((cfg_act_bank_layout_i
+                                        ? (32'(cnt_gm_q) * total_k_blocks)
+                                        : (32'(cnt_gm_q) * 32'd16 * total_k_blocks)) +
+                                       32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i) +
+                                       32'(cnt_gk_q)) * 32'h200);
 
-        case (nrm_state_q)
-            NRM_IDLE: begin
-                if (nrm_start_o) begin
-                    nrm_dr_d     = '0;
-                    nrm_issued_d = '0;
-                    nrm_done_d   = '0;
-                    nrm_state_d  = NRM_ISSUE;
-                end
-            end
-            NRM_ISSUE: begin
-                // One drain per cycle while the output path has room.  The
-                // SM drain owns the port on its cycles, so defer to it.
-                if ((nrm_issued_q < cfg_attn_m_q_i) &&
-                    (state_q != ST_ATTN_SM_DRAIN) && core_out_fifo_ready_i) begin
-                    nrm_req      = 1'b1;
-                    nrm_dr_d     = nrm_dr_q + 4'd1;
-                    nrm_issued_d = nrm_issued_q + 4'd1;
-                    if (nrm_issued_q == cfg_attn_m_q_i - 4'd1)
-                        nrm_state_d = NRM_TAIL;
-                end
-            end
-            NRM_TAIL: begin
-                // Wait only for the last vectors of the group to retire.
-                if (nrm_done_q >= cfg_attn_m_q_i)
-                    nrm_state_d = NRM_IDLE;
-            end
-            default: nrm_state_d = NRM_IDLE;
-        endcase
-    end
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            nrm_state_q  <= NRM_IDLE;
-            nrm_dr_q     <= '0;
-            nrm_issued_q <= '0;
-            nrm_done_q   <= '0;
-        end else if (start_i) begin
-            nrm_state_q  <= NRM_IDLE;
-            nrm_dr_q     <= '0;
-            nrm_issued_q <= '0;
-            nrm_done_q   <= '0;
-        end else begin
-            nrm_state_q  <= nrm_state_d;
-            nrm_dr_q     <= nrm_dr_d;
-            nrm_issued_q <= nrm_issued_d;
-            nrm_done_q   <= nrm_done_d;
-        end
-    end
-
-    // Attention Addresses.
-    //
-    // Everything is a multiple of the 0x200-byte tile block, and one K block
-    // holds 16 D_K elements, so both the per-tile and per-head strides scale
-    // with cfg_attn_k_blocks_i.  The K-block term is NOT part of these bases:
-    // the streamers walk the K blocks themselves through their own AGUs, using
-    // wt_k_stride / act_k_stride, so D_K is not capped by the address map.
-    //
-    //   Q[h][qi][m][kb] : q_base    + (h*Q_TILES*M_Q*KB + qi*M_Q*KB + m*KB + kb)*0x200
-    //   K[h][kj][kb]    : ring_base + (h*KV_TILES*KB   + kj*KB + kb)*0x200
-    //   V[h][dvi][kj]   : ring_base + (V_BASE_BLOCK + h*DV_TILES*KV_TILES + dvi*KV_TILES + kj)*0x200
-    //
-    // V_BASE_BLOCK must stay >= H*KV_TILES*KB, i.e. past the K region.
+    // Attention TCDM addresses
     wire [31:0] q_blk_per_head = 32'(cfg_attn_q_tiles_i) * 32'(cfg_attn_m_q_i) * 32'(cfg_attn_k_blocks_i);
     wire [31:0] q_blk_per_tile = 32'(cfg_attn_m_q_i) * 32'(cfg_attn_k_blocks_i);
     wire [31:0] k_blk_per_head = 32'(cfg_attn_kv_tiles_i) * 32'(cfg_attn_k_blocks_i);
     wire [31:0] v_blk_per_head = 32'(cfg_attn_dv_tiles_i) * 32'(cfg_attn_kv_tiles_i);
+    wire [31:0] auto_v_base    = 32'(cfg_attn_h_i) * k_blk_per_head;
+    wire [31:0] v_base_block   = (auto_v_base > 32'd16) ? auto_v_base : 32'd16;
 
-    wire [31:0] auto_v_base  = 32'(cfg_attn_h_i) * k_blk_per_head;
-    wire [31:0] v_base_block = (auto_v_base > 32'd16) ? auto_v_base : 32'd16;
+    wire [31:0] attn_q_addr = macro_dma_en
+                              ? (a_cmp_base + (32'(cnt_qi_q) * q_blk_per_tile * 32'h200))
+                              : (cfg_tcdm_q_base_i + ((32'(cnt_h_q) * q_blk_per_head + 32'(cnt_qi_q) * q_blk_per_tile) * 32'h200));
 
-    wire [31:0] q_addr_calc = cfg_tcdm_q_base_i +
-                             ((32'(cnt_h_q) * q_blk_per_head +
-                               32'(cnt_qi_q) * q_blk_per_tile) * 32'h200);
+    wire [31:0] attn_k_pin_addr = cfg_attn_sep_kv_i
+                                  ? (cfg_tcdm_ring_base_i + (32'(cnt_kj_q) * 32'(cfg_attn_k_blocks_i) * 32'h200))
+                                  : (cfg_tcdm_ring_base_i + (32'(cnt_kj_q) * (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'h200));
 
-    wire [31:0] k_addr_calc = cfg_tcdm_ring_base_i +
-                             ((32'(cnt_hkv_q) * k_blk_per_head +
-                               32'(cnt_kj_q) * 32'(cfg_attn_k_blocks_i)) * 32'h200);
+    wire [31:0] attn_v_pin_addr = cfg_attn_sep_kv_i
+                                  ? (cfg_tcdm_ring_base_i + ((k_blk_per_head + 32'(cnt_dvi_q) * 32'(cfg_attn_kv_tiles_i) + 32'(cnt_kj_q)) * 32'h200))
+                                  : ((cnt_dvi_q == 16'd0)
+                                     ? (attn_k_pin_addr + 32'(cfg_attn_k_blocks_i) * 32'h200)
+                                     : (cfg_tcdm_ring_base_i + ((32'(cfg_attn_kv_tiles_i) * (32'(cfg_attn_k_blocks_i) + 32'd1) +
+                                        (32'(cnt_dvi_q) - 32'd1) * 32'(cfg_attn_kv_tiles_i) + 32'(cnt_kj_q)) * 32'h200)));
 
-    wire [31:0] v_addr_calc = cfg_tcdm_ring_base_i +
-                             ((v_base_block +
-                               32'(cnt_hkv_q) * v_blk_per_head +
-                               32'(cnt_dvi_q) * 32'(cfg_attn_kv_tiles_i) +
-                               32'(cnt_kj_q)) * 32'h200);
+    wire [31:0] attn_k_preload_addr = cfg_tcdm_ring_base_i +
+                                      ((32'(cnt_hkv_q) * k_blk_per_head + 32'(cnt_kj_q) * 32'(cfg_attn_k_blocks_i)) * 32'h200);
+    wire [31:0] attn_v_preload_addr = cfg_tcdm_ring_base_i +
+                                      ((v_base_block + 32'(cnt_hkv_q) * v_blk_per_head +
+                                        32'(cnt_dvi_q) * 32'(cfg_attn_kv_tiles_i) + 32'(cnt_kj_q)) * 32'h200);
 
-    // GEMM Counters
-    logic [15:0]  cnt_gn_q; // GEMM N-tile
-    logic [15:0]  cnt_gm_q; // GEMM M-tile
-    logic [7:0]   cnt_kt_q; // GEMM K-tile (output-stationary partial-sum loop)
-    logic [15:0]  cnt_gk_q; // GEMM K-block
-    logic [3:0]   cnt_gbeat_q;
+    wire [31:0] attn_k_addr = !cfg_enable_dma_i ? attn_k_preload_addr :
+                              attn_kv_pin_en    ? attn_k_pin_addr     :
+                                                  ring_rd_tcdm_addr;
+    wire [31:0] attn_v_addr = !cfg_enable_dma_i ? attn_v_preload_addr :
+                              attn_kv_pin_en    ? attn_v_pin_addr     :
+                                                  (ring_rd_tcdm_addr + (32'(cfg_attn_k_blocks_i) * 32'h200));
 
-    // Background GEMM drain engine (Port B).  When a tile finishes its K
-    // accumulation, this engine drains slots 0..15 one per cycle while the next
-    // tile accumulates into the SAME slots on Port A.  The 2R1W latch array and
-    // the slot_cleared mask make this safe as long as each slot is drained (and
-    // cleared) before the next tile's Stage-2 write to that slot.
-    logic         gemm_drain_active_q, gemm_k_last_d1_q;
-    logic [4:0]   gdr_idx_q;            // 0..15 = slot being issued, 16 = done
+    // Attention KV availability qualifiers
+    wire [31:0] v_pin_need_idx = 32'(cnt_dvi_q) * 32'(cfg_attn_kv_tiles_i) + 32'(cnt_kj_q);
+    wire        attn_k_ready   = !cfg_enable_dma_i ? 1'b1 :
+                                 attn_kv_pin_en    ? ((cnt_hkv_q == pin_active_hkv_q) && (cnt_kj_q < k_pinned_cnt_q)) :
+                                                     (w_ready_tiles_q > '0);
+    wire        attn_v_ready   = !attn_kv_pin_en ? 1'b1 :
+                                                   ((cnt_hkv_q == pin_active_hkv_q) && (v_pin_need_idx < v_pinned_cnt_q));
 
-    // Sticky latch for the readback-requant one-cycle rd_done pulse: the write
-    // engine may still be busy on the pulse cycle, so latch it and exit RD_RUN
-    // once the write-out has also drained.
-    logic         rd_done_seen_q, rd_done_seen_d;
+    // Compute beat fire signals
+    wire qk_compute_fire   = act_valid_i && (&wt_valid_i);
+    wire pv_compute_fire   = !p_fifo_empty_i && (&wt_valid_i);
+    wire gemm_compute_fire = act_valid_i && (&wt_valid_i) && gemm_beat_ok;
 
-    wire [31:0] total_k_blocks = (32'(cfg_gemm_k_tiles_m1_i) + 32'd1) * 32'(cfg_gemm_k_blocks_i);
-
-    wire [31:0] gemm_wt_addr = cfg_tcdm_ring_base_i +
-                              ((32'(cnt_gn_q) * total_k_blocks +
-                                32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i) +
-                                32'(cnt_gk_q)) * 32'h200);
-
-    wire [31:0] gemm_act_addr = cfg_tcdm_q_base_i +
-                               (((cfg_act_bank_layout_i ? 32'd0 : ((32'(cnt_gm_q) * 32'd16) * total_k_blocks)) +
-                                 32'(cnt_kt_q) * 32'(cfg_gemm_k_blocks_i) +
-                                 32'(cnt_gk_q)) * 32'h200);
-
-    wire last_m_beat  = (cnt_m_q == (cfg_attn_m_q_i - 4'd1));
-    wire last_kj      = (cnt_kj_q == (cfg_attn_kv_tiles_i - 16'd1));
-    wire last_dvi     = (cnt_dvi_q == (cfg_attn_dv_tiles_i - 16'd1));
-    wire last_qi      = (cnt_qi_q == (cfg_attn_q_tiles_i - 16'd1));
-    wire last_h       = (cnt_h_q == (cfg_attn_h_i - 8'd1));
-
-    wire last_gbeat   = cfg_gemm_decode_i ? (cnt_gbeat_q == 4'd0) : (cnt_gbeat_q == 4'd15);
-    wire last_gk      = (cnt_gk_q == (cfg_gemm_k_blocks_i - 16'd1));
-    wire last_kt      = (cnt_kt_q == cfg_gemm_k_tiles_m1_i);
-    wire last_gm      = (cnt_gm_q == (cfg_gemm_m_tiles_i - 16'd1));
-    wire last_gn      = (cnt_gn_q == (cfg_gemm_n_tiles_i - 16'd1));
-
-    // Causal mask query index.  The SM drain presents slot cnt_dr_q; the raw
-    // score and its mask are sampled one cycle after the request, so register
-    // the slot.  The first slot of every QK group has its raw score on the
-    // same cycle as the request, hence the reset at QK_LAUNCH (the old value
-    // would mask the first query of the group with the previous group's last
-    // slot).
-    logic [3:0] causal_q_idx_q;
-    logic [3:0] causal_m;
+    // Causal mask generator
+    logic [NUM_LANES-1:0] auto_causal_mask;
+    wire [15:0] q_abs_tile = cmp_m_base_q + cnt_qi_q;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) causal_q_idx_q <= '0;
-        else if (start_i) causal_q_idx_q <= '0;
-        else if (state_q == ST_ATTN_QK_LAUNCH) causal_q_idx_q <= '0;
-        else if (state_q == ST_ATTN_SM_DRAIN)
+        if (!rst_n)
+            causal_q_idx_q <= 4'd0;
+        else if (start_i || (cmp_state_q == CMP_ATTN_QK_LAUNCH))
+            causal_q_idx_q <= 4'd0;
+        else if (cmp_state_q == CMP_ATTN_SM_DRAIN)
             causal_q_idx_q <= cnt_dr_q;
     end
 
     always_comb begin
-        if (state_q == ST_ATTN_QK_LAUNCH || state_q == ST_ATTN_QK_RUN)
-            causal_m = cnt_m_q;
-        else
-            causal_m = causal_q_idx_q;
-    end
-
-    // =========================================================================
-    // 3. HARDWARE DYNAMIC CAUSAL MASK GENERATOR
-    // =========================================================================
-    logic [NUM_LANES-1:0] auto_causal_mask;
-    always_comb begin
+        causal_m = (cmp_state_q == CMP_ATTN_QK_LAUNCH || cmp_state_q == CMP_ATTN_QK_RUN)
+                   ? cnt_m_q : causal_q_idx_q;
         if (!cfg_is_causal_i) begin
             auto_causal_mask = 16'hFFFF;
         end else begin
-            for (int l = 0; l < 16; l++) begin
-                // Causal logic: key_absolute_index <= query_absolute_index
-                // Key index = kj * 16 + l
-                // Query index = qi * M_Q + m (m = drain slot in SM drain)
-                auto_causal_mask[l] = ((32'(cnt_kj_q) * 32'd16 + 32'(l)) <= 
-                                       (32'(cnt_qi_q) * 32'(cfg_attn_m_q_i) + 32'(causal_m)));
+            for (mask_l = 0; mask_l < 16; mask_l = mask_l + 1) begin
+                auto_causal_mask[mask_l] = ((32'(cnt_kj_q) * 32'd16 + 32'(mask_l)) <=
+                                            (32'(cfg_attn_kv_past_tiles_i) * 32'd16 +
+                                             32'(q_abs_tile) * 32'(cfg_attn_m_q_i) + 32'(causal_m)));
             end
         end
     end
 
-    // =========================================================================
-    // 4. MICRO-FSM EXECUTION COORDINATOR
-    // =========================================================================
-    logic qk_compute_fire;
-    logic pv_compute_fire;
-    logic gemm_compute_fire;
+    // Expose legacy TB-observable status wires
+    wire [4:0] state_q = cmp_state_q;
+    wire       nrm_busy    = dr_busy;
+    wire [1:0] nrm_state_q = dr_state_q;
+    wire [3:0] nrm_dr_q    = dr_slot_q[3:0];
 
-    // GEMM compute beat t is gated on drain progress: slot t must already be
-    // drained+cleared (t < gdr_idx_q) before the next tile's Stage-2 write to
-    // that slot.  If the drain stalls (FIFO full), the compute beat stalls too.
-    wire gemm_beat_ok = (!gemm_drain_active_q && !(cfg_gemm_decode_i && gemm_k_last_d1_q)) ||
-                        ({1'b0, cnt_gbeat_q} < gdr_idx_q);
+    // -------------------------------------------------------------------------
+    // 1.1 Compute State Register
+    // -------------------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            cmp_state_q <= CMP_IDLE;
+        else
+            cmp_state_q <= cmp_state_d;
+    end
 
-    assign qk_compute_fire   = act_valid_i && (&wt_valid_i);
-    assign pv_compute_fire   = !p_fifo_empty_i && (&wt_valid_i);
-    assign gemm_compute_fire = act_valid_i && (&wt_valid_i) && gemm_beat_ok;
-
-    // The last beat of the last K block of the last K-tile: the tile's accumulators are final.
-    wire gemm_k_last_fire = (state_q == ST_GEMM_RUN) && gemm_compute_fire && last_gbeat && last_gk && last_kt;
-
+    // -------------------------------------------------------------------------
+    // 1.2 Compute Next-State Logic
+    // -------------------------------------------------------------------------
     always_comb begin
-        state_d                   = state_q;
-        rd_done_seen_d            = rd_done_seen_q;
-        dma_req_valid_o           = 1'b0;
-        dma_req_dir_o             = 2'd0; // DRAM -> TCDM
-        dma_req_dram_addr_o       = cfg_dram_kv_base_i + (32'(cnt_kj_q) * cfg_stride_tile_i);
-        dma_req_tcdm_addr_o       = dma_curr_tcdm_addr;
-        dma_req_size_bytes_o      = SLOT_SIZE_BYTES;
-        dma_issue_fire            = 1'b0;
-        core_release_credit_pulse = 1'b0;
+        cmp_state_d = cmp_state_q;
 
-        // Background GEMM DMA Weight Prefetch Producer (overlaps with compute)
-        if (cfg_enable_dma_i && (cfg_op_mode_i == 2'b00) && dma_pending_q && dma_can_push &&
-            (state_q != ST_IDLE) && (state_q != ST_DONE)) begin
-            dma_req_valid_o      = 1'b1;
-            dma_req_dir_o        = 2'd0; // DRAM -> TCDM 16-bank weight layout
-            dma_req_dram_addr_o  = cfg_dram_kv_base_i + (32'(dma_gn_q) * cfg_stride_tile_i) +
-                                   (32'(dma_kt_q) * 32'(cfg_gemm_k_blocks_i) * 32'd144);
-            dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
-            dma_req_size_bytes_o = 32'(cfg_gemm_k_blocks_i) * 32'd144; // 16 ch * 9B * K_PACKETS
-            if (dma_req_ready_i) begin
-                dma_issue_fire = 1'b1;
-            end
-        end else if (cfg_enable_dma_i && (cfg_op_mode_i == 2'b01) && dma_attn_pending_q && dma_can_push &&
-                     (state_q != ST_IDLE) && (state_q != ST_DONE)) begin
-            // Background Attention KV-cache DMA Prefetch Producer (streams (K, V) tiles into Ring Buffer)
-            dma_req_valid_o      = 1'b1;
-            dma_req_dir_o        = 2'd0;
-            dma_req_dram_addr_o  = cfg_dram_kv_base_i +
-                                   ((((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
-                                      32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * cfg_stride_tile_i));
-            dma_req_tcdm_addr_o  = dma_curr_tcdm_addr;
-            dma_req_size_bytes_o = (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'd144; // K blocks + 1 V block
-            if (dma_req_ready_i) begin
-                dma_issue_fire = 1'b1;
-            end
-        end
-
-        act_start_o               = 1'b0;
-        act_base_o                = cfg_tcdm_q_base_i;
-        act_k_blocks_o            = 32'd1;
-        act_k_stride_o            = 32'd0;
-        act_tokens_o              = 32'(cfg_attn_m_q_i);
-        act_token_stride_o        = 32'h200;
-        act_ready_o               = 1'b0;
-
-        wt_start_o                = 1'b0;
-        wt_base_o                 = core_curr_tcdm_addr;
-        wt_repeat_o               = 32'(cfg_attn_m_q_i);
-        wt_k_blocks_o             = 32'd1;
-        wt_k_stride_o             = 32'h200;
-        wt_num_tiles_o            = 32'd1;
-        wt_tile_step_o            = 32'd0;
-        wt_ready_o                = 16'h0000;
-
-        wo_start_o                = 1'b0;
-        wo_mode_o                 = 2'd1; // Default FP16
-        wo_base_o                 = cfg_tcdm_out_base_i;
-        wo_num_vectors_o          = 32'd16;
-        wo_line_stride_o          = 32'h200;
-        wo_num_batches_o          = 32'd1;
-        wo_batch_stride_o         = 32'd0;
-        wo_dim2_cnt_o             = 32'd1;
-        wo_dim2_stride_o          = 32'd0;
-        wo_dim3_cnt_o             = 32'd1;
-        wo_dim3_stride_o          = 32'd0;
-
-        v_start_o                 = 1'b0;
-        rd_start_o                = 1'b0;
-
-        cfg_mode_o                = 2'b00;
-        cfg_row_start_o           = 1'b0;
-        cfg_key_mask_o            = auto_causal_mask;
-        cfg_enable_slq_o          = 1'b1;
-
-        tile_drain_req_o          = 1'b0;
-        tile_drain_idx_o          = 4'd0;
-        tile_clear_on_drain_o     = 1'b0;
-        nrm_start_o               = 1'b0;
-        lane_valid_o              = 16'h0000;
-        lane_acc_idx_o            = 4'd0;
-
-        case (state_q)
-            ST_IDLE: begin
+        case (cmp_state_q)
+            CMP_IDLE: begin
                 if (start_i) begin
-                    state_d = cfg_dma_wb_i ? ST_DMA_WB_LAUNCH : ST_PREP_DRAIN;
+                    if (is_dma_wb)       cmp_state_d = CMP_DMA_WB_ISSUE;
+                    else if (is_vtrans)  cmp_state_d = CMP_V_LAUNCH;
+                    else if (is_rdback)  cmp_state_d = CMP_RD_LAUNCH;
+                    else                 cmp_state_d = CMP_O_INIT;
                 end
             end
-            ST_PREP_DRAIN: begin
-                // Pre-configure Write-Out Streamer for the compute outputs only.
-                // V (op 10) and readback (op 11) start their own write-out job
-                // with their own format; starting one here used to deadlock.
-                if (cfg_op_mode_i == 2'b00 && cfg_out_mode_i == 2'd3) begin
-                    // Fused V: the GEMM drain feeds the transpose/quantizer and
-                    // the write-out is started by v_start at GEMM launch.
-                end else if (cfg_op_mode_i == 2'b00 || cfg_op_mode_i == 2'b01) begin
-                    wo_start_o = 1'b1;
-                    wo_base_o  = cfg_tcdm_out_base_i;
-                    if (cfg_op_mode_i == 2'b00) begin
-                        case (cfg_out_mode_i)
-                            2'd0: begin // FP16 linear (or token-major bank-scatter when cfg_out_bank_layout_i=1)
-                                wo_mode_o          = 2'd1;
-                                if (cfg_out_bank_layout_i && !cfg_gemm_decode_i) begin
-                                    wo_num_vectors_o   = 32'd16;
-                                    wo_line_stride_o   = 32'd16;    // +1 bank
-                                    wo_num_batches_o   = 32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i);
-                                    wo_batch_stride_o  = 32'h800;   // +4 words
-                                end else begin
-                                    wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
-                                                         (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
-                                    wo_line_stride_o   = 32'h200;
-                                    wo_num_batches_o   = 32'd1;
-                                    wo_batch_stride_o  = 32'd0;
-                                end
-                            end
-                            2'd1: begin // FP4 linear (packet per vector)
-                                wo_mode_o          = 2'd0;
-                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
-                                                     (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
-                                wo_line_stride_o   = 32'h200;
-                                wo_num_batches_o   = 32'd1;
-                                wo_batch_stride_o  = 32'd0;
-                            end
-                            2'd2: begin // FP4 bank scatter: 16 packets per N tile (1 in decode)
-                                wo_mode_o          = 2'd2;
-                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'd1 : 32'd16;
-                                wo_line_stride_o   = 32'd16;    // +1 bank
-                                wo_num_batches_o   = {16'd0, cfg_gemm_n_tiles_i};
-                                wo_batch_stride_o  = 32'h200;   // +1 word
-                            end
-                            default: begin
-                                wo_mode_o          = 2'd1;
-                                wo_num_vectors_o   = cfg_gemm_decode_i ? 32'(cfg_gemm_n_tiles_i) :
-                                                     (32'(cfg_gemm_m_tiles_i) * 32'(cfg_gemm_n_tiles_i) * 32'd16);
-                                wo_line_stride_o   = 32'h200;
-                                wo_num_batches_o   = 32'd1;
-                                wo_batch_stride_o  = 32'd0;
-                            end
-                        endcase
+
+            CMP_O_INIT: begin
+                if (is_gemm) begin
+                    if (!macro_dma_en || (!wo_busy_i && !v_busy_i && !dr_busy &&
+                                          (inflight_out_cnt_q == 4'd0) && !o_buf_wb_busy_q[o_cmp_sel_q])) begin
+                        cmp_state_d = CMP_GEMM_LAUNCH;
+                    end
+                end else begin
+                    // FlashAttention
+                    if (macro_dma_en) begin
+                        if (!wo_busy_i && !v_busy_i && !dr_busy &&
+                            (inflight_out_cnt_q == 4'd0) && !o_buf_wb_busy_q[o_cmp_sel_q]) begin
+                            cmp_state_d = CMP_ATTN_QK_LAUNCH;
+                        end
+                    end else if (!wo_busy_i) begin
+                        cmp_state_d = CMP_ATTN_QK_LAUNCH;
+                    end
+                end
+            end
+
+            // ---------------- 4-Loop OS GEMM ----------------
+            CMP_GEMM_LAUNCH: begin
+                if (w_buf_ready && a_buf_ready && !act_busy_i && !wt_busy_i)
+                    cmp_state_d = CMP_GEMM_RUN;
+            end
+
+            CMP_GEMM_RUN: begin
+                if (gemm_compute_fire && last_gbeat && last_gk) begin
+                    if (last_kt && last_gm && last_o_col)
+                        cmp_state_d = macro_dma_en ? CMP_O_COMMIT : CMP_WAIT_DONE;
+                    else
+                        cmp_state_d = CMP_GEMM_LAUNCH;
+                end
+            end
+
+            // ---------------- FlashAttention ----------------
+            CMP_ATTN_QK_LAUNCH: begin
+                if (attn_k_ready && a_buf_ready && !act_busy_i && !wt_busy_i)
+                    cmp_state_d = CMP_ATTN_QK_RUN;
+            end
+
+            CMP_ATTN_QK_RUN: begin
+                if (!act_busy_i && !wt_busy_i && !dr_busy && (inflight_out_cnt_q == 4'd0))
+                    cmp_state_d = CMP_ATTN_SM_DRAIN;
+            end
+
+            CMP_ATTN_SM_DRAIN: begin
+                if (cnt_dr_q == (cfg_attn_m_q_i - 4'd1))
+                    cmp_state_d = CMP_ATTN_PV_LAUNCH;
+            end
+
+            CMP_ATTN_PV_LAUNCH: begin
+                if (!dr_busy && !wt_busy_i && attn_v_ready)
+                    cmp_state_d = CMP_ATTN_PV_RUN;
+            end
+
+            CMP_ATTN_PV_RUN: begin
+                if (pv_compute_fire && last_m_beat)
+                    cmp_state_d = CMP_ATTN_PV_DRAIN;
+            end
+
+            CMP_ATTN_PV_DRAIN: begin
+                if (!wt_busy_i) begin
+                    if (cnt_kj_q == 16'd0) begin
+                        if (macro_dma_en && attn_chunk_done_q)
+                            cmp_state_d = CMP_O_COMMIT;
+                        else if (attn_all_done_q)
+                            cmp_state_d = CMP_WAIT_DONE;
+                        else
+                            cmp_state_d = CMP_ATTN_QK_LAUNCH;
                     end else begin
-                        // Attention output: one 16-lane vector per query.
-                        // out_mode 0: FP16 linear, 1: FP4 linear, 2: FP4 4D token-major
-                        if (cfg_out_mode_i == 2'd2) begin
-                            wo_mode_o          = 2'd3; // MODE_FP4_4D
-                            wo_num_vectors_o   = 32'(cfg_attn_m_q_i);
-                            wo_line_stride_o   = (32'(cfg_attn_h_i) * 32'(cfg_attn_dv_tiles_i)) * 32'h200;
-                            wo_num_batches_o   = 32'(cfg_attn_dv_tiles_i);
-                            wo_batch_stride_o  = 32'h200;
-                            wo_dim2_cnt_o      = 32'(cfg_attn_q_tiles_i);
-                            wo_dim2_stride_o   = 32'(cfg_attn_m_q_i) *
-                                                 (32'(cfg_attn_h_i) * 32'(cfg_attn_dv_tiles_i)) * 32'h200;
-                            wo_dim3_cnt_o      = 32'(cfg_attn_h_i);
-                            wo_dim3_stride_o   = 32'(cfg_attn_dv_tiles_i) * 32'h200;
+                        cmp_state_d = CMP_ATTN_QK_LAUNCH;
+                    end
+                end
+            end
+
+            CMP_O_COMMIT: begin
+                if (!wo_busy_i && !dr_busy && (inflight_out_cnt_q == 4'd0) &&
+                    !v_busy_i && !act_busy_i && !wt_busy_i) begin
+                    if (is_gemm)
+                        cmp_state_d = (last_o_chunk && last_macro_m) ? CMP_WAIT_DONE : CMP_O_INIT;
+                    else
+                        cmp_state_d = attn_all_done_q ? CMP_WAIT_DONE : CMP_O_INIT;
+                end
+            end
+
+            // ---------------- Hardware Decode / Standalone V-Transpose ----------------
+            CMP_V_LAUNCH: begin
+                if (!v_busy_i && !rd_busy_i && !wo_busy_i)
+                    cmp_state_d = CMP_V_RUN;
+            end
+
+            CMP_V_RUN: begin
+                if ((v_done_seen_q || !v_busy_i) && (rd_done_seen_q || !rd_busy_i) && !wo_busy_i)
+                    cmp_state_d = CMP_WAIT_DONE;
+            end
+
+            // ---------------- TCDM Readback + Requantize ----------------
+            CMP_RD_LAUNCH: begin
+                if (!rd_busy_i && !wo_busy_i)
+                    cmp_state_d = CMP_RD_RUN;
+            end
+
+            CMP_RD_RUN: begin
+                if ((rd_done_seen_q || !rd_busy_i) && !wo_busy_i)
+                    cmp_state_d = CMP_WAIT_DONE;
+            end
+
+            // ---------------- Standalone DMA Transfer ----------------
+            CMP_DMA_WB_ISSUE: begin
+                if ((dma_state_q == DMA_IDLE) && dma_req_ready_i)
+                    cmp_state_d = CMP_DMA_WB_WAIT;
+            end
+
+            CMP_DMA_WB_WAIT: begin
+                if (dma_done_i)
+                    cmp_state_d = CMP_DONE;
+            end
+
+            // ---------------- Drain & Completion Barrier ----------------
+            CMP_WAIT_DONE: begin
+                if (!dr_busy && (inflight_out_cnt_q == 4'd0) && !wo_busy_i && !v_busy_i && !rd_busy_i &&
+                    (!macro_dma_en || (!o_buf_wb_busy_q[0] && !o_buf_wb_busy_q[1])) &&
+                    (!cfg_enable_dma_i || !dma_busy_q)) begin
+                    cmp_state_d = CMP_DONE;
+                end
+            end
+
+            CMP_DONE: begin
+                if (start_i) begin
+                    if (is_dma_wb)       cmp_state_d = CMP_DMA_WB_ISSUE;
+                    else if (is_vtrans)  cmp_state_d = CMP_V_LAUNCH;
+                    else if (is_rdback)  cmp_state_d = CMP_RD_LAUNCH;
+                    else                 cmp_state_d = CMP_O_INIT;
+                end
+            end
+
+            default: cmp_state_d = CMP_IDLE;
+        endcase
+    end
+
+    // -------------------------------------------------------------------------
+    // 1.3 Compute Combinational Output & Inter-FSM Pulse Logic
+    // -------------------------------------------------------------------------
+    logic sm_drain_req;
+    logic sm_row_start;
+    logic [3:0] sm_drain_idx;
+
+    always_comb begin
+        drain_start_pulse      = 1'b0;
+        w_release_credit_pulse = 1'b0;
+        o_flush_commit_pulse   = 1'b0;
+        macro_a_rel_pulse      = 1'b0;
+        kv_pin_rel_hkv_pulse   = 1'b0;
+
+        sm_drain_req           = 1'b0;
+        sm_row_start           = 1'b0;
+        sm_drain_idx           = 4'd0;
+
+        // Activation streamer defaults
+        act_start_o            = 1'b0;
+        act_base_o             = act_tile_tcdm_addr;
+        act_k_blocks_o         = is_attn ? 32'(cfg_attn_k_blocks_i) : 32'(cfg_gemm_k_blocks_i);
+        act_k_stride_o         = 32'h200;
+        act_tokens_o           = is_attn ? 32'(cfg_attn_m_q_i) : (cfg_gemm_decode_i ? 32'd1 : 32'd16);
+        act_token_stride_o     = is_attn ? (32'(cfg_attn_k_blocks_i) * 32'h200) :
+                                 (cfg_act_bank_layout_i ? 32'h10 : (total_k_blocks * 32'h200));
+        act_ready_o            = 1'b0;
+
+        // Weight / KV streamer defaults
+        wt_start_o             = 1'b0;
+        wt_base_o              = core_wt_addr;
+        wt_repeat_o            = is_attn ? 32'(cfg_attn_m_q_i) : (cfg_gemm_decode_i ? 32'd1 : 32'd16);
+        wt_k_blocks_o          = is_attn ? 32'(cfg_attn_k_blocks_i) : 32'(cfg_gemm_k_blocks_i);
+        wt_k_stride_o          = 32'h200;
+        wt_num_tiles_o         = 32'd1;
+        wt_tile_step_o         = 32'd0;
+        wt_ready_o             = 16'h0000;
+
+        // Write-out streamer defaults
+        wo_start_o             = 1'b0;
+        wo_mode_o              = 2'd1;
+        wo_base_o              = o_cmp_base;
+        wo_num_vectors_o       = 32'd16;
+        wo_line_stride_o       = 32'h200;
+        wo_num_batches_o       = 32'd1;
+        wo_batch_stride_o      = 32'd0;
+        wo_dim2_cnt_o          = 32'd1;
+        wo_dim2_stride_o       = 32'd0;
+        wo_dim3_cnt_o          = 32'd1;
+        wo_dim3_stride_o       = 32'd0;
+
+        // V-transpose & FP16 readback defaults
+        v_start_o              = 1'b0;
+        rd_start_o             = 1'b0;
+        rd_base_o              = cfg_rd_base_i;
+        rd_num_vectors_o       = cfg_rd_num_vectors_i;
+        rd_line_stride_o       = cfg_rd_line_stride_i;
+        rd_vec_stride_o        = 32'd0;
+        rd_num_batches_o       = 32'd1;
+        rd_batch_stride_o      = 32'd0;
+
+        // Important: Never drive cfg_mode_o == 2'b00 during FlashAttention,
+        // because norm_bypass_inv_l = (cfg_mode_i == 2'b00) in core.
+        cfg_mode_o             = is_attn ? 2'b10 : 2'b00;
+        cfg_enable_slq_o       = 1'b1;
+        lane_valid_o           = 16'h0000;
+        lane_acc_idx_o         = 4'd0;
+
+        case (cmp_state_q)
+            CMP_O_INIT: begin
+                if (is_gemm) begin
+                    if (!macro_dma_en || (!wo_busy_i && !v_busy_i && !dr_busy &&
+                                          (inflight_out_cnt_q == 4'd0) && !o_buf_wb_busy_q[o_cmp_sel_q])) begin
+                        wo_base_o = o_cmp_base;
+                        if (cfg_out_mode_i == 2'd3) begin
+                            v_start_o         = 1'b1;
+                            wo_mode_o         = 2'd2;
+                            wo_num_vectors_o  = 32'd16;
+                            wo_line_stride_o  = 32'd16;
+                            wo_num_batches_o  = 32'(cur_m_sub) * 32'(cur_o_cols);
+                            wo_batch_stride_o = 32'h200;
                         end else begin
-                            wo_mode_o          = (cfg_out_mode_i == 2'd1) ? 2'd0 : 2'd1;
-                            wo_num_vectors_o   = 32'(cfg_attn_h_i) *
-                                                 32'(cfg_attn_q_tiles_i) *
-                                                 32'(cfg_attn_dv_tiles_i) *
-                                                 32'(cfg_attn_m_q_i);
-                            wo_line_stride_o   = 32'h200;
-                            wo_num_batches_o   = 32'd1;
-                            wo_batch_stride_o  = 32'd0;
+                            wo_start_o = 1'b1;
+                            case (cfg_out_mode_i)
+                                2'd0: begin
+                                    wo_mode_o = 2'd1;
+                                    if (cfg_out_bank_layout_i && !cfg_gemm_decode_i) begin
+                                        wo_num_vectors_o  = 32'd16;
+                                        wo_line_stride_o  = 32'd16;
+                                        wo_num_batches_o  = 32'(cur_m_sub) * 32'(cur_o_cols);
+                                        wo_batch_stride_o = 32'h800;
+                                    end else begin
+                                        wo_num_vectors_o  = cfg_gemm_decode_i ? 32'(cur_o_cols) :
+                                                            (32'(cur_m_sub) * 32'(cur_o_cols) * 32'd16);
+                                    end
+                                end
+                                2'd1: begin
+                                    wo_mode_o        = 2'd0;
+                                    wo_num_vectors_o = cfg_gemm_decode_i ? 32'(cur_o_cols) :
+                                                       (32'(cur_m_sub) * 32'(cur_o_cols) * 32'd16);
+                                end
+                                2'd2: begin
+                                    wo_mode_o         = 2'd2;
+                                    wo_num_vectors_o  = cfg_gemm_decode_i ? 32'd1 : 32'd16;
+                                    wo_line_stride_o  = 32'd16;
+                                    wo_num_batches_o  = 32'(cur_m_sub) * 32'(cur_o_cols);
+                                    wo_batch_stride_o = 32'h200;
+                                end
+                                default: begin
+                                    wo_mode_o        = 2'd1;
+                                    wo_num_vectors_o = cfg_gemm_decode_i ? 32'(cur_o_cols) :
+                                                       (32'(cur_m_sub) * 32'(cur_o_cols) * 32'd16);
+                                end
+                            endcase
+                        end
+                    end
+                end else if (is_attn) begin
+                    if (macro_dma_en ? (!wo_busy_i && !v_busy_i && !dr_busy &&
+                                        (inflight_out_cnt_q == 4'd0) && !o_buf_wb_busy_q[o_cmp_sel_q])
+                                     : !wo_busy_i) begin
+                        wo_start_o = 1'b1;
+                        wo_base_o  = o_cmp_base;
+                        if (cfg_out_mode_i == 2'd2) begin
+                            wo_mode_o         = 2'd3;
+                            wo_num_vectors_o  = 32'(cfg_attn_m_q_i);
+                            wo_line_stride_o  = (macro_dma_en ? 32'd1 : 32'(cfg_attn_h_i)) *
+                                                32'(cfg_attn_dv_tiles_i) * 32'h200;
+                            wo_num_batches_o  = 32'(cfg_attn_dv_tiles_i);
+                            wo_batch_stride_o = 32'h200;
+                            wo_dim2_cnt_o     = 32'(cur_m_sub);
+                            wo_dim2_stride_o  = 32'(cfg_attn_m_q_i) *
+                                                (macro_dma_en ? 32'd1 : 32'(cfg_attn_h_i)) *
+                                                32'(cfg_attn_dv_tiles_i) * 32'h200;
+                            wo_dim3_cnt_o     = macro_dma_en ? 32'd1 : 32'(cfg_attn_h_i);
+                            wo_dim3_stride_o  = 32'(cfg_attn_dv_tiles_i) * 32'h200;
+                        end else begin
+                            wo_mode_o        = (cfg_out_mode_i == 2'd1) ? 2'd0 : 2'd1;
+                            wo_num_vectors_o = (macro_dma_en ? 32'd1 : 32'(cfg_attn_h_i)) *
+                                               32'(cur_m_sub) *
+                                               32'(cfg_attn_dv_tiles_i) *
+                                               32'(cfg_attn_m_q_i);
+                            wo_line_stride_o  = 32'h200;
+                            wo_num_batches_o  = 32'd1;
+                            wo_batch_stride_o = 32'd0;
                         end
                     end
                 end
-                state_d = ST_PREFETCH_INIT;
             end
 
-            ST_PREFETCH_INIT: begin
-                // Both GEMM and Attention use background prefetch producers.
-                state_d = (cfg_op_mode_i == 2'b00) ? ST_GEMM_LAUNCH :
-                          (cfg_op_mode_i == 2'b10) ? ST_V_LAUNCH  :
-                          (cfg_op_mode_i == 2'b11) ? ST_RD_LAUNCH :
-                                                     ST_ATTN_QK_LAUNCH;
-            end
-
-            // =================================================================
-            // STANDALONE V TRANSPOSE (opcode 10)
-            // =================================================================
-            ST_V_LAUNCH: begin
-                if (!v_busy_i && !wo_busy_i) begin
-                    v_start_o          = 1'b1;
-                    wo_start_o         = 1'b1;
-                    wo_mode_o          = 2'd2;             // V FP4 batch
-                    wo_base_o          = cfg_v_out_base_i;
-                    wo_num_vectors_o   = 32'd16;           // 16 channels
-                    wo_line_stride_o   = 32'd16;           // channel stride (bank = channel)
-                    wo_num_batches_o   = cfg_v_num_batches_i;
-                    wo_batch_stride_o  = 32'h0000_0200;
-                    state_d            = ST_V_RUN;
+            // ---------------- GEMM ----------------
+            CMP_GEMM_LAUNCH: begin
+                if (w_buf_ready && a_buf_ready && !act_busy_i && !wt_busy_i) begin
+                    wt_start_o  = 1'b1;
+                    act_start_o = 1'b1;
                 end
             end
 
-            ST_V_RUN: begin
-                if (v_done_i || (!v_busy_i && !wo_busy_i))
-                    state_d = ST_WAIT_WRITE_OUT;
-            end
+            CMP_GEMM_RUN: begin
+                if (gemm_compute_fire) begin
+                    lane_valid_o   = 16'hFFFF;
+                    lane_acc_idx_o = cnt_gbeat_q;
+                    act_ready_o    = 1'b1;
+                    wt_ready_o     = 16'hFFFF;
 
-            // =================================================================
-            // STANDALONE TCDM READBACK + REQUANTIZE (opcode 11)
-            // =================================================================
-            ST_RD_LAUNCH: begin
-                if (!rd_busy_i && !wo_busy_i) begin
-                    rd_done_seen_d     = 1'b0;
-                    cfg_enable_slq_o   = 1'b1;
-                    rd_start_o         = 1'b1;
-                    wo_start_o         = 1'b1;
-                    wo_base_o          = cfg_rd_out_base_i;
-                    if (cfg_out_mode_i == 2'd3 && cnt_kt_q == 8'd0) begin
-                        // 4D FP4 write-out: reuse unused ATTN/BASE CSRs for (cnt, stride)
-                        wo_mode_o          = 2'd3;
-                        wo_num_vectors_o   = {16'd0, cfg_attn_q_tiles_i};
-                        wo_line_stride_o   = cfg_tcdm_ring_base_i;
-                        wo_num_batches_o   = {16'd0, cfg_attn_dv_tiles_i};
-                        wo_batch_stride_o  = cfg_tcdm_q_base_i;
-                        wo_dim2_cnt_o      = {16'd0, cfg_attn_kv_tiles_i};
-                        wo_dim2_stride_o   = cfg_tcdm_out_base_i;
-                        wo_dim3_cnt_o      = {16'd0, cfg_attn_k_blocks_i};
-                        wo_dim3_stride_o   = cfg_dram_kv_base_i;
-                    end else begin
-                        wo_mode_o          = 2'd0;             // FP4 linear
-                        wo_num_vectors_o   = cfg_rd_num_vectors_i;
-                        wo_line_stride_o   = cfg_rd_line_stride_i;
-                        wo_num_batches_o   = 32'd1;
-                        wo_batch_stride_o  = 32'd0;
+                    if (last_gbeat && last_gk) begin
+                        w_release_credit_pulse = cfg_enable_dma_i &&
+                                                 (w_ring_reuse_active ? last_gm : 1'b1);
+                        if (last_kt)
+                            drain_start_pulse = 1'b1;
                     end
-                    state_d            = ST_RD_RUN;
                 end
             end
 
-            ST_RD_RUN: begin
-                cfg_enable_slq_o = 1'b1;
-                // Latch the one-cycle rd_done pulse; exit once write-out drains.
-                rd_done_seen_d = rd_done_seen_q | rd_done_i;
-                if (rd_done_seen_d && !wo_busy_i)
-                    state_d = ST_WAIT_WRITE_OUT;
-            end
-
-            // =================================================================
-            // FLASHATTENTION PATH
-            //
-            // One launch per KV tile.  Both streamers carry a 2-D AGU, so the
-            // K-block loop (D_K / 16) runs inside them:
-            //   WT : replays one K vector cfg_attn_m_q_i times, then advances
-            //        by wt_k_stride and repeats, for cfg_attn_k_blocks_i blocks.
-            //   ACT: sweeps cfg_attn_m_q_i tokens, then advances by act_k_stride
-            //        to the next K block.
-            // Beat ordering is identical on both sides (K block outer, token /
-            // replay inner), so the accumulator slot {1'b1, cnt_m_q[2:0]} sees
-            // the same (m, kb) pair from Q and from K and accumulates D_K.
-            //
-            //   QK:  launch WT+ACT -> M_Q*KB beats -> softmax drain M_Q slots
-            //   PV:  launch WT     -> M_Q beats    -> next kv tile
-            //        after the last kv tile, drain O for M_Q slots
-            // =================================================================
-            ST_ATTN_QK_LAUNCH: begin
+            // ---------------- FlashAttention ----------------
+            CMP_ATTN_QK_LAUNCH: begin
                 cfg_mode_o = 2'b01;
-                if (core_can_pop && !act_busy_i && !wt_busy_i) begin
-                    wt_start_o    = 1'b1;
-                    wt_base_o     = cfg_enable_dma_i ? core_curr_tcdm_addr : k_addr_calc;
-                    wt_repeat_o   = 32'(cfg_attn_m_q_i);       // replays per K block
-                    wt_k_blocks_o = 32'(cfg_attn_k_blocks_i);  // K blocks walked by the AGU
-                    wt_k_stride_o = 32'h200;
+                if (attn_k_ready && a_buf_ready && !act_busy_i && !wt_busy_i) begin
+                    wt_start_o         = 1'b1;
+                    wt_base_o          = attn_k_addr;
+                    wt_repeat_o        = 32'(cfg_attn_m_q_i);
+                    wt_k_blocks_o      = 32'(cfg_attn_k_blocks_i);
+                    wt_k_stride_o      = 32'h200;
 
                     act_start_o        = 1'b1;
-                    act_base_o         = q_addr_calc;
+                    act_base_o         = attn_q_addr;
                     act_tokens_o       = 32'(cfg_attn_m_q_i);
                     act_token_stride_o = 32'(cfg_attn_k_blocks_i) * 32'h200;
                     act_k_blocks_o     = 32'(cfg_attn_k_blocks_i);
                     act_k_stride_o     = 32'h200;
-
-                    state_d = ST_ATTN_QK_RUN;
                 end
             end
 
-            ST_ATTN_QK_RUN: begin
+            CMP_ATTN_QK_RUN: begin
                 cfg_mode_o = 2'b01;
                 if (qk_compute_fire) begin
                     lane_valid_o   = 16'hFFFF;
-                    lane_acc_idx_o = {1'b1, cnt_m_q[2:0]};  // S slots 8..15
+                    lane_acc_idx_o = {1'b1, cnt_m_q[2:0]};
                     act_ready_o    = 1'b1;
                     wt_ready_o     = 16'hFFFF;
                 end
-                // Both AGUs retire on their own once every K block has been
-                // streamed, so busy deasserting is the end of the whole QK
-                // phase. Wait for previous group's normalizer drain to retire
-                // so l_accumulator is not overwritten while O is draining.
-                if (!act_busy_i && !wt_busy_i && !nrm_busy)
-                    state_d = ST_ATTN_SM_DRAIN;
             end
 
-            ST_ATTN_SM_DRAIN: begin
-                cfg_mode_o            = 2'b01;
-                tile_drain_req_o      = 1'b1;
-                tile_drain_idx_o      = {1'b1, cnt_dr_q[2:0]};
-                tile_clear_on_drain_o = 1'b1;
-                cfg_row_start_o       = kv_first_q;
-                if (cnt_dr_q == cfg_attn_m_q_i - 4'd1)
-                    state_d = ST_ATTN_PV_LAUNCH;
-                else
-                    state_d = ST_ATTN_SM_DRAIN;
+            CMP_ATTN_SM_DRAIN: begin
+                cfg_mode_o   = 2'b01;
+                sm_drain_req = 1'b1;
+                sm_drain_idx = {1'b1, cnt_dr_q[2:0]};
+                sm_row_start = kv_first_q;
             end
 
-            ST_ATTN_SM_WAIT: begin
-                // Retained for backward-compatibility; bypassed in 1-cycle-per-slot drain mode
-                cfg_mode_o      = 2'b01;
-                cfg_row_start_o = kv_first_q;
-                state_d         = (cnt_dr_q == cfg_attn_m_q_i - 4'd1)
-                                ? ST_ATTN_PV_LAUNCH : ST_ATTN_SM_DRAIN;
-            end
-
-            ST_ATTN_PV_LAUNCH: begin
-                // Keep attention mode for this cycle: the core registers the
-                // last drained score one cycle after the final SM drain pulse and
-                // softmax only accepts it while cfg_mode is 2'b01.  Nothing
-                // accumulates here (lane_valid_o is low), so this is free.
-                cfg_mode_o    = 2'b01;
-                // The O slots may still be drained by the background engine from
-                // the previous group; PV would overwrite them.
-                if (!nrm_busy) begin
-                wt_start_o    = 1'b1;
-                wt_base_o     = cfg_enable_dma_i ? (core_curr_tcdm_addr + (32'(cfg_attn_k_blocks_i) * 32'h200))
-                                                 : v_addr_calc;
-                wt_repeat_o   = 32'(cfg_attn_m_q_i);
-                wt_k_blocks_o = 32'd1;   // V is reduced over keys, not over D_K
-                wt_k_stride_o = 32'd0;
-                state_d       = ST_ATTN_PV_RUN;
+            CMP_ATTN_PV_LAUNCH: begin
+                cfg_mode_o = 2'b01;
+                if (!dr_busy && !wt_busy_i && attn_v_ready) begin
+                    wt_start_o    = 1'b1;
+                    wt_base_o     = attn_v_addr;
+                    wt_repeat_o   = 32'(cfg_attn_m_q_i);
+                    wt_k_blocks_o = 32'd1;
+                    wt_k_stride_o = 32'd0;
                 end
             end
 
-            ST_ATTN_PV_RUN: begin
+            CMP_ATTN_PV_RUN: begin
                 cfg_mode_o = 2'b10;
                 if (pv_compute_fire) begin
                     lane_valid_o   = 16'hFFFF;
-                    lane_acc_idx_o = {1'b0, cnt_m_q[2:0]};  // O slots 0..7
+                    lane_acc_idx_o = {1'b0, cnt_m_q[2:0]};
                     wt_ready_o     = 16'hFFFF;
-                    state_d        = (cnt_m_q == cfg_attn_m_q_i - 4'd1)
-                                   ? ST_ATTN_PV_DRAIN : ST_ATTN_PV_RUN;
                 end
             end
 
-            ST_ATTN_PV_DRAIN: begin
+            CMP_ATTN_PV_DRAIN: begin
                 cfg_mode_o = 2'b10;
-                // Keep the streamer draining: it still holds the last replay
-                // until the core acknowledges it, so ready must stay asserted
-                // even though no new beat is being issued.
                 wt_ready_o = 16'hFFFF;
                 if (!wt_busy_i) begin
-                    core_release_credit_pulse = cfg_enable_dma_i;
-                    // cnt_kj_q wraps back to 0 only after the last KV tile.
-                    if (cnt_kj_q == 16'd0) begin
-                        // Last KV tile of this (h, qi, dvi) group.  Hand the O
-                        // slots to the background drain engine and continue with
-                        // the next group's QK straight away: QK fills the S slots
-                        // (8..15) while the engine drains O (0..7), so the two
-                        // never touch the same accumulator entry.
-                        nrm_start_o = 1'b1;
-                        state_d     = last_group_q ? ST_ATTN_LAST_DRAIN
-                                                   : ST_ATTN_QK_LAUNCH;
-                    end else begin
-                        state_d = ST_ATTN_QK_LAUNCH;   // next KV tile
-                    end
+                    w_release_credit_pulse = cfg_enable_dma_i && !attn_kv_pin_en;
+                    kv_pin_rel_hkv_pulse   = attn_kv_pin_en && kv_pin_hkv_end_q;
+                    if (cnt_kj_q == 16'd0)
+                        drain_start_pulse = 1'b1;
                 end
             end
 
-            // The last group has no following QK phase to hide its O drain
-            // behind, and the core only drives the FP16 output register from the
-            // normalizer while cfg_mode is 2'b10, so hold PV mode until the
-            // drain engine retires.
-            ST_ATTN_LAST_DRAIN: begin
-                cfg_mode_o = 2'b10;
-                if (!nrm_busy)
-                    state_d = ST_WAIT_WRITE_OUT;
-            end
-
-            // =================================================================
-            // DENSE GEMM PATH
-            // =================================================================
-            ST_GEMM_LAUNCH: begin
-                if (core_can_pop && !act_busy_i && !wt_busy_i && !v_busy_i) begin
-                    cfg_mode_o    = 2'b00; // Mode 00: GEMM
-                    if (cfg_out_mode_i == 2'd3 && cnt_kt_q == 8'd0) begin
-                        // Fused V transpose: core FP16 rows go straight into the
-                        // transpose buffer; the write-out writes FP4 packets.
-                        v_start_o        = 1'b1;
-                        wo_mode_o        = 2'd2;
-                        wo_base_o        = cfg_v_out_base_i;
-                        wo_num_vectors_o = 32'd16;
-                        wo_line_stride_o = 32'd16;
-                        wo_num_batches_o = 32'(cfg_gemm_n_tiles_i) *
-                                           32'(cfg_gemm_m_tiles_i);
-                        wo_batch_stride_o = 32'h200;
-                    end
-                    // Launch Weight Streamer ONCE for the whole tile; its 3-D AGU
-                    // walks all K blocks internally (k_stride = one 72b word),
-                    // replaying each K vector 16 times (tokens).  No per-K relaunch.
-                    wt_start_o    = 1'b1;
-                    wt_base_o     = cfg_enable_dma_i ? core_curr_tcdm_addr : gemm_wt_addr;
-                    wt_repeat_o   = cfg_gemm_decode_i ? 32'd1 : 32'd16; // 1 (Decode) or 16 Tokens
-                    wt_k_blocks_o = cfg_gemm_k_blocks_i;
-                    wt_k_stride_o = 32'h200;
-
-                    // Launch Act Streamer ONCE: token inner, K-block outer.
-                    act_start_o        = 1'b1;
-                    act_base_o         = gemm_act_addr;
-                    act_tokens_o       = cfg_gemm_decode_i ? 32'd1 : 32'd16;
-                    act_token_stride_o = cfg_act_bank_layout_i ? 32'h10 : (total_k_blocks * 32'h200);
-                    act_k_blocks_o     = cfg_gemm_k_blocks_i;
-                    act_k_stride_o     = 32'h200;
-
-                    state_d       = ST_GEMM_RUN;
+            // ---------------- Macro-DMA O Commit ----------------
+            CMP_O_COMMIT: begin
+                if (!wo_busy_i && !dr_busy && (inflight_out_cnt_q == 4'd0) &&
+                    !v_busy_i && !act_busy_i && !wt_busy_i) begin
+                    o_flush_commit_pulse = 1'b1;
+                    macro_a_rel_pulse    = is_attn ? 1'b1 : last_o_chunk;
                 end
             end
 
-            ST_GEMM_RUN: begin
-                cfg_mode_o = 2'b00;
-                if (gemm_compute_fire) begin
-                    lane_valid_o   = 16'hFFFF;
-                    lane_acc_idx_o = cnt_gbeat_q; // Full 16 slots [0..15]
-                    act_ready_o    = 1'b1;
-                    wt_ready_o     = 16'hFFFF;
+            // ---------------- Hardware Decode / Standalone V-Transpose ----------------
+            CMP_V_LAUNCH: begin
+                rd_base_o         = cfg_tcdm_q_base_i;
+                rd_num_vectors_o  = 32'd16;
+                rd_line_stride_o  = 32'h200;
+                rd_vec_stride_o   = cfg_act_bank_layout_i
+                                    ? 32'h10
+                                    : ((cfg_rd_line_stride_i != 32'd0) ? cfg_rd_line_stride_i
+                                                                       : (v_nb_eff * 32'h800));
+                rd_num_batches_o  = v_nb_eff;
+                rd_batch_stride_o = 32'h800;
 
-                    // The streamers walk all K blocks internally, so stay in RUN
-                    // between K blocks (no relaunch/fill bubble).  Only the last
-                    // beat of the last K block ends the tile.
-                    if (last_gbeat && last_gk) begin
-                        // Tile fully accumulated: hand it to the background drain
-                        // engine and start the next tile immediately, so drain
-                        // (Port B) overlaps next-tile compute.
-                        core_release_credit_pulse = cfg_enable_dma_i;
-                        state_d = (last_kt && last_gm && last_gn) ? ST_WAIT_WRITE_OUT : ST_GEMM_LAUNCH;
-                    end
+                wo_mode_o         = 2'd2;
+                wo_base_o         = cfg_v_out_base_i;
+                wo_num_vectors_o  = 32'd16;
+                wo_line_stride_o  = 32'd16;
+                wo_num_batches_o  = v_nb_eff;
+                wo_batch_stride_o = (cfg_stride_tile_i != 32'd0) ? cfg_stride_tile_i : 32'h200;
+
+                if (!v_busy_i && !rd_busy_i && !wo_busy_i) begin
+                    v_start_o  = 1'b1;
+                    rd_start_o = 1'b1;
                 end
             end
 
-            ST_DMA_WB_LAUNCH: begin
-                dma_req_valid_o      = 1'b1;
-                dma_req_dir_o        = cfg_out_mode_i; // [0]: 0=DRAM->TCDM, 1=TCDM->DRAM; [1]: 0=16-bank, 1=linear
-                dma_req_dram_addr_o  = cfg_dram_kv_base_i;
-                dma_req_tcdm_addr_o  = cfg_tcdm_out_base_i;
-                dma_req_size_bytes_o = cfg_stride_tile_i;
-                if (dma_req_ready_i)
-                    state_d = ST_DMA_WB_WAIT;
+            CMP_V_RUN: begin
+                // Hold descriptor lines steady during active transpose
+                rd_base_o         = cfg_tcdm_q_base_i;
+                rd_num_vectors_o  = 32'd16;
+                rd_line_stride_o  = 32'h200;
+                rd_vec_stride_o   = cfg_act_bank_layout_i
+                                    ? 32'h10
+                                    : ((cfg_rd_line_stride_i != 32'd0) ? cfg_rd_line_stride_i
+                                                                       : (v_nb_eff * 32'h800));
+                rd_num_batches_o  = v_nb_eff;
+                rd_batch_stride_o = 32'h800;
+
+                wo_mode_o         = 2'd2;
+                wo_base_o         = cfg_v_out_base_i;
+                wo_num_vectors_o  = 32'd16;
+                wo_line_stride_o  = 32'd16;
+                wo_num_batches_o  = v_nb_eff;
+                wo_batch_stride_o = (cfg_stride_tile_i != 32'd0) ? cfg_stride_tile_i : 32'h200;
             end
 
-            ST_DMA_WB_WAIT: begin
-                if (dma_done_i)
-                    state_d = ST_DONE;
-            end
-
-            ST_WAIT_WRITE_OUT: begin
-                if ((wo_done_i || !wo_busy_i) && !nrm_busy && !gemm_drain_active_q &&
-                    !v_busy_i) begin
-                    state_d = ST_DONE;
+            // ---------------- TCDM Readback + Requantize ----------------
+            CMP_RD_LAUNCH: begin
+                rd_base_o        = cfg_rd_base_i;
+                rd_num_vectors_o = cfg_rd_num_vectors_i;
+                rd_line_stride_o = cfg_rd_line_stride_i;
+                wo_base_o        = cfg_rd_out_base_i;
+                if (cfg_out_mode_i == 2'd3) begin
+                    wo_mode_o         = 2'd3;
+                    wo_num_vectors_o  = {16'd0, cfg_attn_q_tiles_i};
+                    wo_line_stride_o  = cfg_tcdm_ring_base_i;
+                    wo_num_batches_o  = {16'd0, cfg_attn_dv_tiles_i};
+                    wo_batch_stride_o = cfg_tcdm_q_base_i;
+                    wo_dim2_cnt_o     = {16'd0, cfg_attn_kv_tiles_i};
+                    wo_dim2_stride_o  = cfg_tcdm_out_base_i;
+                    wo_dim3_cnt_o     = {16'd0, cfg_attn_k_blocks_i};
+                    wo_dim3_stride_o  = cfg_dram_kv_base_i;
+                end else begin
+                    wo_mode_o        = 2'd0;
+                    wo_num_vectors_o = cfg_rd_num_vectors_i;
+                    wo_line_stride_o = cfg_rd_line_stride_i;
+                end
+                if (!rd_busy_i && !wo_busy_i) begin
+                    rd_start_o = 1'b1;
+                    wo_start_o = 1'b1;
                 end
             end
 
-            ST_DONE: begin
-                // Hold DONE until the next start so `done_o` is observable, then
-                // accept another job (multi-job layers: norm->QKV->attn->FFN...).
-                if (start_i)
-                    state_d = cfg_dma_wb_i ? ST_DMA_WB_LAUNCH : ST_PREP_DRAIN;
+            CMP_RD_RUN: begin
+                rd_base_o        = cfg_rd_base_i;
+                rd_num_vectors_o = cfg_rd_num_vectors_i;
+                rd_line_stride_o = cfg_rd_line_stride_i;
+                wo_base_o        = cfg_rd_out_base_i;
+                if (cfg_out_mode_i == 2'd3) begin
+                    wo_mode_o         = 2'd3;
+                    wo_num_vectors_o  = {16'd0, cfg_attn_q_tiles_i};
+                    wo_line_stride_o  = cfg_tcdm_ring_base_i;
+                    wo_num_batches_o  = {16'd0, cfg_attn_dv_tiles_i};
+                    wo_batch_stride_o = cfg_tcdm_q_base_i;
+                    wo_dim2_cnt_o     = {16'd0, cfg_attn_kv_tiles_i};
+                    wo_dim2_stride_o  = cfg_tcdm_out_base_i;
+                    wo_dim3_cnt_o     = {16'd0, cfg_attn_k_blocks_i};
+                    wo_dim3_stride_o  = cfg_dram_kv_base_i;
+                end else begin
+                    wo_mode_o        = 2'd0;
+                    wo_num_vectors_o = cfg_rd_num_vectors_i;
+                    wo_line_stride_o = cfg_rd_line_stride_i;
+                end
             end
 
-            default: state_d = ST_IDLE;
+            default: ;
         endcase
-
-        // The background O drain shares tile_drain_req with the SM drain; the
-        // engine never asserts nrm_req on a cycle the SM drain owns the port.
-        if (nrm_req) begin
-            tile_drain_req_o      = 1'b1;
-            tile_drain_idx_o      = nrm_dr_q;
-            tile_clear_on_drain_o = 1'b1;
-        end
-
-        // Background GEMM drain: Port B reads slot gdr_idx_q while the next
-        // tile accumulates on Port A.  Gated by write-out FIFO space so the
-        // single core output register never overruns.
-        if (gemm_drain_active_q && core_out_fifo_ready_i) begin
-            tile_drain_req_o      = 1'b1;
-            tile_drain_idx_o      = gdr_idx_q[3:0];
-            tile_clear_on_drain_o = 1'b1;
-        end
     end
 
-    // Sequential state & counter register updates
+    // -------------------------------------------------------------------------
+    // 1.4 Registered Loop Counters & Sticky Done Flags
+    // -------------------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            state_q           <= ST_IDLE;
-            cnt_h_q           <= '0;
-            cnt_hkv_q         <= '0;
-            cnt_hgrp_q        <= '0;
-            cnt_qi_q          <= '0;
-            cnt_dvi_q         <= '0;
-            cnt_kj_q          <= '0;
-            cnt_m_q           <= '0;
-            cnt_gn_q          <= '0;
-            cnt_gm_q          <= '0;
-            cnt_kt_q          <= '0;
-            cnt_gk_q          <= '0;
-            cnt_gbeat_q       <= '0;
-            dma_gn_q          <= '0;
-            dma_gm_q          <= '0;
-            dma_kt_q          <= '0;
-            dma_pending_q     <= 1'b0;
-            dma_h_q           <= '0;
-            dma_hkv_q         <= '0;
-            dma_hgrp_q        <= '0;
-            dma_qi_q          <= '0;
-            dma_dvi_q         <= '0;
-            dma_kj_q          <= '0;
-            dma_attn_pending_q<= 1'b0;
-            gemm_drain_active_q <= 1'b0;
-            gemm_k_last_d1_q    <= 1'b0;
-            gdr_idx_q           <= 5'd0;
-            rd_done_seen_q      <= 1'b0;
+            cmp_m_base_q      <= 16'd0;
+            o_col_start_q     <= 16'd0;
+            a_cmp_rd_sel_q    <= 1'b0;
+            o_cmp_sel_q       <= 1'b0;
+
+            cnt_gn_q          <= 16'd0;
+            cnt_gm_q          <= 16'd0;
+            cnt_kt_q          <= 8'd0;
+            cnt_gk_q          <= 16'd0;
+            cnt_gbeat_q       <= 4'd0;
+
+            cnt_h_q           <= 8'd0;
+            cnt_hkv_q         <= 8'd0;
+            cnt_hgrp_q        <= 8'd0;
+            cnt_qi_q          <= 16'd0;
+            cnt_dvi_q         <= 16'd0;
+            cnt_kj_q          <= 16'd0;
+            cnt_m_q           <= 4'd0;
+            cnt_dr_q          <= 4'd0;
+            kv_first_q        <= 1'b1;
+            attn_chunk_done_q <= 1'b0;
+            attn_all_done_q   <= 1'b0;
+            kv_pin_hkv_end_q  <= 1'b0;
+            v_done_seen_q     <= 1'b0;
+            rd_done_seen_q    <= 1'b0;
+        end else if (start_i) begin
+            cmp_m_base_q      <= 16'd0;
+            o_col_start_q     <= 16'd0;
+            a_cmp_rd_sel_q    <= 1'b0;
+            o_cmp_sel_q       <= 1'b0;
+
+            cnt_gn_q          <= 16'd0;
+            cnt_gm_q          <= 16'd0;
+            cnt_kt_q          <= 8'd0;
+            cnt_gk_q          <= 16'd0;
+            cnt_gbeat_q       <= 4'd0;
+
+            cnt_h_q           <= 8'd0;
+            cnt_hkv_q         <= 8'd0;
+            cnt_hgrp_q        <= 8'd0;
+            cnt_qi_q          <= 16'd0;
+            cnt_dvi_q         <= 16'd0;
+            cnt_kj_q          <= 16'd0;
+            cnt_m_q           <= 4'd0;
+            cnt_dr_q          <= 4'd0;
+            kv_first_q        <= 1'b1;
+            attn_chunk_done_q <= 1'b0;
+            attn_all_done_q   <= 1'b0;
+            kv_pin_hkv_end_q  <= 1'b0;
+            v_done_seen_q     <= 1'b0;
+            rd_done_seen_q    <= 1'b0;
         end else begin
-            state_q <= state_d;
-            rd_done_seen_q <= rd_done_seen_d;
+            // 4-Loop GEMM Compute counters
+            if (cmp_state_q == CMP_GEMM_RUN && gemm_compute_fire) begin
+                if (last_gbeat) begin
+                    cnt_gbeat_q <= 4'd0;
+                    if (last_gk) begin
+                        cnt_gk_q <= 16'd0;
+                        if (last_kt) begin
+                            cnt_kt_q <= 8'd0;
+                            if (last_gm) begin
+                                cnt_gm_q <= 16'd0;
+                                cnt_gn_q <= last_o_col ? 16'd0 : (cnt_gn_q + 16'd1);
+                            end else begin
+                                cnt_gm_q <= cnt_gm_q + 16'd1;
+                            end
+                        end else begin
+                            cnt_kt_q <= cnt_kt_q + 8'd1;
+                        end
+                    end else begin
+                        cnt_gk_q <= cnt_gk_q + 16'd1;
+                    end
+                end else begin
+                    cnt_gbeat_q <= cnt_gbeat_q + 4'd1;
+                end
+            end
 
-            if (start_i) begin
-                cnt_h_q           <= '0;
-                cnt_hkv_q         <= '0;
-                cnt_hgrp_q        <= '0;
-                cnt_qi_q          <= '0;
-                cnt_dvi_q         <= '0;
-                cnt_kj_q          <= '0;
-                cnt_m_q           <= '0;
-                cnt_dr_q          <= '0;
-                cnt_gn_q          <= '0;
-                cnt_gm_q          <= '0;
-                cnt_kt_q          <= '0;
-                cnt_gk_q          <= '0;
-                cnt_gbeat_q       <= '0;
-                dma_gn_q          <= '0;
-                dma_gm_q          <= '0;
-                dma_kt_q          <= '0;
-                dma_pending_q     <= cfg_enable_dma_i && !cfg_dma_wb_i && (cfg_op_mode_i == 2'b00);
-                dma_h_q           <= '0;
-                dma_hkv_q         <= '0;
-                dma_hgrp_q        <= '0;
-                dma_qi_q          <= '0;
-                dma_dvi_q         <= '0;
-                dma_kj_q          <= '0;
-                dma_attn_pending_q<= cfg_enable_dma_i && !cfg_dma_wb_i && (cfg_op_mode_i == 2'b01);
-                gemm_drain_active_q <= 1'b0;
-                gemm_k_last_d1_q    <= 1'b0;
-                gdr_idx_q           <= 5'd0;
-                rd_done_seen_q      <= 1'b0;
-                kv_first_q        <= 1'b1;
-            end else begin
-                // ---------------------------------------------------------
-                // QK beat counter.  Only the accumulator slot index is needed
-                // here: the K-block loop runs inside the streamers and the
-                // phase ends when both of them retire, so there is no kb
-                // counter and no per-block re-arm.  cnt_m_q is restarted at
-                // every launch so the S slot mapping is always the same.
-                // ---------------------------------------------------------
-                if (state_q == ST_ATTN_QK_LAUNCH || state_q == ST_ATTN_PV_LAUNCH)
-                    cnt_m_q <= '0;
-                else if (state_q == ST_ATTN_QK_RUN && qk_compute_fire)
-                    cnt_m_q <= (cnt_m_q == cfg_attn_m_q_i - 4'd1) ? '0 : cnt_m_q + 4'd1;
-
-                // ---------------------------------------------------------
-                // PV loop nest: m (beat).  The last beat of a KV tile
-                // advances kj; the last kj moves to the output drain.
-                // ---------------------------------------------------------
-                if (state_q == ST_ATTN_PV_RUN && pv_compute_fire) begin
-                    if (cnt_m_q == cfg_attn_m_q_i - 4'd1) begin
-                        cnt_m_q <= '0;
-                        if (cnt_kj_q == cfg_attn_kv_tiles_i - 16'd1) begin
-                            cnt_kj_q <= '0;
-                            // Latch the termination decision before the group
-                            // counters advance, so the drain phase that follows
-                            // knows whether this was the final group.
-                            last_group_q <= (cnt_dvi_q == cfg_attn_dv_tiles_i - 16'd1) &&
-                                            (cnt_qi_q  == cfg_attn_q_tiles_i  - 16'd1) &&
-                                            (cnt_h_q   == cfg_attn_h_i        - 8'd1);
-                            // dvi / qi / h advance only when the whole KV
-                            // sequence for this dvi slice is complete.
-                            if (cnt_dvi_q == cfg_attn_dv_tiles_i - 16'd1) begin
-                                cnt_dvi_q <= '0;
-                                if (cnt_qi_q == cfg_attn_q_tiles_i - 16'd1) begin
-                                    cnt_qi_q <= '0;
-                                    if (cnt_h_q == cfg_attn_h_i - 8'd1) begin
-                                        cnt_h_q    <= '0;
-                                        cnt_hkv_q  <= '0;
-                                        cnt_hgrp_q <= '0;
+            // Attention QK/PV beat & drain slot counters
+            if (cmp_state_q == CMP_ATTN_QK_LAUNCH || cmp_state_q == CMP_ATTN_PV_LAUNCH) begin
+                cnt_m_q <= 4'd0;
+            end else if (cmp_state_q == CMP_ATTN_QK_RUN && qk_compute_fire) begin
+                cnt_m_q <= last_m_beat ? 4'd0 : (cnt_m_q + 4'd1);
+            end else if (cmp_state_q == CMP_ATTN_PV_RUN && pv_compute_fire) begin
+                if (last_m_beat) begin
+                    cnt_m_q <= 4'd0;
+                    if (!last_kj) begin
+                        cnt_kj_q <= cnt_kj_q + 16'd1;
+                    end else begin
+                        cnt_kj_q         <= 16'd0;
+                        kv_pin_hkv_end_q <= attn_kv_pin_en && last_dvi && last_qi && (!macro_dma_en || last_macro_m) && is_last_h_of_hkv;
+                        if (macro_dma_en) begin
+                            if (last_dvi) begin
+                                cnt_dvi_q <= 16'd0;
+                                if (last_qi) begin
+                                    cnt_qi_q          <= 16'd0;
+                                    attn_chunk_done_q <= 1'b1;
+                                    attn_all_done_q   <= last_h && last_macro_m;
+                                end else begin
+                                    cnt_qi_q <= cnt_qi_q + 16'd1;
+                                end
+                            end else begin
+                                cnt_dvi_q <= cnt_dvi_q + 16'd1;
+                            end
+                        end else begin
+                            attn_all_done_q <= last_dvi && last_qi && last_h;
+                            if (last_dvi) begin
+                                cnt_dvi_q <= 16'd0;
+                                if (last_qi) begin
+                                    cnt_qi_q <= 16'd0;
+                                    if (last_h) begin
+                                        cnt_h_q    <= 8'd0;
+                                        cnt_hkv_q  <= 8'd0;
+                                        cnt_hgrp_q <= 8'd0;
                                     end else begin
                                         cnt_h_q <= cnt_h_q + 8'd1;
                                         if (cnt_hgrp_q == cfg_gqa_group_m1_i) begin
-                                            cnt_hgrp_q <= '0;
+                                            cnt_hgrp_q <= 8'd0;
                                             cnt_hkv_q  <= cnt_hkv_q + 8'd1;
                                         end else begin
                                             cnt_hgrp_q <= cnt_hgrp_q + 8'd1;
@@ -1108,23 +1102,622 @@ module snax_llm_sequencer #(
                             end else begin
                                 cnt_dvi_q <= cnt_dvi_q + 16'd1;
                             end
-                        end else begin
-                            cnt_kj_q <= cnt_kj_q + 16'd1;
                         end
+                    end
+                end else begin
+                    cnt_m_q <= cnt_m_q + 4'd1;
+                end
+            end
+
+            if (cmp_state_q == CMP_ATTN_QK_RUN && !act_busy_i && !wt_busy_i && !dr_busy && (inflight_out_cnt_q == 4'd0))
+                cnt_dr_q <= 4'd0;
+            else if (cmp_state_q == CMP_ATTN_SM_DRAIN)
+                cnt_dr_q <= cnt_dr_q + 4'd1;
+
+            if (cmp_state_q == CMP_ATTN_PV_DRAIN && !wt_busy_i) begin
+                kv_first_q       <= (cnt_kj_q == 16'd0);
+                kv_pin_hkv_end_q <= 1'b0;
+            end
+
+            // Macro-DMA chunk commit & Ping-Pong bank toggle
+            if (o_flush_commit_pulse) begin
+                o_cmp_sel_q <= ~o_cmp_sel_q;
+                if (is_gemm) begin
+                    if (!last_o_chunk) begin
+                        o_col_start_q <= o_col_start_q + cur_o_cols;
                     end else begin
-                        cnt_m_q <= cnt_m_q + 4'd1;
+                        o_col_start_q  <= 16'd0;
+                        a_cmp_rd_sel_q <= ~a_cmp_rd_sel_q;
+                        cmp_m_base_q   <= last_macro_m ? 16'd0 : (cmp_m_base_q + eff_m_sub);
+                    end
+                end else if (is_attn) begin
+                    attn_chunk_done_q <= 1'b0;
+                    a_cmp_rd_sel_q    <= ~a_cmp_rd_sel_q;
+                    if (!last_macro_m) begin
+                        cmp_m_base_q <= cmp_m_base_q + eff_m_sub;
+                    end else begin
+                        cmp_m_base_q <= 16'd0;
+                        if (last_h) begin
+                            cnt_h_q    <= 8'd0;
+                            cnt_hkv_q  <= 8'd0;
+                            cnt_hgrp_q <= 8'd0;
+                        end else begin
+                            cnt_h_q <= cnt_h_q + 8'd1;
+                            if (cnt_hgrp_q == cfg_gqa_group_m1_i) begin
+                                cnt_hgrp_q <= 8'd0;
+                                cnt_hkv_q  <= cnt_hkv_q + 8'd1;
+                            end else begin
+                                cnt_hgrp_q <= cnt_hgrp_q + 8'd1;
+                            end
+                        end
                     end
                 end
+            end
 
-                // GEMM DMA Prefetch Progression (K-tile inner, M-tile middle, N-tile outer)
-                if (dma_issue_fire && (cfg_op_mode_i == 2'b00) && dma_pending_q) begin
+            // Sticky completion capture for V-transpose / Readback
+            if (cmp_state_q == CMP_V_LAUNCH)
+                v_done_seen_q <= 1'b0;
+            else if (cmp_state_q == CMP_V_RUN)
+                v_done_seen_q <= v_done_seen_q | v_done_i;
+
+            if (cmp_state_q == CMP_RD_LAUNCH)
+                rd_done_seen_q <= 1'b0;
+            else if (cmp_state_q == CMP_RD_RUN)
+                rd_done_seen_q <= rd_done_seen_q | rd_done_i;
+
+            if (cmp_state_q == CMP_V_RUN || cmp_state_q == CMP_RD_RUN) begin
+                if (rd_done_i)
+                    rd_done_seen_q <= 1'b1;
+            end
+        end
+    end
+
+    // =========================================================================
+    // SECTION 2: SUB-FSM 2 -- SHARED PORT-B DRAIN & OUT_PIPE_CREDITS GUARD
+    // =========================================================================
+    wire [4:0] dr_last_slot    = is_attn ? {1'b0, cfg_attn_m_q_i - 4'd1} :
+                                           (cfg_gemm_decode_i ? 5'd0 : 5'd15);
+    wire       dr_needs_wait   = is_gemm && cfg_gemm_decode_i;
+    wire       out_retire_fire = (is_gemm || is_attn) &&
+                                 core_fp16_valid_i && core_fp16_ready_i &&
+                                 (inflight_out_cnt_q != 4'd0);
+    wire       dr_can_issue    = (inflight_out_cnt_q < 4'(OUT_PIPE_CREDITS)) && core_out_fifo_ready_i;
+
+    logic      dr_req, dr_clear;
+    logic [3:0] dr_idx;
+
+    // -------------------------------------------------------------------------
+    // 2.1 Drain State Register
+    // -------------------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            dr_state_q <= DR_IDLE;
+        else if (start_i)
+            dr_state_q <= DR_IDLE;
+        else
+            dr_state_q <= dr_state_d;
+    end
+
+    // -------------------------------------------------------------------------
+    // 2.2 Drain Next-State Logic
+    // -------------------------------------------------------------------------
+    always_comb begin
+        dr_state_d = dr_state_q;
+
+        case (dr_state_q)
+            DR_IDLE: begin
+                if (drain_start_pulse)
+                    dr_state_d = dr_needs_wait ? DR_WAIT_D1 : DR_RUN;
+            end
+
+            DR_WAIT_D1: begin
+                dr_state_d = DR_RUN;
+            end
+
+            DR_RUN: begin
+                if (dr_can_issue && (dr_slot_q == dr_last_slot))
+                    dr_state_d = DR_IDLE;
+            end
+
+            default: dr_state_d = DR_IDLE;
+        endcase
+    end
+
+    // -------------------------------------------------------------------------
+    // 2.3 Drain Combinational Outputs & WAR Hazard Guard
+    // -------------------------------------------------------------------------
+    always_comb begin
+        dr_slot_d    = dr_slot_q;
+        dr_req       = 1'b0;
+        dr_idx       = 4'd0;
+        dr_clear     = 1'b0;
+        dr_busy      = (dr_state_q != DR_IDLE);
+        gemm_beat_ok = (dr_state_q == DR_IDLE) ||
+                       ((dr_state_q == DR_RUN) && ({1'b0, cnt_gbeat_q} < dr_slot_q));
+
+        case (dr_state_q)
+            DR_IDLE: begin
+                if (drain_start_pulse)
+                    dr_slot_d = 5'd0;
+            end
+
+            DR_WAIT_D1: begin
+                dr_slot_d = 5'd0;
+            end
+
+            DR_RUN: begin
+                if (dr_can_issue) begin
+                    dr_req    = 1'b1;
+                    dr_idx    = dr_slot_q[3:0];
+                    dr_clear  = 1'b1;
+                    dr_slot_d = (dr_slot_q == dr_last_slot) ? 5'd16 : (dr_slot_q + 5'd1);
+                end
+            end
+
+            default: dr_slot_d = 5'd0;
+        endcase
+
+        // Port-B drain mux (Attention SM drain and Background O/GEMM drain are mutually exclusive)
+        if (sm_drain_req) begin
+            tile_drain_req_o      = 1'b1;
+            tile_drain_idx_o      = sm_drain_idx;
+            tile_clear_on_drain_o = 1'b1;
+            cfg_row_start_o       = sm_row_start;
+        end else begin
+            tile_drain_req_o      = dr_req;
+            tile_drain_idx_o      = dr_idx;
+            tile_clear_on_drain_o = dr_clear;
+            cfg_row_start_o       = 1'b0;
+        end
+        cfg_key_mask_o = auto_causal_mask;
+    end
+
+    // -------------------------------------------------------------------------
+    // 2.4 Registered Drain Slot & Output Pipeline Credit Counter
+    // -------------------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            dr_slot_q          <= 5'd0;
+            inflight_out_cnt_q <= 4'd0;
+        end else if (start_i) begin
+            dr_slot_q          <= 5'd0;
+            inflight_out_cnt_q <= 4'd0;
+        end else begin
+            dr_slot_q          <= dr_slot_d;
+            inflight_out_cnt_q <= inflight_out_cnt_q
+                                + (dr_req          ? 4'd1 : 4'd0)
+                                - (out_retire_fire ? 4'd1 : 4'd0);
+        end
+    end
+
+    // =========================================================================
+    // SECTION 3: SUB-FSM 3 -- DMA ARBITER, RING, PING-PONG & KV-PIN CONTROLLER
+    // =========================================================================
+    logic [PTR_W-1:0] ring_wr_ptr_q;
+    logic [CNT_W-1:0] w_free_credits_q;
+
+    dma_tag_t dma_inflight_tag_q;
+    logic     dma_inflight_buf_q;
+    logic     dma_inflight_kv_phase_q;
+    logic     dma_inflight_kv_dvi0_q;
+
+    // GEMM / Attention W & KV prefetch counters
+    logic [15:0] dma_w_m_base_q, dma_gn_q, dma_gm_q;
+    logic [7:0]  dma_kt_q;
+    logic [7:0]  dma_h_q, dma_hkv_q, dma_hgrp_q;
+    logic [15:0] dma_qi_q, dma_dvi_q, dma_kj_q;
+    logic        dma_kv_phase_q; // 0: K phase (or packed KV), 1: V phase (when sep_kv == 1)
+    logic        dma_w_pending_q;
+
+    // Macro-DMA A / Q prefetch counters
+    logic [7:0]  dma_a_h_q;
+    logic [15:0] dma_a_m_base_q;
+    logic        dma_a_pending_q;
+    logic        a_dma_wr_sel_q;
+
+    // Ping-Pong O writeback descriptors (packed arrays)
+    logic [1:0][ADDR_WIDTH-1:0] o_buf_wb_dram_q;
+    logic [1:0][31:0]           o_buf_wb_bytes_q;
+    logic                       o_dma_sel_q;
+
+    assign dma_window_active = (cmp_state_q != CMP_IDLE) && (cmp_state_q != CMP_DONE) && !is_dma_wb && !is_vtrans && !is_rdback;
+    assign dma_busy_q        = (dma_state_q == DMA_INFLIGHT);
+    assign w_buf_ready       = !cfg_enable_dma_i || (w_ready_tiles_q > '0);
+    assign a_buf_ready       = !macro_dma_en || a_buf_ready_q[a_cmp_rd_sel_q];
+
+    wire [15:0] dma_w_m_rem     = macro_m_total - dma_w_m_base_q;
+    wire [15:0] dma_w_cur_m_sub = (dma_w_m_rem > eff_m_sub) ? eff_m_sub : dma_w_m_rem;
+    wire [15:0] dma_a_m_rem     = macro_m_total - dma_a_m_base_q;
+    wire [15:0] dma_a_cur_m_sub = (dma_a_m_rem > eff_m_sub) ? eff_m_sub : dma_a_m_rem;
+
+    wire [ADDR_WIDTH-1:0] dma_w_tcdm_addr = cfg_tcdm_ring_base_i + ({16'd0, ring_wr_ptr_q} * SLOT_SIZE_BYTES);
+    wire                  dma_arb_en      = (dma_state_q == DMA_IDLE) && dma_window_active;
+
+    // Arbitration requests
+    wire dma_wb_req     = (cmp_state_q == CMP_DMA_WB_ISSUE) && (dma_state_q == DMA_IDLE);
+    wire dma_o_wb_req   = dma_arb_en && macro_dma_en && o_buf_wb_busy_q[o_dma_sel_q];
+    wire dma_a_can_req  = dma_arb_en && macro_dma_en && dma_a_pending_q && !a_buf_ready_q[a_dma_wr_sel_q];
+    wire dma_a_urg_req  = dma_a_can_req && !a_buf_ready_q[a_cmp_rd_sel_q];
+
+    // Weight / KV arbitration qualifier
+    wire dma_kv_pin_can_req = dma_arb_en && attn_kv_pin_en && dma_w_pending_q &&
+                              !kv_pin_hkv_done_q && (dma_hkv_q == pin_active_hkv_q);
+    wire dma_ring_space_ok  = is_attn && cfg_attn_sep_kv_i && dma_kv_phase_q
+                              ? 1'b1
+                              : (w_free_credits_q > '0);
+    wire dma_w_ring_can_req = dma_arb_en && cfg_enable_dma_i && !attn_kv_pin_en && dma_w_pending_q && dma_ring_space_ok;
+    wire dma_w_can_req      = dma_kv_pin_can_req || dma_w_ring_can_req;
+    wire dma_w_urg_req      = dma_w_can_req && (is_attn ? (!attn_k_ready || !attn_v_ready) : (w_ready_tiles_q == '0));
+
+    logic     dma_issue_fire;
+    logic     dma_ring_slot_reserve_fire;
+    logic     dma_ring_slot_commit_fire;
+    dma_tag_t dma_issue_tag;
+    logic     dma_issue_buf;
+    logic     dma_issue_kv_phase;
+    logic     dma_issue_kv_dvi0;
+
+    wire dma_ring_slot_done = dma_done_i && !is_dma_wb && !attn_kv_pin_en &&
+                              (dma_inflight_tag_q == DMA_TAG_W) &&
+                              (!is_attn || !cfg_attn_sep_kv_i || dma_inflight_kv_phase_q);
+
+    // -------------------------------------------------------------------------
+    // 3.1 DMA State Register
+    // -------------------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            dma_state_q <= DMA_IDLE;
+        else if (start_i)
+            dma_state_q <= DMA_IDLE;
+        else
+            dma_state_q <= dma_state_d;
+    end
+
+    // -------------------------------------------------------------------------
+    // 3.2 DMA Next-State Logic
+    // -------------------------------------------------------------------------
+    always_comb begin
+        dma_state_d = dma_state_q;
+
+        case (dma_state_q)
+            DMA_IDLE: begin
+                if (dma_issue_fire)
+                    dma_state_d = DMA_INFLIGHT;
+            end
+
+            DMA_INFLIGHT: begin
+                if (dma_done_i)
+                    dma_state_d = DMA_IDLE;
+            end
+
+            default: dma_state_d = DMA_IDLE;
+        endcase
+    end
+
+    // -------------------------------------------------------------------------
+    // 3.3 DMA Combinational Arbiter & Descriptor Mux
+    // -------------------------------------------------------------------------
+    always_comb begin
+        dma_req_valid_o            = 1'b0;
+        dma_req_dir_o              = 2'd0;
+        dma_req_dram_addr_o        = cfg_dram_kv_base_i;
+        dma_req_tcdm_addr_o        = dma_w_tcdm_addr;
+        dma_req_size_bytes_o       = SLOT_SIZE_BYTES;
+        dma_issue_fire             = 1'b0;
+        dma_ring_slot_reserve_fire = 1'b0;
+        dma_ring_slot_commit_fire  = 1'b0;
+        dma_issue_tag              = DMA_TAG_W;
+        dma_issue_buf              = 1'b0;
+        dma_issue_kv_phase         = 1'b0;
+        dma_issue_kv_dvi0          = 1'b0;
+
+        if (dma_wb_req) begin
+            dma_req_valid_o      = 1'b1;
+            dma_req_dir_o        = cfg_out_mode_i;
+            dma_req_dram_addr_o  = cfg_dram_kv_base_i;
+            dma_req_tcdm_addr_o  = cfg_tcdm_out_base_i;
+            dma_req_size_bytes_o = cfg_stride_tile_i;
+            dma_issue_tag        = DMA_TAG_WB;
+            dma_issue_fire       = dma_req_ready_i;
+        end else if (dma_o_wb_req) begin
+            dma_req_valid_o      = 1'b1;
+            dma_req_dir_o        = o_dma_is_16bank ? 2'd1 : 2'd3;
+            dma_req_dram_addr_o  = o_buf_wb_dram_q[o_dma_sel_q];
+            dma_req_tcdm_addr_o  = o_cmp_base_0 + (o_dma_sel_q ? o_stride_eff : 32'd0);
+            dma_req_size_bytes_o = o_buf_wb_bytes_q[o_dma_sel_q];
+            dma_issue_tag        = DMA_TAG_O;
+            dma_issue_buf        = o_dma_sel_q;
+            dma_issue_fire       = dma_req_ready_i;
+        end else if (dma_a_urg_req || (dma_a_can_req && !dma_w_urg_req)) begin
+            dma_req_valid_o      = 1'b1;
+            dma_req_dir_o        = cfg_act_bank_layout_i ? 2'd0 : 2'd2;
+            dma_req_tcdm_addr_o  = cfg_tcdm_q_base_i + (a_dma_wr_sel_q ? a_stride_eff : 32'd0);
+            if (is_attn) begin
+                dma_req_dram_addr_o  = cfg_dram_act_base_i +
+                                       ((32'(dma_a_h_q) * 32'(cfg_attn_q_tiles_i) + 32'(dma_a_m_base_q)) *
+                                        32'(cfg_attn_m_q_i) * 32'(cfg_attn_k_blocks_i) * 32'd9);
+                dma_req_size_bytes_o = 32'(dma_a_cur_m_sub) * 32'(cfg_attn_m_q_i) * 32'(cfg_attn_k_blocks_i) * 32'd9;
+            end else begin
+                dma_req_dram_addr_o  = cfg_dram_act_base_i +
+                                       (32'(dma_a_m_base_q) * total_k_blocks * (cfg_gemm_decode_i ? 32'd9 : 32'd144));
+                dma_req_size_bytes_o = 32'(dma_a_cur_m_sub) * total_k_blocks * (cfg_gemm_decode_i ? 32'd9 : 32'd144);
+            end
+            dma_issue_tag  = DMA_TAG_A;
+            dma_issue_buf  = a_dma_wr_sel_q;
+            dma_issue_fire = dma_req_ready_i;
+        end else if (dma_w_can_req) begin
+            dma_req_valid_o = 1'b1;
+            dma_req_dir_o   = 2'd0;
+            dma_issue_tag   = DMA_TAG_W;
+            dma_issue_fire  = dma_req_ready_i;
+
+            if (is_gemm) begin
+                dma_req_dram_addr_o        = cfg_dram_kv_base_i +
+                                             (32'(dma_gn_q) * cfg_stride_tile_i) +
+                                             (32'(dma_kt_q) * 32'(cfg_gemm_k_blocks_i) * 32'd144);
+                dma_req_tcdm_addr_o        = dma_w_tcdm_addr;
+                dma_req_size_bytes_o       = 32'(cfg_gemm_k_blocks_i) * 32'd144;
+                dma_ring_slot_reserve_fire = dma_req_ready_i;
+                dma_ring_slot_commit_fire  = dma_req_ready_i;
+            end else if (attn_kv_pin_en) begin
+                dma_issue_kv_phase = dma_kv_phase_q;
+                dma_issue_kv_dvi0  = (dma_dvi_q == 16'd0);
+                if (cfg_attn_sep_kv_i) begin
+                    if (!dma_kv_phase_q) begin
+                        // Separate K phase
+                        dma_req_dram_addr_o  = cfg_dram_kv_base_i +
+                                               ((32'(dma_hkv_q) * 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) *
+                                                32'(cfg_attn_k_blocks_i) * 32'd144);
+                        dma_req_tcdm_addr_o  = cfg_tcdm_ring_base_i +
+                                               (32'(dma_kj_q) * 32'(cfg_attn_k_blocks_i) * 32'h200);
+                        dma_req_size_bytes_o = 32'(cfg_attn_k_blocks_i) * 32'd144;
+                    end else begin
+                        // Separate V phase
+                        dma_req_dram_addr_o  = cfg_dram_v_base_i +
+                                               (((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
+                                                 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * 32'd144);
+                        dma_req_tcdm_addr_o  = cfg_tcdm_ring_base_i +
+                                               ((k_blk_per_head + 32'(dma_dvi_q) * 32'(cfg_attn_kv_tiles_i) +
+                                                 32'(dma_kj_q)) * 32'h200);
+                        dma_req_size_bytes_o = 32'd144;
+                    end
+                end else begin
+                    // Packed (K, V) KV-Pin: dvi==0 loads K+V0 once; dvi>=1 loads only V[dvi]
+                    if (dma_dvi_q == 16'd0) begin
+                        dma_req_dram_addr_o  = cfg_dram_kv_base_i +
+                                               (((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'd0) *
+                                                 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * cfg_stride_tile_i);
+                        dma_req_tcdm_addr_o  = cfg_tcdm_ring_base_i +
+                                               (32'(dma_kj_q) * (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'h200);
+                        dma_req_size_bytes_o = (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'd144;
+                    end else begin
+                        dma_req_dram_addr_o  = cfg_dram_kv_base_i +
+                                               (((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
+                                                 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * cfg_stride_tile_i) +
+                                               (32'(cfg_attn_k_blocks_i) * 32'd144);
+                        dma_req_tcdm_addr_o  = cfg_tcdm_ring_base_i +
+                                               ((32'(cfg_attn_kv_tiles_i) * (32'(cfg_attn_k_blocks_i) + 32'd1) +
+                                                 (32'(dma_dvi_q) - 32'd1) * 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * 32'h200);
+                        dma_req_size_bytes_o = 32'd144;
+                    end
+                end
+            end else begin
+                // Ring mode Attention (K, V)
+                dma_issue_kv_phase = dma_kv_phase_q;
+                if (cfg_attn_sep_kv_i) begin
+                    if (!dma_kv_phase_q) begin
+                        dma_req_dram_addr_o        = cfg_dram_kv_base_i +
+                                                     ((32'(dma_hkv_q) * 32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) *
+                                                      32'(cfg_attn_k_blocks_i) * 32'd144);
+                        dma_req_tcdm_addr_o        = dma_w_tcdm_addr;
+                        dma_req_size_bytes_o       = 32'(cfg_attn_k_blocks_i) * 32'd144;
+                        dma_ring_slot_reserve_fire = dma_req_ready_i;
+                    end else begin
+                        dma_req_dram_addr_o        = cfg_dram_v_base_i +
+                                                     (((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
+                                                       32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * 32'd144);
+                        dma_req_tcdm_addr_o        = dma_w_tcdm_addr + (32'(cfg_attn_k_blocks_i) * 32'h200);
+                        dma_req_size_bytes_o       = 32'd144;
+                        dma_ring_slot_commit_fire  = dma_req_ready_i;
+                    end
+                end else begin
+                    dma_req_dram_addr_o        = cfg_dram_kv_base_i +
+                                                 (((32'(dma_hkv_q) * 32'(cfg_attn_dv_tiles_i) + 32'(dma_dvi_q)) *
+                                                   32'(cfg_attn_kv_tiles_i) + 32'(dma_kj_q)) * cfg_stride_tile_i);
+                    dma_req_tcdm_addr_o        = dma_w_tcdm_addr;
+                    dma_req_size_bytes_o       = (32'(cfg_attn_k_blocks_i) + 32'd1) * 32'd144;
+                    dma_ring_slot_reserve_fire = dma_req_ready_i;
+                    dma_ring_slot_commit_fire  = dma_req_ready_i;
+                end
+            end
+        end
+    end
+
+    // -------------------------------------------------------------------------
+    // 3.4 Registered DMA Pointers, Ring Credits, Ping-Pong & KV-Pin Books
+    // -------------------------------------------------------------------------
+    wire attn_next_hkv_done = ((32'(dma_hkv_q) + 32'd1) * (32'(cfg_gqa_group_m1_i) + 32'd1)) >= 32'(cfg_attn_h_i);
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            ring_wr_ptr_q          <= '0;
+            ring_rd_ptr_q          <= '0;
+            w_free_credits_q       <= NUM_RING_SLOTS[CNT_W-1:0];
+            w_ready_tiles_q        <= '0;
+
+            dma_inflight_tag_q     <= DMA_TAG_W;
+            dma_inflight_buf_q     <= 1'b0;
+            dma_inflight_kv_phase_q<= 1'b0;
+            dma_inflight_kv_dvi0_q <= 1'b0;
+
+            dma_w_m_base_q         <= 16'd0;
+            dma_gn_q               <= 16'd0;
+            dma_gm_q               <= 16'd0;
+            dma_kt_q               <= 8'd0;
+
+            dma_h_q                <= 8'd0;
+            dma_hkv_q              <= 8'd0;
+            dma_hgrp_q             <= 8'd0;
+            dma_qi_q               <= 16'd0;
+            dma_dvi_q              <= 16'd0;
+            dma_kj_q               <= 16'd0;
+            dma_kv_phase_q         <= 1'b0;
+            dma_w_pending_q        <= 1'b0;
+
+            dma_a_h_q              <= 8'd0;
+            dma_a_m_base_q         <= 16'd0;
+            dma_a_pending_q        <= 1'b0;
+            a_buf_ready_q          <= 2'b00;
+            a_dma_wr_sel_q         <= 1'b0;
+
+            o_buf_wb_busy_q        <= 2'b00;
+            o_buf_wb_dram_q        <= '0;
+            o_buf_wb_bytes_q       <= '0;
+            o_dma_sel_q            <= 1'b0;
+
+            pin_active_hkv_q       <= 8'd0;
+            k_pinned_cnt_q         <= 16'd0;
+            v_pinned_cnt_q         <= 32'd0;
+            kv_pin_hkv_done_q      <= 1'b0;
+        end else if (start_i) begin
+            ring_wr_ptr_q          <= '0;
+            ring_rd_ptr_q          <= '0;
+            w_free_credits_q       <= NUM_RING_SLOTS[CNT_W-1:0];
+            w_ready_tiles_q        <= '0;
+
+            dma_inflight_tag_q     <= DMA_TAG_W;
+            dma_inflight_buf_q     <= 1'b0;
+            dma_inflight_kv_phase_q<= 1'b0;
+            dma_inflight_kv_dvi0_q <= 1'b0;
+
+            dma_w_m_base_q         <= 16'd0;
+            dma_gn_q               <= 16'd0;
+            dma_gm_q               <= 16'd0;
+            dma_kt_q               <= 8'd0;
+
+            dma_h_q                <= 8'd0;
+            dma_hkv_q              <= 8'd0;
+            dma_hgrp_q             <= 8'd0;
+            dma_qi_q               <= 16'd0;
+            dma_dvi_q              <= 16'd0;
+            dma_kj_q               <= 16'd0;
+            dma_kv_phase_q         <= 1'b0;
+            dma_w_pending_q        <= cfg_enable_dma_i && (is_gemm || is_attn);
+
+            dma_a_h_q              <= 8'd0;
+            dma_a_m_base_q         <= 16'd0;
+            dma_a_pending_q        <= macro_dma_en;
+            a_buf_ready_q          <= 2'b00;
+            a_dma_wr_sel_q         <= 1'b0;
+
+            o_buf_wb_busy_q        <= 2'b00;
+            o_dma_sel_q            <= 1'b0;
+
+            pin_active_hkv_q       <= 8'd0;
+            k_pinned_cnt_q         <= 16'd0;
+            v_pinned_cnt_q         <= 32'd0;
+            kv_pin_hkv_done_q      <= 1'b0;
+        end else begin
+            // Ring credits & pointers
+            if (dma_ring_slot_reserve_fire && !w_release_credit_pulse)
+                w_free_credits_q <= w_free_credits_q - 1'b1;
+            else if (!dma_ring_slot_reserve_fire && w_release_credit_pulse)
+                w_free_credits_q <= w_free_credits_q + 1'b1;
+
+            if (dma_ring_slot_commit_fire)
+                ring_wr_ptr_q <= (ring_wr_ptr_q == PTR_W'(NUM_RING_SLOTS - 1)) ? '0 : ring_wr_ptr_q + 1'b1;
+
+            if (dma_ring_slot_done && !w_release_credit_pulse)
+                w_ready_tiles_q <= w_ready_tiles_q + 1'b1;
+            else if (!dma_ring_slot_done && w_release_credit_pulse)
+                w_ready_tiles_q <= w_ready_tiles_q - 1'b1;
+
+            if (w_release_credit_pulse)
+                ring_rd_ptr_q <= (ring_rd_ptr_q == PTR_W'(NUM_RING_SLOTS - 1)) ? '0 : ring_rd_ptr_q + 1'b1;
+
+            // In-flight capture & completion
+            if (dma_issue_fire) begin
+                dma_inflight_tag_q      <= dma_issue_tag;
+                dma_inflight_buf_q      <= dma_issue_buf;
+                dma_inflight_kv_phase_q <= dma_issue_kv_phase;
+                dma_inflight_kv_dvi0_q  <= dma_issue_kv_dvi0;
+            end else if (dma_done_i && !is_dma_wb) begin
+                if (macro_dma_en && (dma_inflight_tag_q == DMA_TAG_A)) begin
+                    a_buf_ready_q[dma_inflight_buf_q] <= 1'b1;
+                end else if (macro_dma_en && (dma_inflight_tag_q == DMA_TAG_O)) begin
+                    o_buf_wb_busy_q[dma_inflight_buf_q] <= 1'b0;
+                    o_dma_sel_q                         <= ~o_dma_sel_q;
+                end else if (attn_kv_pin_en && (dma_inflight_tag_q == DMA_TAG_W)) begin
+                    if (cfg_attn_sep_kv_i) begin
+                        if (!dma_inflight_kv_phase_q)
+                            k_pinned_cnt_q <= k_pinned_cnt_q + 16'd1;
+                        else
+                            v_pinned_cnt_q <= v_pinned_cnt_q + 32'd1;
+                    end else begin
+                        if (dma_inflight_kv_dvi0_q)
+                            k_pinned_cnt_q <= k_pinned_cnt_q + 16'd1;
+                        v_pinned_cnt_q <= v_pinned_cnt_q + 32'd1;
+                    end
+                end
+            end
+
+            // Release active KV-pin head to allow loading hkv + 1
+            if (kv_pin_rel_hkv_pulse) begin
+                pin_active_hkv_q  <= pin_active_hkv_q + 8'd1;
+                k_pinned_cnt_q    <= 16'd0;
+                v_pinned_cnt_q    <= 32'd0;
+                kv_pin_hkv_done_q <= 1'b0;
+            end
+
+            // Inter-FSM handoffs from [CMP]
+            if (macro_a_rel_pulse)
+                a_buf_ready_q[a_cmp_rd_sel_q] <= 1'b0;
+
+            if (o_flush_commit_pulse) begin
+                o_buf_wb_busy_q[o_cmp_sel_q] <= 1'b1;
+                if (is_gemm) begin
+                    o_buf_wb_dram_q[o_cmp_sel_q] <= cfg_dram_out_base_i +
+                        ((32'(cmp_m_base_q) * 32'(cfg_gemm_n_tiles_i) +
+                          32'(o_col_start_q) * 32'(cur_m_sub)) * gemm_tile_out_bytes);
+                    o_buf_wb_bytes_q[o_cmp_sel_q] <= 32'(cur_m_sub) * 32'(cur_o_cols) * gemm_tile_out_bytes;
+                end else begin
+                    o_buf_wb_dram_q[o_cmp_sel_q] <= cfg_dram_out_base_i +
+                        ((32'(cnt_h_q) * 32'(cfg_attn_q_tiles_i) + 32'(cmp_m_base_q)) *
+                         32'(cfg_attn_dv_tiles_i) * 32'(cfg_attn_m_q_i) * attn_vec_bytes);
+                    o_buf_wb_bytes_q[o_cmp_sel_q] <= 32'(cur_m_sub) * 32'(cfg_attn_dv_tiles_i) *
+                                                     32'(cfg_attn_m_q_i) * attn_vec_bytes;
+                end
+            end
+
+            // DMA Activation / Query Prefetch Progression
+            if (dma_issue_fire && macro_dma_en && (dma_issue_tag == DMA_TAG_A) && dma_a_pending_q) begin
+                a_dma_wr_sel_q <= ~a_dma_wr_sel_q;
+                if ((dma_a_m_base_q + dma_a_cur_m_sub) >= macro_m_total) begin
+                    dma_a_m_base_q <= 16'd0;
+                    if (is_attn && (dma_a_h_q < (cfg_attn_h_i - 8'd1)))
+                        dma_a_h_q <= dma_a_h_q + 8'd1;
+                    else
+                        dma_a_pending_q <= 1'b0;
+                end else begin
+                    dma_a_m_base_q <= dma_a_m_base_q + eff_m_sub;
+                end
+            end
+
+            // DMA Weight / KV Prefetch Progression
+            if (dma_issue_fire && (dma_issue_tag == DMA_TAG_W) && dma_w_pending_q) begin
+                if (is_gemm) begin
                     if (dma_kt_q == cfg_gemm_k_tiles_m1_i) begin
-                        dma_kt_q <= '0;
-                        if (dma_gm_q == (cfg_gemm_m_tiles_i - 16'd1)) begin
-                            dma_gm_q <= '0;
+                        dma_kt_q <= 8'd0;
+                        if (w_ring_reuse_active || (dma_gm_q == (dma_w_cur_m_sub - 16'd1))) begin
+                            dma_gm_q <= 16'd0;
                             if (dma_gn_q == (cfg_gemm_n_tiles_i - 16'd1)) begin
-                                dma_gn_q      <= '0;
-                                dma_pending_q <= 1'b0;
+                                dma_gn_q <= 16'd0;
+                                if (!macro_dma_en || ((dma_w_m_base_q + dma_w_cur_m_sub) >= cfg_gemm_m_tiles_i)) begin
+                                    dma_w_m_base_q  <= 16'd0;
+                                    dma_w_pending_q <= 1'b0;
+                                end else begin
+                                    dma_w_m_base_q <= dma_w_m_base_q + eff_m_sub;
+                                end
                             end else begin
                                 dma_gn_q <= dma_gn_q + 16'd1;
                             end
@@ -1134,111 +1727,85 @@ module snax_llm_sequencer #(
                     end else begin
                         dma_kt_q <= dma_kt_q + 8'd1;
                     end
-                end
-
-                // Background Attention KV-cache DMA Prefetch Counter Progression
-                if (dma_issue_fire && (cfg_op_mode_i == 2'b01) && dma_attn_pending_q) begin
-                    if (dma_kj_q == (cfg_attn_kv_tiles_i - 16'd1)) begin
-                        dma_kj_q <= '0;
-                        if (dma_dvi_q == (cfg_attn_dv_tiles_i - 16'd1)) begin
-                            dma_dvi_q <= '0;
-                            if (dma_qi_q == (cfg_attn_q_tiles_i - 16'd1)) begin
-                                dma_qi_q <= '0;
-                                if (dma_h_q == (cfg_attn_h_i - 8'd1)) begin
-                                    dma_h_q            <= '0;
-                                    dma_hkv_q          <= '0;
-                                    dma_hgrp_q         <= '0;
-                                    dma_attn_pending_q <= 1'b0;
+                end else if (attn_kv_pin_en) begin
+                    if (cfg_attn_sep_kv_i && !dma_kv_phase_q) begin
+                        if (dma_kj_q == (cfg_attn_kv_tiles_i - 16'd1)) begin
+                            dma_kj_q       <= 16'd0;
+                            dma_dvi_q      <= 16'd0;
+                            dma_kv_phase_q <= 1'b1;
+                        end else begin
+                            dma_kj_q <= dma_kj_q + 16'd1;
+                        end
+                    end else begin
+                        if (dma_kj_q == (cfg_attn_kv_tiles_i - 16'd1)) begin
+                            dma_kj_q <= 16'd0;
+                            if (dma_dvi_q == (cfg_attn_dv_tiles_i - 16'd1)) begin
+                                dma_dvi_q      <= 16'd0;
+                                dma_kv_phase_q <= 1'b0;
+                                if (attn_next_hkv_done) begin
+                                    dma_hkv_q       <= 8'd0;
+                                    dma_w_pending_q <= 1'b0;
                                 end else begin
-                                    dma_h_q <= dma_h_q + 8'd1;
-                                    if (dma_hgrp_q == cfg_gqa_group_m1_i) begin
-                                        dma_hgrp_q <= '0;
-                                        dma_hkv_q  <= dma_hkv_q + 8'd1;
+                                    dma_hkv_q         <= dma_hkv_q + 8'd1;
+                                    kv_pin_hkv_done_q <= 1'b1;
+                                end
+                            end else begin
+                                dma_dvi_q <= dma_dvi_q + 16'd1;
+                            end
+                        end else begin
+                            dma_kj_q <= dma_kj_q + 16'd1;
+                        end
+                    end
+                end else begin
+                    // Ring mode Attention
+                    if (cfg_attn_sep_kv_i && !dma_kv_phase_q) begin
+                        dma_kv_phase_q <= 1'b1;
+                    end else begin
+                        dma_kv_phase_q <= 1'b0;
+                        if (dma_kj_q == (cfg_attn_kv_tiles_i - 16'd1)) begin
+                            dma_kj_q <= 16'd0;
+                            if (dma_dvi_q == (cfg_attn_dv_tiles_i - 16'd1)) begin
+                                dma_dvi_q <= 16'd0;
+                                if (dma_qi_q == (cfg_attn_q_tiles_i - 16'd1)) begin
+                                    dma_qi_q <= 16'd0;
+                                    if (dma_h_q == (cfg_attn_h_i - 8'd1)) begin
+                                        dma_h_q         <= 8'd0;
+                                        dma_hkv_q       <= 8'd0;
+                                        dma_hgrp_q      <= 8'd0;
+                                        dma_w_pending_q <= 1'b0;
                                     end else begin
-                                        dma_hgrp_q <= dma_hgrp_q + 8'd1;
+                                        dma_h_q <= dma_h_q + 8'd1;
+                                        if (dma_hgrp_q == cfg_gqa_group_m1_i) begin
+                                            dma_hgrp_q <= 8'd0;
+                                            dma_hkv_q  <= dma_hkv_q + 8'd1;
+                                        end else begin
+                                            dma_hgrp_q <= dma_hgrp_q + 8'd1;
+                                        end
                                     end
-                                end
-                            end else begin
-                                dma_qi_q <= dma_qi_q + 16'd1;
-                            end
-                        end else begin
-                            dma_dvi_q <= dma_dvi_q + 16'd1;
-                        end
-                    end else begin
-                        dma_kj_q <= dma_kj_q + 16'd1;
-                    end
-                end
-
-                // GEMM Counter Progression
-                if (state_q == ST_GEMM_RUN && gemm_compute_fire) begin
-                    if (last_gbeat) begin
-                        cnt_gbeat_q <= '0;
-                        if (last_gk) begin
-                            cnt_gk_q <= '0;
-                            if (last_kt) begin
-                                cnt_kt_q <= '0;
-                                // Output tile finished: advance (gm, gn) now so the
-                                // next launch uses the correct tile while this one
-                                // is drained in the background.
-                                if (last_gm) begin
-                                    cnt_gm_q <= '0;
-                                    if (last_gn) cnt_gn_q <= '0;
-                                    else         cnt_gn_q <= cnt_gn_q + 1'b1;
                                 end else begin
-                                    cnt_gm_q <= cnt_gm_q + 1'b1;
+                                    dma_qi_q <= dma_qi_q + 16'd1;
                                 end
                             end else begin
-                                cnt_kt_q <= cnt_kt_q + 8'd1;
+                                dma_dvi_q <= dma_dvi_q + 16'd1;
                             end
                         end else begin
-                            cnt_gk_q <= cnt_gk_q + 1'b1;
+                            dma_kj_q <= dma_kj_q + 16'd1;
                         end
-                    end else begin
-                        cnt_gbeat_q <= cnt_gbeat_q + 1'b1;
                     end
                 end
-
-                // Background GEMM drain engine: in Decode (M=1), wait 1 cycle so
-                // slot 0 reaches Stage 2 (q1) before Port-B drain reads it.
-                gemm_k_last_d1_q <= gemm_k_last_fire;
-                if (cfg_gemm_decode_i ? gemm_k_last_d1_q : gemm_k_last_fire) begin
-                    gemm_drain_active_q <= 1'b1;
-                    gdr_idx_q           <= 5'd0;
-                end else if (gemm_drain_active_q && core_out_fifo_ready_i) begin
-                    if (gdr_idx_q == (cfg_gemm_decode_i ? 5'd0 : 5'd15)) begin
-                        gemm_drain_active_q <= 1'b0;
-                        gdr_idx_q           <= 5'd16;
-                    end else begin
-                        gdr_idx_q <= gdr_idx_q + 5'd1;
-                    end
-                end
-
-                // ---------------------------------------------------------
-                // Softmax drain index: advances once per slot, restarts for
-                // every new drain group.  The O-slot drain index lives in the
-                // background engine.
-                // ---------------------------------------------------------
-                if (state_q == ST_ATTN_QK_RUN && !act_busy_i && !wt_busy_i)
-                    cnt_dr_q <= '0;
-                else if (state_q == ST_ATTN_PV_DRAIN)
-                    cnt_dr_q <= '0;
-                else if (state_q == ST_ATTN_SM_DRAIN || state_q == ST_ATTN_SM_WAIT)
-                    cnt_dr_q <= cnt_dr_q + 4'd1;
-
-                // kv_first_q marks the first KV tile of a query row.  It is set
-                // again as soon as the last tile of a group retires, which is
-                // exactly when cnt_kj_q wraps back to 0.
-                if (state_q == ST_ATTN_PV_DRAIN)
-                    kv_first_q <= (cnt_kj_q == 16'd0);
             end
         end
     end
 
-    // DONE is a terminal state that is not "busy": the job has finished and the
-    // result is available, the FSM only waits there for the next start.
-    assign busy_o = ((state_q != ST_IDLE) && (state_q != ST_DONE)) || nrm_busy ||
-                    gemm_drain_active_q || v_busy_i;
-    assign done_o = (state_q == ST_DONE) && !nrm_busy && !gemm_drain_active_q &&
-                    !v_busy_i;
+    // =========================================================================
+    // SECTION 4: TOP-LEVEL STATUS
+    // =========================================================================
+    wire cmp_active    = (cmp_state_q != CMP_IDLE) && (cmp_state_q != CMP_DONE);
+    wire macro_wb_busy = macro_dma_en && ((o_buf_wb_busy_q != 2'b00) || dma_busy_q);
+
+    assign busy_o = cmp_active || dr_busy || (inflight_out_cnt_q != 4'd0) ||
+                    v_busy_i || rd_busy_i || wo_busy_i || macro_wb_busy;
+    assign done_o = (cmp_state_q == CMP_DONE) && !dr_busy && (inflight_out_cnt_q == 4'd0) &&
+                    !v_busy_i && !rd_busy_i && !wo_busy_i && !macro_wb_busy;
 
 endmodule

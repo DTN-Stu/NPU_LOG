@@ -50,11 +50,11 @@ module tb_simple_dma_gemm;
     logic [31:0] csr_req_wdata, csr_rsp_rdata;
     logic        irq_o;
 
-    // DMA <-> DUT (4 parallel 72b TCDM ports = 288b/cycle)
-    logic [3:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
-    logic [3:0][31:0]  dma_tcdm_req_addr;
-    logic [3:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
-    logic [3:0][8:0]   dma_tcdm_req_strb;
+    // DMA <-> DUT (8 parallel 72b TCDM ports = 576b/cycle)
+    logic [7:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
+    logic [7:0][31:0]  dma_tcdm_req_addr;
+    logic [7:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
+    logic [7:0][8:0]   dma_tcdm_req_strb;
 
     logic        dut_desc_valid, dut_desc_ready, dut_desc_done;
     logic [1:0]  dut_desc_dir;
@@ -115,14 +115,14 @@ module tb_simple_dma_gemm;
         .dma_mem_req_strb_i      (dma_tcdm_req_strb[0]),
         .dma_mem_rsp_valid_o     (dma_tcdm_rsp_valid[0]),
         .dma_mem_rsp_rdata_o     (dma_tcdm_rsp_rdata[0]),
-        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[3:1]),
-        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[3:1]),
-        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[3:1]),
-        .dma_aux_mem_req_write_i (dma_tcdm_req_write[3:1]),
-        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[3:1]),
-        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[3:1]),
-        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[3:1]),
-        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[3:1]),
+        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[7:1]),
+        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[7:1]),
+        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[7:1]),
+        .dma_aux_mem_req_write_i (dma_tcdm_req_write[7:1]),
+        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[7:1]),
+        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[7:1]),
+        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[7:1]),
+        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[7:1]),
         .dma_desc_valid_o      (dut_desc_valid),
         .dma_desc_ready_i      (dut_desc_ready),
         .dma_desc_dir_o        (dut_desc_dir),
@@ -135,7 +135,7 @@ module tb_simple_dma_gemm;
     );
 
     snax_simple_dma #(
-        .TCDM_PORTS  (4),
+        .TCDM_PORTS  (8),
         .DRAM_DATA_W (512)
     ) u_dma (
         .clk                  (clk),
@@ -392,7 +392,60 @@ module tb_simple_dma_gemm;
                 if (act === exp) rt_match++;
                 else errs++;
             end
-            $display("    [PASS] Round-trip exact: %0d / 128", rt_match);
+            $display("    [PASS] Linear Round-trip exact: %0d / 128", rt_match);
+        end
+
+        // 16-bank interleaved round-trip (dir=2'b01 -> 2'b00) exercising all 8 ports in parallel
+        $display("[TEST 1B] 16-Bank Interleaved 8-port Round-Trip (TCDM -> DRAM -> TCDM, 128 words = 1152B) ...");
+        for (int i = 0; i < 128; i++) begin
+            cpu_mem_write(tcdm_addr(200 + (i / 16), i % 16),
+                          {8'(i ^ 8'hA5), 64'hBEEF_0000_0000_0000 | 64'(i * 32'h0203_0005)});
+        end
+
+        begin
+            int t_wr0, t_wr1, t_rd0, t_rd1, b_wr0, b_rd0;
+            b_wr0 = stat_busy_cycles;
+            @(negedge clk);
+            man_desc_valid     = 1'b1;
+            man_desc_dir       = 2'b01; // 16-bank interleaved TCDM -> DRAM
+            man_desc_dram_addr = 32'h0001_8000;
+            man_desc_tcdm_addr = tcdm_addr(200, 0);
+            man_desc_size      = 32'(128 * 9);
+            @(posedge clk);
+            while (!man_desc_ready) @(posedge clk);
+            t_wr0 = cyc_cnt;
+            @(negedge clk);
+            man_desc_valid = 1'b0;
+            while (!man_desc_done) @(posedge clk);
+            t_wr1 = cyc_cnt;
+
+            b_rd0 = stat_busy_cycles;
+            @(negedge clk);
+            man_desc_valid     = 1'b1;
+            man_desc_dir       = 2'b00; // 16-bank interleaved DRAM -> TCDM
+            man_desc_dram_addr = 32'h0001_8000;
+            man_desc_tcdm_addr = tcdm_addr(300, 0);
+            man_desc_size      = 32'(128 * 9);
+            @(posedge clk);
+            while (!man_desc_ready) @(posedge clk);
+            t_rd0 = cyc_cnt;
+            @(negedge clk);
+            man_desc_valid = 1'b0;
+            while (!man_desc_done) @(posedge clk);
+            t_rd1 = cyc_cnt;
+
+            begin
+                int ilv_match; ilv_match = 0;
+                for (int i = 0; i < 128; i++) begin
+                    logic [71:0] act, exp;
+                    exp = {8'(i ^ 8'hA5), 64'hBEEF_0000_0000_0000 | 64'(i * 32'h0203_0005)};
+                    cpu_mem_read(tcdm_addr(300 + (i / 16), i % 16), act);
+                    if (act === exp) ilv_match++;
+                    else errs++;
+                end
+                $display("    [PASS] Interleaved Round-trip exact: %0d / 128 (TCDM->DRAM=%0d cyc [%0d busy], DRAM->TCDM=%0d cyc [%0d busy])",
+                         ilv_match, t_wr1 - t_wr0, b_rd0 - b_wr0, t_rd1 - t_rd0, stat_busy_cycles - b_rd0);
+            end
         end
         manual_dma_mode = 1'b0;
 

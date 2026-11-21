@@ -36,14 +36,15 @@
 `timescale 1ns/1ps
 
 module snax_llm_top_clean #(
-    parameter int unsigned DATA_WIDTH  = 72,
-    parameter int unsigned STRB_WIDTH  = 9,
-    parameter int unsigned ADDR_WIDTH  = 32,
-    parameter int unsigned NUM_BANKS   = 32,
-    parameter int unsigned BANK_DEPTH  = 1024,
-    parameter int unsigned NUM_LANES   = 16,
-    parameter int unsigned ACC_DEPTH   = 16,
-    parameter int unsigned SFU_ALU_LANES = 8
+    parameter int unsigned DATA_WIDTH    = 72,
+    parameter int unsigned STRB_WIDTH    = 9,
+    parameter int unsigned ADDR_WIDTH    = 32,
+    parameter int unsigned NUM_BANKS     = 32,
+    parameter int unsigned BANK_DEPTH    = 1024,
+    parameter int unsigned NUM_LANES     = 16,
+    parameter int unsigned ACC_DEPTH     = 16,
+    parameter int unsigned SFU_ALU_LANES = 8,
+    parameter int unsigned DMA_AUX_PORTS = 7
 )(
     input  logic                    clk,
     input  logic                    rst_n,
@@ -92,31 +93,31 @@ module snax_llm_top_clean #(
     output logic [31:0]             dma_desc_size_o,
     input  logic                    dma_desc_done_i,
 
-    // Optional 3 extra DMA TCDM ports (Masters 22..24) for 4-word/cycle (288b) DMA
+    // Optional auxiliary DMA TCDM ports (Masters 22..22+DMA_AUX_PORTS-1) for 8-port/cycle (576b) DMA
 `ifdef VERILATOR
-    input  logic [2:0]                  dma_aux_mem_req_valid_i,
-    output logic [2:0]                  dma_aux_mem_req_ready_o,
-    input  logic [2:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i,
-    input  logic [2:0]                  dma_aux_mem_req_write_i,
-    input  logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i,
-    input  logic [2:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i,
+    input  logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_valid_i,
+    output logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_ready_o,
+    input  logic [DMA_AUX_PORTS-1:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i,
+    input  logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_write_i,
+    input  logic [DMA_AUX_PORTS-1:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i,
+    input  logic [DMA_AUX_PORTS-1:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i,
 `else
-    input  logic [2:0]                  dma_aux_mem_req_valid_i = 3'b0,
-    output logic [2:0]                  dma_aux_mem_req_ready_o,
-    input  logic [2:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i  = '0,
-    input  logic [2:0]                  dma_aux_mem_req_write_i = 3'b0,
-    input  logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i = '0,
-    input  logic [2:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i  = '0,
+    input  logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_valid_i = '0,
+    output logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_ready_o,
+    input  logic [DMA_AUX_PORTS-1:0][ADDR_WIDTH-1:0]  dma_aux_mem_req_addr_i  = '0,
+    input  logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_req_write_i = '0,
+    input  logic [DMA_AUX_PORTS-1:0][DATA_WIDTH-1:0]  dma_aux_mem_req_wdata_i = '0,
+    input  logic [DMA_AUX_PORTS-1:0][STRB_WIDTH-1:0]  dma_aux_mem_req_strb_i  = '0,
 `endif
-    output logic [2:0]                  dma_aux_mem_rsp_valid_o,
-    output logic [2:0][DATA_WIDTH-1:0]  dma_aux_mem_rsp_rdata_o,
+    output logic [DMA_AUX_PORTS-1:0]                  dma_aux_mem_rsp_valid_o,
+    output logic [DMA_AUX_PORTS-1:0][DATA_WIDTH-1:0]  dma_aux_mem_rsp_rdata_o,
 
     // Trạng thái hệ thống
     output logic                    subsystem_busy_o,
     output logic                    subsystem_done_irq_o
 );
 
-    localparam int NUM_MASTERS = 25;
+    localparam int NUM_MASTERS = 22 + DMA_AUX_PORTS;
 
     // -------------------------------------------------------------------------
     // Tín hiệu nội bộ Interconnect (22 Masters -> 32 Banks)
@@ -175,7 +176,7 @@ module snax_llm_top_clean #(
     logic [31:0] wo_m_req_addr;
     logic [71:0] wo_m_req_wdata;
     logic [8:0]  wo_m_req_strb;
-    logic        wo_fp4_ready, wo_fp16_ready;
+    logic        wo_fp4_ready, wo_fp16_ready, wo_fifo_headroom, core_drain_ready;
     logic [71:0] wo_fp4_data;
     logic        wo_fp4_valid;
 
@@ -289,6 +290,13 @@ module snax_llm_top_clean #(
     logic [3:0]  csr_seq_attn_m_q;
     logic [31:0] csr_seq_tcdm_ring_base, csr_seq_tcdm_q_base;
     logic [31:0] csr_seq_tcdm_out_base, csr_seq_dram_kv_base, csr_seq_stride_tile;
+    logic        csr_seq_gemm_macro_dma, csr_seq_use_legacy_gemm;
+    logic [7:0]  csr_seq_gemm_m_sub_tiles, csr_seq_gemm_n_sub_tiles;
+    logic [31:0] csr_seq_dram_act_base, csr_seq_dram_out_base;
+    logic [31:0] csr_seq_macro_a_buf_stride, csr_seq_macro_o_buf_stride;
+    logic        csr_seq_attn_kv_pin_en, csr_seq_attn_sep_kv_dram;
+    logic [31:0] csr_seq_dram_v_base;
+    logic [13:0] csr_seq_attn_kv_past_tiles;
 
     logic        seq_act_start, seq_act_ready;
     logic [31:0] seq_act_base, seq_act_k_blocks, seq_act_k_stride;
@@ -313,6 +321,9 @@ module snax_llm_top_clean #(
     logic [31:0] seq_wo_dim2_cnt, seq_wo_dim2_stride;
     logic [31:0] seq_wo_dim3_cnt, seq_wo_dim3_stride;
     logic        seq_v_start, seq_rd_start;
+    logic [31:0] seq_v_num_batches;
+    logic [31:0] seq_rd_base, seq_rd_num_vectors, seq_rd_line_stride;
+    logic [31:0] seq_rd_vec_stride, seq_rd_num_batches, seq_rd_batch_stride;
     logic        seq_busy, seq_done;
     logic        csr_cfg_ready;
 
@@ -344,8 +355,8 @@ module snax_llm_top_clean #(
     assign dma_mem_rsp_valid_o  = m_rsp_valid[0];
     assign dma_mem_rsp_rdata_o  = m_rsp_rdata[0];
 
-    // Masters 22..24: Auxiliary DMA Ports 1..3 (for 4-word/cycle parallel TCDM fill)
-    for (genvar d = 0; d < 3; d++) begin : gen_dma_aux
+    // Masters 22..22+DMA_AUX_PORTS-1: Auxiliary DMA Ports 1..DMA_AUX_PORTS (8-port/cycle TCDM fill/drain)
+    for (genvar d = 0; d < DMA_AUX_PORTS; d++) begin : gen_dma_aux
         assign m_req_valid[22 + d]        = dma_aux_mem_req_valid_i[d];
         assign m_req_addr[22 + d]         = dma_aux_mem_req_addr_i[d];
         assign m_req_write[22 + d]        = dma_aux_mem_req_write_i[d];
@@ -422,6 +433,8 @@ module snax_llm_top_clean #(
     // Crossbar Interconnect
     interleaved_interconnect_72b #(
         .NUM_MASTERS   (NUM_MASTERS),
+        .HOST_MASTER   (0),
+        .HOST_MASK     ({{DMA_AUX_PORTS{1'b1}}, 21'd0, 1'b1}),
         .NUM_BANKS     (NUM_BANKS),
         .DATA_WIDTH    (DATA_WIDTH),
         .ADDR_WIDTH    (ADDR_WIDTH),
@@ -579,122 +592,154 @@ module snax_llm_top_clean #(
         .seq_tcdm_q_base          (csr_seq_tcdm_q_base),
         .seq_tcdm_out_base        (csr_seq_tcdm_out_base),
         .seq_dram_kv_base         (csr_seq_dram_kv_base),
-        .seq_stride_tile          (csr_seq_stride_tile)
+        .seq_stride_tile          (csr_seq_stride_tile),
+        .seq_gemm_macro_dma       (csr_seq_gemm_macro_dma),
+        .seq_use_legacy_gemm      (csr_seq_use_legacy_gemm),
+        .seq_gemm_m_sub_tiles     (csr_seq_gemm_m_sub_tiles),
+        .seq_gemm_n_sub_tiles     (csr_seq_gemm_n_sub_tiles),
+        .seq_dram_act_base        (csr_seq_dram_act_base),
+        .seq_dram_out_base        (csr_seq_dram_out_base),
+        .seq_macro_a_buf_stride   (csr_seq_macro_a_buf_stride),
+        .seq_macro_o_buf_stride   (csr_seq_macro_o_buf_stride),
+        .seq_attn_kv_pin_en       (csr_seq_attn_kv_pin_en),
+        .seq_attn_sep_kv_dram     (csr_seq_attn_sep_kv_dram),
+        .seq_dram_v_base          (csr_seq_dram_v_base),
+        .seq_attn_kv_past_tiles   (csr_seq_attn_kv_past_tiles)
     );
 
+    // Unified Hardware Orchestration Sequencer
     snax_llm_sequencer #(
-        .ADDR_WIDTH           (ADDR_WIDTH),
-        .NUM_LANES            (NUM_LANES),
-        .NUM_RING_SLOTS       (4),
-        .SLOT_SIZE_BYTES      (128 * 1024)
+        .ADDR_WIDTH      (ADDR_WIDTH),
+        .NUM_LANES       (NUM_LANES),
+        .NUM_RING_SLOTS  (4),
+        .SLOT_SIZE_BYTES (128 * 1024),
+        .OUT_PIPE_CREDITS(4),
+        .CAP_O_TILES     (16)
     ) u_seq (
-        .clk                   (clk),
-        .rst_n                 (rst_n),
-        .start_i               (csr_start_pulse && !csr_src_sel && !v_busy),
-        .busy_o                (seq_busy),
-        .done_o                (seq_done),
+        .clk                      (clk),
+        .rst_n                    (rst_n),
+        .start_i                  (csr_start_pulse && !csr_src_sel && !v_busy),
+        .busy_o                   (seq_busy),
+        .done_o                   (seq_done),
 
-        // Runtime Configuration (CPU-programmable via CSR)
-        .cfg_op_mode_i         (csr_seq_op_mode),
-        .cfg_is_causal_i       (csr_seq_is_causal),
-        .cfg_enable_dma_i      (csr_seq_enable_dma),
-        .cfg_dma_wb_i          (csr_seq_dma_wb),
-        .cfg_gemm_decode_i     (csr_seq_gemm_decode),
-        .cfg_out_mode_i        (csr_seq_out_mode),
-        .cfg_gemm_k_tiles_m1_i (csr_seq_gemm_k_tiles_m1),
-        .cfg_gqa_group_m1_i    (csr_seq_gqa_group_m1),
-        .cfg_act_bank_layout_i (csr_seq_act_bank_layout),
-        .cfg_out_bank_layout_i (csr_seq_out_bank_layout),
-        .cfg_attn_h_i          (csr_seq_attn_h),
-        .cfg_attn_q_tiles_i    (csr_seq_attn_q_tiles),
-        .cfg_attn_m_q_i        (csr_seq_attn_m_q),
-        .cfg_attn_dv_tiles_i   (csr_seq_attn_dv_tiles),
-        .cfg_attn_kv_tiles_i   (csr_seq_attn_kv_tiles),
-        .cfg_attn_k_blocks_i   (csr_seq_attn_k_blocks),
+        .cfg_op_mode_i            (csr_seq_op_mode),
+        .cfg_is_causal_i          (csr_seq_is_causal),
+        .cfg_enable_dma_i         (csr_seq_enable_dma),
+        .cfg_dma_wb_i             (csr_seq_dma_wb),
+        .cfg_gemm_decode_i        (csr_seq_gemm_decode),
+        .cfg_out_mode_i           (csr_seq_out_mode),
+        .cfg_gemm_k_tiles_m1_i    (csr_seq_gemm_k_tiles_m1),
+        .cfg_gqa_group_m1_i       (csr_seq_gqa_group_m1),
+        .cfg_act_bank_layout_i    (csr_seq_act_bank_layout),
+        .cfg_out_bank_layout_i    (csr_seq_out_bank_layout),
+        .cfg_attn_h_i             (csr_seq_attn_h),
+        .cfg_attn_q_tiles_i       (csr_seq_attn_q_tiles),
+        .cfg_attn_m_q_i           (csr_seq_attn_m_q),
+        .cfg_attn_dv_tiles_i      (csr_seq_attn_dv_tiles),
+        .cfg_attn_kv_tiles_i      (csr_seq_attn_kv_tiles),
+        .cfg_attn_k_blocks_i      (csr_seq_attn_k_blocks),
 
-        .cfg_gemm_n_tiles_i    (csr_seq_gemm_n_tiles),
-        .cfg_gemm_m_tiles_i    (csr_seq_gemm_m_tiles),
-        .cfg_gemm_k_blocks_i   (csr_seq_gemm_k_blocks),
+        .cfg_gemm_n_tiles_i       (csr_seq_gemm_n_tiles),
+        .cfg_gemm_m_tiles_i       (csr_seq_gemm_m_tiles),
+        .cfg_gemm_k_blocks_i      (csr_seq_gemm_k_blocks),
 
-        .cfg_tcdm_ring_base_i  (csr_seq_tcdm_ring_base),
-        .cfg_tcdm_q_base_i     (csr_seq_tcdm_q_base),
-        .cfg_tcdm_out_base_i   (csr_seq_tcdm_out_base),
-        .cfg_dram_kv_base_i    (csr_seq_dram_kv_base),
-        .cfg_stride_tile_i     (csr_seq_stride_tile),
+        .cfg_tcdm_ring_base_i     (csr_seq_tcdm_ring_base),
+        .cfg_tcdm_q_base_i        (csr_seq_tcdm_q_base),
+        .cfg_tcdm_out_base_i      (csr_seq_tcdm_out_base),
+        .cfg_dram_kv_base_i       (csr_seq_dram_kv_base),
+        .cfg_stride_tile_i        (csr_seq_stride_tile),
 
-        .cfg_v_base_i          (csr_v_base),
-        .cfg_v_num_batches_i   (csr_v_num_batches),
-        .cfg_v_out_base_i      (csr_v_base),
-        .cfg_rd_base_i         (csr_rd_base),
-        .cfg_rd_num_vectors_i  (csr_rd_num_vectors),
-        .cfg_rd_line_stride_i  (csr_rd_line_stride),
-        .cfg_rd_out_base_i     (csr_wo_base),
+        .cfg_v_base_i             (csr_v_base),
+        .cfg_v_num_batches_i      (csr_v_num_batches),
+        .cfg_v_out_base_i         (csr_v_base),
+        .cfg_rd_base_i            (csr_rd_base),
+        .cfg_rd_num_vectors_i     (csr_rd_num_vectors),
+        .cfg_rd_line_stride_i     (csr_rd_line_stride),
+        .cfg_rd_out_base_i        (csr_wo_base),
 
-        // DMA descriptor handshake
-        .dma_req_valid_o       (dma_desc_valid_o),
-        .dma_req_ready_i       (dma_desc_ready_i),
-        .dma_req_dir_o         (dma_desc_dir_o),
-        .dma_req_dram_addr_o   (dma_desc_dram_addr_o),
-        .dma_req_tcdm_addr_o   (dma_desc_tcdm_addr_o),
-        .dma_req_size_bytes_o  (dma_desc_size_o),
-        .dma_done_i            (dma_desc_done_i),
+        .cfg_gemm_macro_dma_i     (csr_seq_gemm_macro_dma),
+        .cfg_gemm_m_sub_tiles_i   (csr_seq_gemm_m_sub_tiles),
+        .cfg_gemm_n_sub_tiles_i   (csr_seq_gemm_n_sub_tiles),
+        .cfg_dram_act_base_i      (csr_seq_dram_act_base),
+        .cfg_dram_out_base_i      (csr_seq_dram_out_base),
+        .cfg_macro_a_buf_stride_i (csr_seq_macro_a_buf_stride),
+        .cfg_macro_o_buf_stride_i (csr_seq_macro_o_buf_stride),
+        .cfg_attn_kv_pin_i        (csr_seq_attn_kv_pin_en),
+        .cfg_attn_sep_kv_i        (csr_seq_attn_sep_kv_dram),
+        .cfg_dram_v_base_i        (csr_seq_dram_v_base),
+        .cfg_attn_kv_past_tiles_i (csr_seq_attn_kv_past_tiles),
 
-        // Streamers
-        .act_start_o           (seq_act_start),
-        .act_base_o            (seq_act_base),
-        .act_k_blocks_o        (seq_act_k_blocks),
-        .act_k_stride_o        (seq_act_k_stride),
-        .act_tokens_o          (seq_act_tokens),
-        .act_token_stride_o    (seq_act_token_stride),
-        .act_busy_i            (act_busy),
-        .act_valid_i           (act_stream_valid),
-        .act_ready_o           (seq_act_ready),
+        .dma_req_valid_o          (dma_desc_valid_o),
+        .dma_req_ready_i          (dma_desc_ready_i),
+        .dma_req_dir_o            (dma_desc_dir_o),
+        .dma_req_dram_addr_o      (dma_desc_dram_addr_o),
+        .dma_req_tcdm_addr_o      (dma_desc_tcdm_addr_o),
+        .dma_req_size_bytes_o     (dma_desc_size_o),
+        .dma_done_i               (dma_desc_done_i),
 
-        .wt_start_o            (seq_wt_start),
-        .wt_base_o             (seq_wt_base),
-        .wt_repeat_o           (seq_wt_repeat),
-        .wt_k_blocks_o         (seq_wt_k_blocks),
-        .wt_k_stride_o         (seq_wt_k_stride),
-        .wt_num_tiles_o        (seq_wt_num_tiles),
-        .wt_tile_step_o        (seq_wt_tile_step),
-        .wt_busy_i             (wt_busy),
-        .wt_valid_i            (wt_stream_valid),
-        .wt_ready_o            (seq_wt_ready),
+        .act_start_o              (seq_act_start),
+        .act_base_o               (seq_act_base),
+        .act_k_blocks_o           (seq_act_k_blocks),
+        .act_k_stride_o           (seq_act_k_stride),
+        .act_tokens_o             (seq_act_tokens),
+        .act_token_stride_o       (seq_act_token_stride),
+        .act_busy_i               (act_busy),
+        .act_valid_i              (act_stream_valid),
+        .act_ready_o              (seq_act_ready),
 
-        .wo_start_o            (seq_wo_start),
-        .wo_mode_o             (seq_wo_mode),
-        .wo_base_o             (seq_wo_base),
-        .wo_num_vectors_o      (seq_wo_num_vectors),
-        .wo_line_stride_o      (seq_wo_line_stride),
-        .wo_num_batches_o      (seq_wo_num_batches),
-        .wo_batch_stride_o     (seq_wo_batch_stride),
-        .wo_dim2_cnt_o         (seq_wo_dim2_cnt),
-        .wo_dim2_stride_o      (seq_wo_dim2_stride),
-        .wo_dim3_cnt_o         (seq_wo_dim3_cnt),
-        .wo_dim3_stride_o      (seq_wo_dim3_stride),
-        .wo_busy_i             (wo_busy),
-        .wo_done_i             (wo_done),
+        .wt_start_o               (seq_wt_start),
+        .wt_base_o                (seq_wt_base),
+        .wt_repeat_o              (seq_wt_repeat),
+        .wt_k_blocks_o            (seq_wt_k_blocks),
+        .wt_k_stride_o            (seq_wt_k_stride),
+        .wt_num_tiles_o           (seq_wt_num_tiles),
+        .wt_tile_step_o           (seq_wt_tile_step),
+        .wt_busy_i                (wt_busy),
+        .wt_valid_i               (wt_stream_valid),
+        .wt_ready_o               (seq_wt_ready),
 
-        .v_start_o             (seq_v_start),
-        .v_busy_i              (v_busy),
-        .v_done_i              (v_done),
-        .rd_start_o            (seq_rd_start),
-        .rd_busy_i             (rd_busy),
-        .rd_done_i             (rd_done),
+        .wo_start_o               (seq_wo_start),
+        .wo_mode_o                (seq_wo_mode),
+        .wo_base_o                (seq_wo_base),
+        .wo_num_vectors_o         (seq_wo_num_vectors),
+        .wo_line_stride_o         (seq_wo_line_stride),
+        .wo_num_batches_o         (seq_wo_num_batches),
+        .wo_batch_stride_o        (seq_wo_batch_stride),
+        .wo_dim2_cnt_o            (seq_wo_dim2_cnt),
+        .wo_dim2_stride_o         (seq_wo_dim2_stride),
+        .wo_dim3_cnt_o            (seq_wo_dim3_cnt),
+        .wo_dim3_stride_o         (seq_wo_dim3_stride),
+        .wo_busy_i                (wo_busy),
+        .wo_done_i                (wo_done),
 
-        .cfg_mode_o            (seq_core_mode),
-        .cfg_row_start_o       (seq_core_row_start),
-        .cfg_key_mask_o        (seq_core_key_mask),
-        .cfg_enable_slq_o      (seq_core_enable_slq),
-        .tile_drain_req_o      (seq_core_tile_drain_req),
-        .tile_drain_idx_o      (seq_core_tile_drain_idx),
-        .tile_clear_on_drain_o (seq_core_tile_clear),
-        .lane_valid_o          (seq_core_lane_valid),
-        .lane_acc_idx_o        (seq_core_lane_acc_idx),
-        .p_fifo_empty_i        (p_fifo_empty),
-        .p_fifo_almost_full_i  (p_fifo_almost_full),
-        .core_fp16_valid_i     (core_fp16_valid),
-        .core_out_fifo_ready_i ((sfu_en && sfu_in_a_src) ? fused_fifo_can_drain : core_fp16_ready)
+        .v_start_o                (seq_v_start),
+        .v_num_batches_o          (seq_v_num_batches),
+        .v_busy_i                 (v_busy),
+        .v_done_i                 (v_done),
+        .rd_start_o               (seq_rd_start),
+        .rd_base_o                (seq_rd_base),
+        .rd_num_vectors_o         (seq_rd_num_vectors),
+        .rd_line_stride_o         (seq_rd_line_stride),
+        .rd_vec_stride_o          (seq_rd_vec_stride),
+        .rd_num_batches_o         (seq_rd_num_batches),
+        .rd_batch_stride_o        (seq_rd_batch_stride),
+        .rd_busy_i                (rd_busy),
+        .rd_done_i                (rd_done),
+
+        .cfg_mode_o               (seq_core_mode),
+        .cfg_row_start_o          (seq_core_row_start),
+        .cfg_key_mask_o           (seq_core_key_mask),
+        .cfg_enable_slq_o         (seq_core_enable_slq),
+        .tile_drain_req_o         (seq_core_tile_drain_req),
+        .tile_drain_idx_o         (seq_core_tile_drain_idx),
+        .tile_clear_on_drain_o    (seq_core_tile_clear),
+        .lane_valid_o             (seq_core_lane_valid),
+        .lane_acc_idx_o           (seq_core_lane_acc_idx),
+        .p_fifo_empty_i           (p_fifo_empty),
+        .p_fifo_almost_full_i     (p_fifo_almost_full),
+        .core_fp16_valid_i        (core_fp16_valid),
+        .core_out_fifo_ready_i    (core_drain_ready),
+        .core_fp16_ready_i        (core_fp16_ready)
     );
 
     // -------------------------------------------------------------------------
@@ -803,14 +848,15 @@ module snax_llm_top_clean #(
                            !rd_b_busy && !wo_fp4_valid;
 
     // =========================================================================
-    // 4. TRANSPOSE BUFFER & LOG-QUANTIZER (LUỒNG CHUẨN 1 CHIỀU)
+    // 4. TRANSPOSE BUFFER & LOG-QUANTIZER PIPELINE
     // =========================================================================
-    // Transpose Buffer: Nhận 16 hàng FP16 từ Core -> Đọc theo cột
+    // Transpose Buffer: accepts 16 FP16 rows (Core or TCDM Reader) -> reads 16 columns
     logic [15:0][15:0] trans_col_data;
     logic [255:0]      trans_fp16_packed;
     logic              trans_wr_en;
     logic [3:0]        trans_wr_row;
     logic [3:0]        trans_rd_col;
+    wire               v_from_rd = !csr_src_sel && (csr_seq_op_mode == 2'b10);
 
     assign trans_fp16_packed = trans_col_data;
 
@@ -823,13 +869,13 @@ module snax_llm_top_clean #(
         .rst_n    (rst_n),
         .wr_en    (trans_wr_en),
         .wr_row   (trans_wr_row),
-        .wr_data  (core_fp16_packed),
+        .wr_data  (v_from_rd ? rd_fp16_data : core_fp16_packed),
         .rd_col   (trans_rd_col),
         .rd_data  (trans_col_data)
     );
 
     // -------------------------------------------------------------------------
-    // V transpose controller: gather 16 core rows -> emit 16 columns
+    // V transpose controller: gather 16 rows -> emit 16 columns
     // -------------------------------------------------------------------------
     assign v_active = v_start | v_busy;
 
@@ -842,7 +888,7 @@ module snax_llm_top_clean #(
         .num_batches_i(v_num_batches),
         .busy_o       (v_busy),
         .done_o       (v_done),
-        .row_valid_i  (core_fp16_valid && core_fp16_ready),
+        .row_valid_i  (v_from_rd ? (rd_fp16_valid && rd_fp16_ready) : (core_fp16_valid && core_fp16_ready)),
         .row_ready_o  (v_row_ready),
         .wr_en_o      (trans_wr_en),
         .wr_row_o     (trans_wr_row),
@@ -853,7 +899,7 @@ module snax_llm_top_clean #(
     );
 
     // -------------------------------------------------------------------------
-    // MUX 3-to-1 CHỌN NGUỒN FP16 VÀO LOG-QUANTIZER
+    // 3-to-1 Log-Quantizer Input Mux:
     // cfg_quant_src_sel: 2'b00: Core FP16 (GEMM/Attn Row)
     //                    2'b01: Transpose FP16 (V Column)
     //                    2'b10: Read Stream FP16 (TCDM Readback)
@@ -911,15 +957,21 @@ module snax_llm_top_clean #(
     // Readback / V / core-FP16 handshakes
     // -------------------------------------------------------------------------
     assign v_base        = csr_v_base;
-    assign v_num_batches = csr_v_num_batches;
-    assign rd_base          = sfu_seq_active ? sfu_seq_rd_base : csr_rd_base;
-    assign rd_num_vectors   = sfu_seq_active ? sfu_seq_rd_nv   : csr_rd_num_vectors;
-    assign rd_line_stride   = sfu_seq_active ? sfu_seq_rd_ls   : csr_rd_line_stride;
+    assign v_num_batches = (!csr_src_sel && (((csr_seq_op_mode == 2'b00) && (csr_seq_out_mode == 2'd3)) ||
+                                             (csr_seq_op_mode == 2'b10)))
+                           ? seq_v_num_batches : csr_v_num_batches;
+    assign rd_base          = sfu_seq_active ? sfu_seq_rd_base : (!csr_src_sel ? seq_rd_base        : csr_rd_base);
+    assign rd_num_vectors   = sfu_seq_active ? sfu_seq_rd_nv   : (!csr_src_sel ? seq_rd_num_vectors : csr_rd_num_vectors);
+    assign rd_line_stride   = sfu_seq_active ? sfu_seq_rd_ls   : (!csr_src_sel ? seq_rd_line_stride : csr_rd_line_stride);
+    wire [31:0] rd_vec_stride   = (sfu_seq_active || csr_src_sel) ? 32'd0 : seq_rd_vec_stride;
+    wire [31:0] rd_num_batches  = (sfu_seq_active || csr_src_sel) ? 32'd1 : seq_rd_num_batches;
+    wire [31:0] rd_batch_stride = (sfu_seq_active || csr_src_sel) ? 32'd0 : seq_rd_batch_stride;
     assign rd_b_base        = sfu_seq_active ? sfu_seq_rd_b_base : csr_rd_b_base;
     assign rd_b_num_vectors = sfu_seq_active ? sfu_seq_rd_b_nv   : csr_rd_b_num_vectors;
     assign rd_b_line_stride = sfu_seq_active ? sfu_seq_rd_b_ls   : csr_rd_b_line_stride;
 
-    assign rd_fp16_ready   = (sfu_en && !sfu_in_a_src) ? sfu_in_a_ready : (src_rd_sel && quant_accept);
+    assign rd_fp16_ready   = (v_active && v_from_rd) ? v_row_ready :
+                             (sfu_en && !sfu_in_a_src) ? sfu_in_a_ready : (src_rd_sel && quant_accept);
 
     // The core output feeds one consumer at a time:
     //   - sfu_en & sfu_in_a_src : fused Core -> 4-entry FIFO -> SFU (in_a)
@@ -929,6 +981,12 @@ module snax_llm_top_clean #(
                              v_active                 ? v_row_ready :
                              wo_mode_fp16             ? wo_fp16_ready :
                              src_core_sel             ? quant_accept : 1'b0;
+
+    assign core_drain_ready = (sfu_en && sfu_in_a_src) ? fused_fifo_can_drain :
+                              sfu_en                   ? 1'b0 :
+                              v_active                 ? v_row_ready :
+                              wo_mode_fp16             ? wo_fifo_headroom :
+                              src_core_sel             ? (quant_accept && wo_fifo_headroom) : 1'b0;
 
     assign rd_b_fp16_ready = sfu_in_b_ready;
     assign sfu_out_ready   = sfu_out_dst ? (wo_mode_fp16 ? wo_fp16_ready : 1'b0)
@@ -1009,7 +1067,7 @@ module snax_llm_top_clean #(
     // In SFU mode, read A pass 1 must not start the write-out; the SFU output
     // only reaches write-out after pass 2 starts.  Normal readback keeps the
     // legacy rd_start behavior.
-    wire wo_job_start = wo_start | v_start | (rd_start && !sfu_en);
+    wire wo_job_start = wo_start | v_start | (rd_start && !sfu_en && !v_active);
 
     wire [1:0]  wo_mode_sel = wo_cfg_mode;
     wire [31:0] wo_base_sel = wo_cfg_base;
@@ -1039,15 +1097,16 @@ module snax_llm_top_clean #(
         .cfg_wrap_en_i         (csr_wo_wrap_en),
         .cfg_wrap_words_m1_i   (csr_wo_wrap_words_m1),
 
-        // LUỒNG FP16 (Nối trực tiếp từ Core ra ngoài TCDM cho CPU RoPE/RMSNorm)
+        // FP16 path (Core or SFU output directly to TCDM)
         .core_out_fp16_data_i  ((sfu_en && sfu_out_dst) ? sfu_out_data : core_fp16_packed),
         .core_out_fp16_valid_i (((sfu_en && sfu_out_dst) ? sfu_out_valid : core_fp16_valid) && wo_mode_fp16 && !v_active),
         .core_out_fp16_ready_o (wo_fp16_ready),
 
-        // LUỒNG FP4 (Từ Log-Quantizer ghi xuống TCDM)
+        // FP4 path (Log-Quantizer output to TCDM)
         .core_out_fp4_data_i   (wo_fp4_data),
         .core_out_fp4_valid_i  (wo_fp4_valid),
         .core_out_fp4_ready_o  (wo_fp4_ready),
+        .fifo_has_headroom_o   (wo_fifo_headroom),
 
         // TCDM Master Port 19
         .m_tcdm_req_valid_o    (wo_m_req_valid),
@@ -1058,7 +1117,7 @@ module snax_llm_top_clean #(
         .m_tcdm_req_ready_i    (wo_m_req_ready)
     );
 
-    // D. Pipelined TCDM FP16 Read Streamer (Master 20 - Tối ưu 1 request/chu kỳ)
+    // D. Pipelined TCDM FP16 Read Streamer (Master 20 - 1 request/cycle)
     snax_stream_read_fp16 #(
         .DATA_WIDTH (72), .ADDR_WIDTH (32), .STRB_WIDTH (9)
     ) u_read_fp16 (
@@ -1070,6 +1129,9 @@ module snax_llm_top_clean #(
         .cfg_base_addr_i    (rd_base),
         .cfg_num_vectors_i  (rd_num_vectors),
         .cfg_line_stride_i  (rd_line_stride),
+        .cfg_vec_stride_i   (rd_vec_stride),
+        .cfg_num_batches_i  (rd_num_batches),
+        .cfg_batch_stride_i (rd_batch_stride),
         .cfg_wrap_en_i      (csr_rd_wrap_en),
         .cfg_wrap_bank_inc_i(1'b1),
         .cfg_wrap_words_m1_i(csr_rd_wrap_words_m1),
@@ -1098,6 +1160,9 @@ module snax_llm_top_clean #(
         .cfg_base_addr_i    (rd_b_base),
         .cfg_num_vectors_i  (rd_b_num_vectors),
         .cfg_line_stride_i  (rd_b_line_stride),
+        .cfg_vec_stride_i   (32'd0),
+        .cfg_num_batches_i  (32'd1),
+        .cfg_batch_stride_i (32'd0),
         .cfg_wrap_en_i      (csr_rd_b_wrap_en),
         .cfg_wrap_bank_inc_i(csr_rd_b_wrap_bank_inc),
         .cfg_wrap_words_m1_i(csr_rd_b_wrap_words_m1),

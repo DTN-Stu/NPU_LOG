@@ -55,11 +55,11 @@ module tb_large_layer_dma;
     logic [31:0] csr_req_wdata, csr_rsp_rdata;
     logic        irq_o;
 
-    // 4-port DMA <-> DUT (288b/cycle)
-    logic [3:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
-    logic [3:0][31:0]  dma_tcdm_req_addr;
-    logic [3:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
-    logic [3:0][8:0]   dma_tcdm_req_strb;
+    // 8-port DMA <-> DUT (576b/cycle)
+    logic [7:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
+    logic [7:0][31:0]  dma_tcdm_req_addr;
+    logic [7:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
+    logic [7:0][8:0]   dma_tcdm_req_strb;
 
     logic        dma_desc_valid, dma_desc_ready, dma_desc_done;
     logic [1:0]  dma_desc_dir;
@@ -100,14 +100,14 @@ module tb_large_layer_dma;
         .dma_mem_req_strb_i      (dma_tcdm_req_strb[0]),
         .dma_mem_rsp_valid_o     (dma_tcdm_rsp_valid[0]),
         .dma_mem_rsp_rdata_o     (dma_tcdm_rsp_rdata[0]),
-        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[3:1]),
-        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[3:1]),
-        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[3:1]),
-        .dma_aux_mem_req_write_i (dma_tcdm_req_write[3:1]),
-        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[3:1]),
-        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[3:1]),
-        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[3:1]),
-        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[3:1]),
+        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[7:1]),
+        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[7:1]),
+        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[7:1]),
+        .dma_aux_mem_req_write_i (dma_tcdm_req_write[7:1]),
+        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[7:1]),
+        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[7:1]),
+        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[7:1]),
+        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[7:1]),
         .dma_desc_valid_o        (dma_desc_valid),
         .dma_desc_ready_i        (dma_desc_ready),
         .dma_desc_dir_o          (dma_desc_dir),
@@ -120,7 +120,7 @@ module tb_large_layer_dma;
     );
 
     snax_simple_dma #(
-        .TCDM_PORTS  (4),
+        .TCDM_PORTS  (8),
         .DRAM_DATA_W (512)
     ) u_dma (
         .clk                  (clk),

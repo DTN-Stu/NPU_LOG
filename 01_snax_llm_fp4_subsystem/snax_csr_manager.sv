@@ -3,7 +3,8 @@
 module snax_csr_manager #(
     parameter int unsigned NUM_RW     = 32,
     parameter int unsigned NUM_RO     = 8,
-    parameter int unsigned ADDR_WIDTH = 12
+    parameter int unsigned ADDR_WIDTH = 12,
+    parameter int unsigned START_IDX  = NUM_RW - 1
 )(
     input  logic                         clk,
     input  logic                         rst_n,
@@ -31,9 +32,9 @@ module snax_csr_manager #(
     input  logic [NUM_RO-1:0][31:0]      ro_i
 );
 
-    localparam logic [ADDR_WIDTH-1:0] ADDR_START  = ADDR_WIDTH'(NUM_RW - 1);
-    localparam logic [ADDR_WIDTH-1:0] ADDR_RO0    = ADDR_WIDTH'(NUM_RW);
-    localparam logic [ADDR_WIDTH-1:0] ADDR_RO_END = ADDR_WIDTH'(NUM_RW + NUM_RO);
+    localparam logic [ADDR_WIDTH-1:0] ADDR_START  = ADDR_WIDTH'(START_IDX);
+    localparam logic [ADDR_WIDTH-1:0] ADDR_RO0    = ADDR_WIDTH'(START_IDX + 1);
+    localparam logic [ADDR_WIDTH-1:0] ADDR_RO_END = ADDR_WIDTH'(START_IDX + 1 + NUM_RO);
 
     logic [NUM_RW-1:0][31:0] shadow_q;
     logic [NUM_RW-1:0][31:0] active_q;
@@ -41,11 +42,13 @@ module snax_csr_manager #(
     logic                    commit_q;
     logic                    rsp_valid_q;
     logic [31:0]             rsp_data_q;
+    int                      csr_i;
 
-    wire req_fire = csr_req_valid_i && csr_req_ready_o;
-    wire addr_is_rw   = (csr_req_addr_i < ADDR_START);
-    wire addr_is_start= (csr_req_addr_i == ADDR_START);
-    wire addr_is_ro   = (csr_req_addr_i >= ADDR_RO0) && (csr_req_addr_i < ADDR_RO_END);
+    wire req_fire      = csr_req_valid_i && csr_req_ready_o;
+    wire addr_is_rw    = (csr_req_addr_i < ADDR_START) ||
+                         ((csr_req_addr_i >= ADDR_RO_END) && (csr_req_addr_i < ADDR_WIDTH'(NUM_RW)));
+    wire addr_is_start = (csr_req_addr_i == ADDR_START);
+    wire addr_is_ro    = (csr_req_addr_i >= ADDR_RO0) && (csr_req_addr_i < ADDR_RO_END);
 
     assign csr_req_ready_o = !rsp_valid_q && !pending_q;
     assign csr_rsp_valid_o = rsp_valid_q;
@@ -58,9 +61,9 @@ module snax_csr_manager #(
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            for (int i = 0; i < NUM_RW; i++) begin
-                shadow_q[i] <= '0;
-                active_q[i] <= '0;
+            for (csr_i = 0; csr_i < NUM_RW; csr_i++) begin
+                shadow_q[csr_i] <= '0;
+                active_q[csr_i] <= '0;
             end
             pending_q  <= 1'b0;
             commit_q   <= 1'b0;

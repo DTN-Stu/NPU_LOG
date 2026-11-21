@@ -518,7 +518,15 @@ def main():
         kv_dram_beats = kv_tiles_bytes.reshape(-1, 64)[:, ::-1]
         with open(os.path.join(OUT_DIR, "kv_dram.hex"), "w") as fkv:
             fkv.write("\n".join(row.tobytes().hex() for row in kv_dram_beats) + "\n")
-        print(f"Wrote DECODE kv_dram.hex ({len(kv_dram_beats)} DRAM beats = {kv_tiles_bytes.size} bytes)")
+        # Emit 15 tail past FP16 V tokens (tokens n_kv-16 .. n_kv-2) for HW Decode V-Transpose
+        v_tail_u16 = v_p_raw[n_kv - 16:n_kv - 1].reshape(15, H_KV * D_V).astype(np.float16).view(np.uint16).reshape(15, (H_KV * D_V) // 4, 4)
+        v_tail_words = [
+            (int(row[3]) << 48) | (int(row[2]) << 32) | (int(row[1]) << 16) | int(row[0])
+            for tok in v_tail_u16 for row in tok
+        ]
+        with open(os.path.join(OUT_DIR, "v_tail_past_fp16.hex"), "w") as fvt:
+            fvt.write("\n".join(f"{w:018x}" for w in v_tail_words) + "\n")
+        print(f"Wrote DECODE kv_dram.hex ({len(kv_dram_beats)} DRAM beats = {kv_tiles_bytes.size} bytes) & v_tail_past_fp16.hex ({len(v_tail_words)} words)")
     elif n_past > 0:
         k_p_pkts = quantize_rtl_vec(k_p_perm.reshape(n_past * H_KV, D_K)) \
             .reshape(kv_tiles_past, 16, H_KV, D_K // 16, 9) \

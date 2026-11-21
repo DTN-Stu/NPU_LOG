@@ -133,10 +133,10 @@ module tb_llm_decode_small;
     logic [71:0] cpu_mem_req_wdata, cpu_mem_rsp_rdata;
     logic [8:0]  cpu_mem_req_strb;
 
-    logic [3:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
-    logic [3:0][31:0]  dma_tcdm_req_addr;
-    logic [3:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
-    logic [3:0][8:0]   dma_tcdm_req_strb;
+    logic [7:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
+    logic [7:0][31:0]  dma_tcdm_req_addr;
+    logic [7:0][71:0]  dma_tcdm_req_wdata, dma_tcdm_rsp_rdata;
+    logic [7:0][8:0]   dma_tcdm_req_strb;
 
     logic        dma_desc_valid, dma_desc_ready, dma_desc_done;
     logic [1:0]  dma_desc_dir;
@@ -176,14 +176,14 @@ module tb_llm_decode_small;
         .dma_mem_req_strb_i      (dma_tcdm_req_strb[0]),
         .dma_mem_rsp_valid_o     (dma_tcdm_rsp_valid[0]),
         .dma_mem_rsp_rdata_o     (dma_tcdm_rsp_rdata[0]),
-        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[3:1]),
-        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[3:1]),
-        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[3:1]),
-        .dma_aux_mem_req_write_i (dma_tcdm_req_write[3:1]),
-        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[3:1]),
-        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[3:1]),
-        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[3:1]),
-        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[3:1]),
+        .dma_aux_mem_req_valid_i (dma_tcdm_req_valid[7:1]),
+        .dma_aux_mem_req_ready_o (dma_tcdm_req_ready[7:1]),
+        .dma_aux_mem_req_addr_i  (dma_tcdm_req_addr[7:1]),
+        .dma_aux_mem_req_write_i (dma_tcdm_req_write[7:1]),
+        .dma_aux_mem_req_wdata_i (dma_tcdm_req_wdata[7:1]),
+        .dma_aux_mem_req_strb_i  (dma_tcdm_req_strb[7:1]),
+        .dma_aux_mem_rsp_valid_o (dma_tcdm_rsp_valid[7:1]),
+        .dma_aux_mem_rsp_rdata_o (dma_tcdm_rsp_rdata[7:1]),
         .dma_desc_valid_o        (dma_desc_valid),
         .dma_desc_ready_i        (dma_desc_ready),
         .dma_desc_dir_o          (dma_desc_dir),
@@ -195,7 +195,7 @@ module tb_llm_decode_small;
         .subsystem_done_irq_o    (done_irq)
     );
 
-    snax_simple_dma #(.TCDM_PORTS(4)) u_dma (
+    snax_simple_dma #(.TCDM_PORTS(8)) u_dma (
         .clk                  (clk),
         .rst_n                (rst_n),
         .desc_valid_i         (dma_desc_valid),
@@ -605,9 +605,31 @@ module tb_llm_decode_small;
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;
-        $display("[5/12] Decode GEMM V (M=1, FP16 -> TCDM) + Stage KV-cache (N_KV=%0d)...", N_KV);
-        run_gemm_dma(N_TILES_KV, K_PACKETS_QKV, 0, DRAM_WV, K_PACKETS_QKV * 144,
-                     tcdm_addr(0, ACT_BANK), tcdm_addr(0, G_STG_BANK), "Decode GEMM V");
+        $display("[5/12] Decode GEMM V (M=1, FP16 -> TCDM t=15) + HW Decode V-Transpose (op=2'b10)...");
+        // Stage 15 tail past FP16 V tokens (t=0..14) at G_STG_BANK words 0..479
+        begin
+            logic [71:0] v_tail_fp16 [0:15*N_TILES_KV*4 - 1];
+            logic [71:0] pkt_hw, pkt_ref;
+            real sum_ref, sum_err, dot_v, v_h, v_r;
+            $readmemh("sim_llm_decode_small/v_tail_past_fp16.hex", v_tail_fp16);
+            for (int w = 0; w < 15 * N_TILES_KV * 4; w++)
+                cpu_mem_write(tcdm_addr(w, G_STG_BANK), v_tail_fp16[w]);
+        end
+        // Decode GEMM V writes new token t=15 (out_mode=00 FP16) directly to G_STG_BANK words 480..511
+        cpu_csr_write(A_CTRL,      32'h0);
+        cpu_csr_write(A_SEQ_CTRL,  32'h88); // op=00, out_mode=00 (FP16), enable_dma=1, gemm_decode=1
+        cpu_csr_write(A_GEMM_NT,   N_TILES_KV);
+        cpu_csr_write(A_GEMM_MT,   M_TOKENS / 16);
+        cpu_csr_write(A_GEMM_KB,   K_PACKETS_QKV);
+        cpu_csr_write(A_RING_BASE, 32'h0);
+        cpu_csr_write(A_DRAM_KV,   DRAM_WV);
+        cpu_csr_write(A_TILE_ST,   K_PACKETS_QKV * 144);
+        cpu_csr_write(A_Q_BASE,    tcdm_addr(0, ACT_BANK));
+        cpu_csr_write(A_OUT_BASE,  tcdm_addr(15 * N_TILES_KV * 4, G_STG_BANK));
+        cpu_csr_write(A_START,     32'h0000_0003);
+        wait_job("Decode GEMM V (FP16)");
+
+        // Stage past K (all tiles, t=15 filled from Decode Fused K) & past V (ONLY kj < KV_TILES_PAST!)
         $readmemh("sim_llm_decode_small/k_past.hex", k_past_mem);
         $readmemh("sim_llm_decode_small/v_past.hex", v_past_mem);
         k_idx = 0;
@@ -623,7 +645,8 @@ module tb_llm_decode_small;
             for (int dvi = 0; dvi < DV_TILES; dvi++)
                 for (int kj = 0; kj < KV_TILES; kj++)
                     for (int l = 0; l < 16; l++) begin
-                        cpu_mem_write(tcdm_addr(V_BASE_BLOCK + hkv*DV_TILES*KV_TILES + dvi*KV_TILES + kj, l), v_past_mem[v_idx]);
+                        if (kj < KV_TILES_PAST)
+                            cpu_mem_write(tcdm_addr(V_BASE_BLOCK + hkv*DV_TILES*KV_TILES + dvi*KV_TILES + kj, l), v_past_mem[v_idx]);
                         v_idx++;
                     end
         for (int hkv = 0; hkv < H_KV; hkv++)
@@ -632,6 +655,31 @@ module tb_llm_decode_small;
                 cpu_mem_read(tcdm_addr(hkv*K_PACKETS_QK + kp, OUT_BANK), kp_pkt);
                 cpu_mem_write(tcdm_addr(hkv*KV_TILES*K_PACKETS_QK + KV_TILES_PAST*K_PACKETS_QK + kp, 15), kp_pkt);
             end
+
+        // Launch HW Decode V-Transpose (op_mode=2'b10): transposes all 16 tokens -> kj = KV_TILES_PAST
+        cpu_csr_write(A_CTRL,      32'h0);
+        cpu_csr_write(A_RD_LS,     32'd0);
+        cpu_csr_write(A_SEQ_CTRL,  32'h0000_0002); // op_mode=2'b10, act_bank_layout=0
+        cpu_csr_write(A_Q_BASE,    tcdm_addr(0, G_STG_BANK));
+        cpu_csr_write(A_V_BASE,    tcdm_addr(V_BASE_BLOCK + KV_TILES_PAST, 0));
+        cpu_csr_write(A_V_NB,      N_TILES_KV);
+        cpu_csr_write(A_TILE_ST,   KV_TILES * 32'h200);
+        cpu_csr_write(A_START,     32'h0000_0003);
+        wait_job("Decode V-Transpose");
+
+        // Verify HW-transposed V tail tile against golden v_past_mem (no zero/dead packets)
+        begin
+            logic [71:0] pkt_hw;
+            int nz_cnt;
+            nz_cnt = 0;
+            for (int hkv = 0; hkv < H_KV; hkv++)
+                for (int dvi = 0; dvi < DV_TILES; dvi++)
+                    for (int l = 0; l < 16; l++) begin
+                        cpu_mem_read(tcdm_addr(V_BASE_BLOCK + hkv*DV_TILES*KV_TILES + dvi*KV_TILES + KV_TILES_PAST, l), pkt_hw);
+                        if (pkt_hw !== 72'd0) nz_cnt++;
+                    end
+            check(nz_cnt == H_KV * DV_TILES * 16, "Decode V-Transpose non-zero V packets");
+        end
         $display("       cycles=%0d", cyc_total - t0);
 
         t0 = cyc_total;

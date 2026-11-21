@@ -62,6 +62,8 @@ module snax_streamer_write_out #(
     input  logic                            core_out_fp4_valid_i,
     output logic                            core_out_fp4_ready_o,
 
+    output logic                            fifo_has_headroom_o,
+
     output logic                            m_tcdm_req_valid_o,
     output logic                            m_tcdm_req_write_o,
     output logic [ADDR_WIDTH-1:0]           m_tcdm_req_addr_o,
@@ -167,6 +169,8 @@ module snax_streamer_write_out #(
 
     assign core_out_fp16_ready_o = (state_q != IDLE) && push_is_fp16 && in_fifo_ready;
     assign core_out_fp4_ready_o  = (state_q != IDLE) && !push_is_fp16 && in_fifo_ready;
+    assign fifo_has_headroom_o   = (state_q != IDLE) &&
+                                   (in_fifo_level <= ($clog2(FIFO_DEPTH+1))'(FIFO_DEPTH - 4));
 
     function automatic logic [DATA_WIDTH-1:0] pack_fp16_word(
         input logic [NUM_LANES*16-1:0] vec,

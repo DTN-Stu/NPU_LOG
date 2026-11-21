@@ -317,7 +317,16 @@ def main():
     with open(os.path.join(OUT_DIR, "v_past.hex"), "w") as fv:
         fv.write("\n".join(f"{int.from_bytes(r.tobytes(), 'little'):018x}" for r in v_p_pkts) + "\n")
 
-    print(f"Done in {time.time() - t0:.2f}s! Preload={len(pre_addr_list)}, DRAM beats={len(dram_beats)}, KV pkts={len(k_p_pkts)}")
+    # Emit 15 tail past FP16 V tokens (tokens n_kv-16 .. n_kv-2) for HW Decode V-Transpose
+    v_tail_u16 = v_p_raw[n_kv - 16:n_kv - 1].reshape(15, H_KV * D_V).astype(np.float16).view(np.uint16).reshape(15, (H_KV * D_V) // 4, 4)
+    v_tail_words = [
+        (int(row[3]) << 48) | (int(row[2]) << 32) | (int(row[1]) << 16) | int(row[0])
+        for tok in v_tail_u16 for row in tok
+    ]
+    with open(os.path.join(OUT_DIR, "v_tail_past_fp16.hex"), "w") as fvt:
+        fvt.write("\n".join(f"{w:018x}" for w in v_tail_words) + "\n")
+
+    print(f"Done in {time.time() - t0:.2f}s! Preload={len(pre_addr_list)}, DRAM beats={len(dram_beats)}, KV pkts={len(k_p_pkts)}, V_tail_fp16={len(v_tail_words)}")
 
 
 if __name__ == "__main__":
