@@ -3,16 +3,17 @@
 //
 // Configurable Real NousResearch/Llama-3.2-1B Full-Layer End-to-End Testbench
 // on snax_llm_top_clean (288 KB TCDM, BANK_DEPTH=1024) + 8-port snax_simple_dma
-// + 64 MB Byte-Strobed 512-bit External DRAM:
+// + 64 MB Byte-Strobed 512-bit External DRAM (ZERO cpu_mem: 100% 1D-DMA):
 //
 //   Runtime plusargs (no recompile needed across sizes):
 //     +DECODE=0|1         (0 = Prefill, 1 = Decode M=1; default 0)
 //     +M_TOKENS=<int>     (Prefill: multiple of 16 up to 512; Decode: 1)
 //     +N_KV=<int>         (KV context multiple of 16 up to 2048; default M_TOKENS / 64)
 //     +Q_SUB=<int>        (Optional Q macro slice; default min(Q_TILES, 8))
+//     +DRAM_BP=0|1        (Optional LFSR DRAM ready backpressure; default 0)
 //     +DATA_DIR=<path>    (Directory with generated stimulus & golden .hex)
 //     +WEIGHTS_HEX=<path> (Shared 34.2 MB dram_weights_l<L>.hex)
-//     +DUMP               (Optional FST waveform dump)
+//     +DUMP               (Optional FST waveform dump when compiled w/ -DFST_TRACE)
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -82,8 +83,13 @@ module tb_llama3_1b_configurable;
     localparam logic [31:0] DRAM_OUT  = 32'h0260_0000; // Up to 2.5 MB
     localparam logic [31:0] DRAM_QPKT = 32'h0288_0000; // Up to 1.0 MB
     localparam logic [31:0] DRAM_OPKT = 32'h0298_0000; // Up to 1.0 MB
-    localparam logic [31:0] DRAM_K    = 32'h02A8_0000; // Up to 1.0 MB (N_KV<=2048)
-    localparam logic [31:0] DRAM_V    = 32'h02B8_0000; // Up to 1.0 MB (N_KV<=2048)
+    localparam logic [31:0] DRAM_K      = 32'h02A8_0000; // Up to 1.0 MB (N_KV<=2048)
+    localparam logic [31:0] DRAM_V      = 32'h02B8_0000; // Up to 1.0 MB (N_KV<=2048)
+    localparam logic [31:0] DRAM_GAMMA1 = 32'h02C8_0000; // 512 * 9 = 4,608 B
+    localparam logic [31:0] DRAM_GAMMA2 = 32'h02C9_0000; // 512 * 9 = 4,608 B
+    localparam logic [31:0] DRAM_ROPE   = 32'h02CA_0000; // up to 8192 * 9 = 73,728 B
+    localparam logic [31:0] DRAM_VTAIL  = 32'h02CC_0000; // Decode 16-bank V tail (128*16*9 = 18,432 B)
+    localparam logic [31:0] DRAM_DBG    = 32'h02D0_0000; // 8192 * 9 = 73,728 B scratch for XN/N2 WB telemetry
 
     // --------------------------------------------------------- CSR Map -------
     localparam logic [11:0] A_CTRL          = 12'd0;
@@ -155,6 +161,12 @@ module tb_llama3_1b_configurable;
     logic [8:0]  cpu_mem_req_strb;
     logic        cpu_mem_rsp_valid;
     logic [71:0] cpu_mem_rsp_rdata;
+
+    assign cpu_mem_req_valid = 1'b0;
+    assign cpu_mem_req_write = 1'b0;
+    assign cpu_mem_req_addr  = 32'd0;
+    assign cpu_mem_req_wdata = 72'd0;
+    assign cpu_mem_req_strb  = 9'd0;
 
     logic [7:0]        dma_tcdm_req_valid, dma_tcdm_req_ready, dma_tcdm_req_write, dma_tcdm_rsp_valid;
     logic [7:0][31:0]  dma_tcdm_req_addr;
@@ -257,7 +269,14 @@ module tb_llama3_1b_configurable;
     logic [511:0] dram_wr_mask;
     logic [511:0] lat_data [0:DRAM_LATENCY-1];
     logic         lat_vld  [0:DRAM_LATENCY-1];
-    assign dram_req_ready = 1'b1;
+    logic [1:0]   dram_bp_mode;
+    logic [15:0]  dram_lfsr;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) dram_lfsr <= 16'hACE1;
+        else        dram_lfsr <= {dram_lfsr[14:0], dram_lfsr[15] ^ dram_lfsr[13] ^ dram_lfsr[12] ^ dram_lfsr[10]};
+    end
+    assign dram_req_ready = (dram_bp_mode == 2'd0) ? 1'b1 : !(dram_lfsr[1:0] == 2'b11);
 
     always_comb begin
         for (int b = 0; b < 64; b++)
@@ -314,10 +333,10 @@ module tb_llama3_1b_configurable;
 
     task automatic write_dram_9b(input logic [31:0] dram_base, input int word_idx, input logic [71:0] pkt);
         int abs_byte;
-        abs_byte = word_idx * 9;
+        abs_byte = int'(dram_base[5:0]) + word_idx * 9;
         for (int b = 0; b < 9; b++) begin
             int beat, boff;
-            beat = (dram_base >> 6) + ((abs_byte + b) >> 6);
+            beat = int'(dram_base >> 6) + ((abs_byte + b) >> 6);
             boff = (abs_byte + b) & 63;
             dram_mem[beat][boff*8 +: 8] = pkt[b*8 +: 8];
         end
@@ -325,13 +344,50 @@ module tb_llama3_1b_configurable;
 
     task automatic read_dram_9b(input logic [31:0] dram_base, input int word_idx, output logic [71:0] pkt);
         int abs_byte;
-        abs_byte = word_idx * 9;
+        abs_byte = int'(dram_base[5:0]) + word_idx * 9;
         for (int b = 0; b < 9; b++) begin
             int beat, boff;
-            beat = (dram_base >> 6) + ((abs_byte + b) >> 6);
+            beat = int'(dram_base >> 6) + ((abs_byte + b) >> 6);
             boff = (abs_byte + b) & 63;
             pkt[b*8 +: 8] = dram_mem[beat][boff*8 +: 8];
         end
+    endtask
+
+    task automatic set_dram_byte(input int byte_addr, input logic [7:0] val);
+        dram_mem[byte_addr >> 6][(byte_addr & 63)*8 +: 8] = val;
+    endtask
+
+    function automatic logic [7:0] get_dram_byte(input int byte_addr);
+        return dram_mem[byte_addr >> 6][(byte_addr & 63)*8 +: 8];
+    endfunction
+
+    task automatic arm_dram_canaries(input int byte_base, input int byte_len);
+        for (int i = -64; i < 0; i++)
+            set_dram_byte(byte_base + i, 8'hA5);
+        for (int i = 0; i < byte_len; i++)
+            set_dram_byte(byte_base + i, 8'h5A);
+        for (int i = 0; i < 64; i++)
+            set_dram_byte(byte_base + byte_len + i, 8'hA5);
+    endtask
+
+    task automatic check_dram_canaries(input int byte_base, input int byte_len, input string tag);
+        int bad;
+        bad = 0;
+        for (int i = -64; i < 0; i++) begin
+            if (get_dram_byte(byte_base + i) !== 8'hA5) begin
+                if (bad < 4)
+                    $display("    [CANARY PRE CORRUPT] %s off=%0d got=%02X exp=A5", tag, i, get_dram_byte(byte_base + i));
+                bad++;
+            end
+        end
+        for (int i = 0; i < 64; i++) begin
+            if (get_dram_byte(byte_base + byte_len + i) !== 8'hA5) begin
+                if (bad < 4)
+                    $display("    [CANARY POST CORRUPT] %s off=+%0d got=%02X exp=A5", tag, i, get_dram_byte(byte_base + byte_len + i));
+                bad++;
+            end
+        end
+        check(bad == 0, {tag, " DRAM canaries"});
     endtask
 
     function automatic real fp16_to_real(input logic [15:0] h);
@@ -385,30 +441,12 @@ module tb_llama3_1b_configurable;
         d = csr_rsp_data;
     endtask
 
-    task automatic cpu_mem_write(input logic [31:0] a, input logic [71:0] d);
-        @(negedge clk);
-        cpu_mem_req_valid = 1'b1; cpu_mem_req_write = 1'b1;
-        cpu_mem_req_addr  = a;    cpu_mem_req_wdata = d; cpu_mem_req_strb = 9'h1FF;
-        @(posedge clk);
-        while (!cpu_mem_req_ready) @(posedge clk);
-        @(negedge clk);
-        cpu_mem_req_valid = 1'b0; cpu_mem_req_write = 1'b0; cpu_mem_req_strb = 9'h000;
-    endtask
-
-    task automatic cpu_mem_read(input logic [31:0] a, output logic [71:0] d);
-        @(negedge clk);
-        cpu_mem_req_valid = 1'b1; cpu_mem_req_write = 1'b0;
-        cpu_mem_req_addr  = a;    cpu_mem_req_strb  = 9'h000;
-        @(posedge clk);
-        while (!cpu_mem_req_ready) @(posedge clk);
-        @(negedge clk);
-        cpu_mem_req_valid = 1'b0;
-        while (!cpu_mem_rsp_valid) @(posedge clk);
-        d = cpu_mem_rsp_rdata;
-    endtask
+    // (cpu_mem permanently tied off at 0; zero cpu_mem read/write tasks allowed!)
 
     // --------------------------------------------------------- Telemetry -----
     longint cyc_total, cyc_seq, cyc_sfu, cyc_core_compute, cyc_dma, job_cycles_total;
+    longint cpu_mem_active_cyc, dram_stall_cyc;
+    int max_inflight_seen;
     int checks_pass, checks_fail;
 
     always @(posedge clk) begin
@@ -418,6 +456,21 @@ module tb_llama3_1b_configurable;
             if (dut.sfu_busy)        cyc_sfu <= cyc_sfu + 1;
             if (|dut.lane_valid)     cyc_core_compute <= cyc_core_compute + 1;
             if (|dma_tcdm_req_valid) cyc_dma <= cyc_dma + 1;
+            if (cpu_mem_req_valid) begin
+                cpu_mem_active_cyc <= cpu_mem_active_cyc + 1;
+                if (cpu_mem_active_cyc < 5)
+                    $display("    [FAIL] Forbidden cpu_mem activity at %0t!", $time);
+                checks_fail++;
+            end
+            if (int'(dut.u_seq.inflight_out_cnt_q) > max_inflight_seen)
+                max_inflight_seen <= int'(dut.u_seq.inflight_out_cnt_q);
+            if (dut.u_seq.inflight_out_cnt_q > 4'd4) begin
+                $display("    [FAIL] inflight_out_cnt_q overflow: %0d at %0t",
+                         dut.u_seq.inflight_out_cnt_q, $time);
+                checks_fail++;
+            end
+            if (dram_req_valid && !dram_req_ready)
+                dram_stall_cyc <= dram_stall_cyc + 1;
         end
     end
 
@@ -466,15 +519,15 @@ module tb_llama3_1b_configurable;
         endcase
     endfunction
 
-    task automatic accum_rows_1bank(
-        input int bank, input int n_tok, input int tok_off,
+    task automatic accum_rows_dram_1bank(
+        input logic [31:0] dram_base, input int n_tok, input int tok_off,
         input int ref_sel,
         inout real s_ref2, inout real s_err2, inout real s_dot, inout real s_act2, inout real m_abs
     );
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_read(tcdm_addr(t*ROW_WORDS + w, bank), rw);
+                read_dram_9b(dram_base, t * ROW_WORDS + w, rw);
                 for (int e = 0; e < 4; e++) begin
                     real v_a, v_g, df;
                     v_a = fp16_to_real(rw[16*e +: 16]);
@@ -489,15 +542,15 @@ module tb_llama3_1b_configurable;
             end
     endtask
 
-    task automatic accum_rows_16bank(
-        input int word_off, input int n_tok, input int tok_off,
+    task automatic accum_rows_dram_16bank(
+        input logic [31:0] dram_base, input int n_tok, input int tok_off,
         input int ref_sel,
         inout real s_ref2, inout real s_err2, inout real s_dot, inout real s_act2, inout real m_abs
     );
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_read(tcdm_addr(word_off + w, 16 + t), rw);
+                read_dram_9b(dram_base, w * 16 + t, rw);
                 for (int e = 0; e < 4; e++) begin
                     real v_a, v_g, df;
                     v_a = fp16_to_real(rw[16*e +: 16]);
@@ -512,11 +565,11 @@ module tb_llama3_1b_configurable;
             end
     endtask
 
-    task automatic accum_final_fp32_1bank(input int bank, input int n_tok, input int tok_off);
+    task automatic accum_final_fp32_dram_1bank(input logic [31:0] dram_base, input int n_tok, input int tok_off);
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_read(tcdm_addr(t*ROW_WORDS + w, bank), rw);
+                read_dram_9b(dram_base, t * ROW_WORDS + w, rw);
                 for (int e = 0; e < 4; e++) begin
                     real v_a, v_g, df;
                     v_a = fp16_to_real(rw[16*e +: 16]);
@@ -531,11 +584,11 @@ module tb_llama3_1b_configurable;
             end
     endtask
 
-    task automatic accum_final_fp32_16bank(input int word_off, input int n_tok, input int tok_off);
+    task automatic accum_final_fp32_dram_16bank(input logic [31:0] dram_base, input int n_tok, input int tok_off);
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_read(tcdm_addr(word_off + w, 16 + t), rw);
+                read_dram_9b(dram_base, w * 16 + t, rw);
                 for (int e = 0; e < 4; e++) begin
                     real v_a, v_g, df;
                     v_a = fp16_to_real(rw[16*e +: 16]);
@@ -631,14 +684,19 @@ module tb_llama3_1b_configurable;
         input int n_tiles, input logic [31:0] dram_base,
         input logic [31:0] q_base, input logic [31:0] out_base,
         input logic [31:0] rope_base, input bit act_16bank, input string name,
-        input bit wrap_en = 1'b0, input int wo_wrap_m1 = 0, input int rd_b_wrap_m1 = 0
+        input logic [1:0] out_mode = 2'd1,
+        input bit wo_wrap_en = 1'b0, input int wo_wrap_m1 = 0,
+        input bit rd_b_wrap_en = 1'b0, input int rd_b_wrap_m1 = 0
     );
         int nvec;
         nvec = (IS_DECODE ? 1 : M_BATCH) * n_tiles;
         cpu_csr_write(A_CTRL,       32'h0);
         cpu_csr_write(A_WRAP_CFG,   (32'(rd_b_wrap_m1) << 22) | 32'(wo_wrap_m1));
-        cpu_csr_write(A_SEQ_CTRL,   (wrap_en ? ((32'd1 << 28) | (32'd1 << 26)) : 32'd0) |
-                                    (act_16bank ? (32'd1 << 24) : 32'd0) | (IS_DECODE ? 32'h98 : 32'h18));
+        cpu_csr_write(A_SEQ_CTRL,   (rd_b_wrap_en ? (32'd1 << 28) : 32'd0) |
+                                    (wo_wrap_en   ? (32'd1 << 26) : 32'd0) |
+                                    (act_16bank   ? (32'd1 << 24) : 32'd0) |
+                                    (IS_DECODE    ? 32'h80 : 32'h0) |
+                                    {26'd0, out_mode, 4'b1000});
         cpu_csr_write(A_GEMM_NT,    n_tiles);
         cpu_csr_write(A_GEMM_MT,    32'd1);
         cpu_csr_write(A_GEMM_KB,    K_PACKETS_QKV);
@@ -702,7 +760,8 @@ module tb_llama3_1b_configurable;
         wait_job(name);
     endtask
 
-    task automatic run_dma_writeback(
+    // 1D DMA transfer (dir: 00=DRAM->16b, 01=16b->DRAM, 10=DRAM->1b, 11=1b->DRAM)
+    task automatic run_dma_1d(
         input logic [1:0] dir, input logic [31:0] tcdm_base,
         input logic [31:0] dram_base, input int size_bytes, input string name
     );
@@ -713,43 +772,6 @@ module tb_llama3_1b_configurable;
         cpu_csr_write(A_TILE_ST,   size_bytes);
         cpu_csr_write(A_START,     32'h0000_0003);
         wait_job(name);
-    endtask
-
-    task automatic verify_dram_vs_tcdm(
-        input logic linear_mode, input int tcdm_word0, input int tcdm_bank0,
-        input logic [31:0] dram_base, input int n_words, input string name
-    );
-        int bad, base_beat, cur_w, cur_b;
-        logic [71:0] exp_w, act_w;
-        bad = 0;
-        base_beat = dram_base >> 6;
-        cur_w = tcdm_word0;
-        cur_b = tcdm_bank0;
-        for (int w = 0; w < n_words; w++) begin
-            cpu_mem_read(tcdm_addr(cur_w, cur_b), exp_w);
-            for (int bit_i = 0; bit_i < 72; bit_i++) begin
-                int gbit;
-                gbit = w * 72 + bit_i;
-                act_w[bit_i] = dram_mem[base_beat + (gbit >> 9)][gbit & 511];
-            end
-            if (act_w !== exp_w) begin
-                if (bad < 5)
-                    $display("    [WB MISMATCH] %s word=%0d dram=%018X tcdm=%018X", name, w, act_w, exp_w);
-                bad++;
-            end
-            if (linear_mode) begin
-                cur_w++;
-            end else begin
-                if (cur_b == 15 || cur_b == 31) begin
-                    cur_b = (cur_b == 31) ? 16 : 0;
-                    cur_w++;
-                end else begin
-                    cur_b++;
-                end
-            end
-        end
-        $display("    [DMA WB] %-22s : %0d/%0d words bit-exact in DRAM", name, n_words - bad, n_words);
-        check(bad == 0, name);
     endtask
 
     task automatic clear_ext_macro_csrs();
@@ -763,7 +785,7 @@ module tb_llama3_1b_configurable;
 
     // --------------------------------------------------------- Main Execution -
     initial begin
-        int dec_arg, m_arg, kv_arg, qs_arg;
+        int dec_arg, m_arg, kv_arg, qs_arg, bp_arg;
         longint t0, t_attn;
         logic [31:0] rd32;
         int n_fp16;
@@ -790,6 +812,10 @@ module tb_llama3_1b_configurable;
         Q_SUB = (Q_TILES > 8) ? 8 : Q_TILES;
         if ($value$plusargs("Q_SUB=%d", qs_arg) && (qs_arg > 0)) Q_SUB = qs_arg;
 
+        bp_arg = 0;
+        void'($value$plusargs("DRAM_BP=%d", bp_arg));
+        dram_bp_mode = (bp_arg != 0) ? 2'd1 : 2'd0;
+
         DATA_DIR = $sformatf("sim_llama3_1b_%s_m%0d_kv%0d", IS_DECODE ? "decode" : "prefill", M_TOKENS, N_KV);
         void'($value$plusargs("DATA_DIR=%s", DATA_DIR));
         WEIGHTS_HEX = "sim_llama3_1b_weights/dram_weights_l1.hex";
@@ -798,16 +824,17 @@ module tb_llama3_1b_configurable;
         if ((M_TOKENS > MAX_M) || (N_KV > MAX_KV) || (N_KV < M_TOKENS) || (N_KV % 16 != 0))
             $fatal(1, "Invalid dimensions M_TOKENS=%0d N_KV=%0d (MAX_M=%0d MAX_KV=%0d)", M_TOKENS, N_KV, MAX_M, MAX_KV);
 
+`ifdef FST_TRACE
         if ($test$plusargs("DUMP")) begin
             $dumpfile("tb_llama3_1b_configurable.fst");
             $dumpvars(0, dut);
         end
+`endif
 
         csr_req_valid = 0; csr_req_write = 0; csr_req_addr = 0; csr_req_data = 0; csr_rsp_ready = 1;
-        cpu_mem_req_valid = 0; cpu_mem_req_write = 0; cpu_mem_req_addr = 0;
-        cpu_mem_req_wdata = 0; cpu_mem_req_strb = 0;
         checks_pass = 0; checks_fail = 0;
         cyc_total = 0; cyc_seq = 0; cyc_sfu = 0; cyc_core_compute = 0; cyc_dma = 0; job_cycles_total = 0;
+        cpu_mem_active_cyc = 0; dram_stall_cyc = 0; max_inflight_seen = 0;
 
         acc_n1_ref2   = 0.0; acc_n1_err2   = 0.0; acc_n1_dot   = 0.0; acc_n1_act2   = 0.0; acc_n1_max   = 0.0;
         acc_r1fq_ref2 = 0.0; acc_r1fq_err2 = 0.0; acc_r1fq_dot = 0.0; acc_r1fq_act2 = 0.0; acc_r1fq_max = 0.0;
@@ -834,6 +861,25 @@ module tb_llama3_1b_configurable;
         $readmemh({DATA_DIR, "/g_n2_fq.hex"},         g_n2_fq,     0, n_fp16 - 1);
         $readmemh({DATA_DIR, "/g_final_fq.hex"},      g_final_fq,  0, n_fp16 - 1);
 
+        // Pre-load host DRAM images (ZERO runtime cpu_mem!)
+        for (int w = 0; w < ROW_WORDS; w++) begin
+            write_dram_9b(DRAM_GAMMA1, w, gamma1_mem[w]);
+            write_dram_9b(DRAM_GAMMA2, w, gamma2_mem[w]);
+        end
+        for (int i = 0; i < (IS_DECODE ? 512 : M_CHUNKS * 256); i++)
+            write_dram_9b(DRAM_ROPE, i, rope_mb_mem[i]);
+
+        if (IS_DECODE) begin
+            for (int w = 0; w < ROW_WORDS; w++)
+                write_dram_9b(DRAM_X, w, x_fp16_mem[w]);
+        end else begin
+            for (int mb = 0; mb < M_CHUNKS; mb++)
+                for (int w = 0; w < ROW_WORDS; w++)
+                    for (int t = 0; t < M_BATCH; t++)
+                        write_dram_9b(DRAM_X, mb * 8192 + w * 16 + t,
+                                      x_fp16_mem[(mb * M_BATCH + t) * ROW_WORDS + w]);
+        end
+
         if (IS_DECODE) begin
             $readmemh({DATA_DIR, "/k_past_words.hex"}, k_past_mem,  0, H_KV * KV_TILES * 64 - 1);
             $readmemh({DATA_DIR, "/v_past_words.hex"}, v_past_mem,  0, H_KV * DV_TILES * KV_TILES * 16 - 1);
@@ -842,6 +888,10 @@ module tb_llama3_1b_configurable;
                 write_dram_9b(DRAM_K, w, k_past_mem[w]);
             for (int w = 0; w < H_KV * DV_TILES * KV_TILES * 16; w++)
                 write_dram_9b(DRAM_V, w, v_past_mem[w]);
+            for (int w = 0; w < N_TILES_KV * 4; w++)
+                for (int tok = 0; tok < 16; tok++)
+                    write_dram_9b(DRAM_VTAIL, w * 16 + tok,
+                                  (tok < 15) ? v_tail_fp16[tok * (N_TILES_KV * 4) + w] : 72'd0);
         end else if (KV_TILES_PAST > 0) begin
             $readmemh({DATA_DIR, "/k_past_words.hex"}, k_past_mem, 0, H_KV * KV_TILES_PAST * 64 - 1);
             $readmemh({DATA_DIR, "/v_past_words.hex"}, v_past_mem, 0, H_KV * DV_TILES * KV_TILES_PAST * 16 - 1);
@@ -860,6 +910,8 @@ module tb_llama3_1b_configurable;
             end
         end
 
+        arm_dram_canaries(int'(DRAM_OUT), EVAL_TOKENS * ROW_WORDS * 9);
+
         rst_n = 1'b0;
         repeat (5) @(posedge clk);
         rst_n = 1'b1;
@@ -869,52 +921,42 @@ module tb_llama3_1b_configurable;
         check(rd32 == CSR_ID_VALUE, "CSR ID (SNAF)");
 
         $display("\n========================================================================");
-        $display("  REAL NousResearch/Llama-3.2-1B %s LAYER (288KB TCDM, 8-Port DMA)",
+        $display("  REAL NousResearch/Llama-3.2-1B %s LAYER (288KB TCDM, 100%% 1D-DMA)",
                  IS_DECODE ? "DECODE" : "PREFILL");
-        $display("  M_TOKENS=%0d | N_KV=%0d (PAST=%0d) | Q_TILES=%0d (Q_SUB=%0d) | KV_PIN=%0d",
-                 EVAL_TOKENS, N_KV, KV_TILES_PAST * 16, Q_TILES, Q_SUB, KV_PIN_EN);
+        $display("  M_TOKENS=%0d | N_KV=%0d (PAST=%0d) | Q_TILES=%0d (Q_SUB=%0d) | KV_PIN=%0d | DRAM_BP=%0d",
+                 EVAL_TOKENS, N_KV, KV_TILES_PAST * 16, Q_TILES, Q_SUB, KV_PIN_EN, dram_bp_mode);
         $display("========================================================================\n");
 
         if (IS_DECODE) begin
             // -----------------------------------------------------------------
-            // DECODE FLOW (M = 1, N_KV = configurable)
+            // DECODE FLOW (M = 1, N_KV = configurable, ZERO cpu_mem)
             // -----------------------------------------------------------------
-            for (int w = 0; w < ROW_WORDS; w++) begin
-                cpu_mem_write(tcdm_addr(w, X_BANK),                  x_fp16_mem[w]);
-                cpu_mem_write(tcdm_addr(GAMMA1_WORD + w, GAMMA_BANK), gamma1_mem[w]);
-                cpu_mem_write(tcdm_addr(GAMMA2_WORD + w, GAMMA_BANK), gamma2_mem[w]);
-            end
-            for (int w = 0; w < 512; w++)
-                cpu_mem_write(tcdm_addr(w, ROPE_BANK), rope_mb_mem[w]);
+            run_dma_1d(2'b10, tcdm_addr(0, X_BANK),                  DRAM_X,      ROW_WORDS * 9, "DMA Load X");
+            run_dma_1d(2'b10, tcdm_addr(GAMMA1_WORD, GAMMA_BANK),    DRAM_GAMMA1, ROW_WORDS * 9, "DMA Load Gamma1");
+            run_dma_1d(2'b10, tcdm_addr(GAMMA2_WORD, GAMMA_BANK),    DRAM_GAMMA2, ROW_WORDS * 9, "DMA Load Gamma2");
+            run_dma_1d(2'b10, tcdm_addr(0, ROPE_BANK),               DRAM_ROPE,   512 * 9,       "DMA Load RoPE");
 
             $display("[1/12] SFU RMSNorm 1 (M=1, D=2048)...");
             run_sfu_seq(3'd2, 1, 1, K_PACKETS_QKV,
                         tcdm_addr(0, X_BANK),               ROW_WORDS * 32, 0,
                         tcdm_addr(GAMMA1_WORD, GAMMA_BANK), 0,              0,
                         tcdm_addr(0, XN_BANK),              ROW_WORDS * 32, 0, 32'h3A000000);
-            accum_rows_1bank(XN_BANK, 1, 0, 0, acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
+            run_dma_1d(2'b11, tcdm_addr(0, XN_BANK), DRAM_DBG, ROW_WORDS * 9, "DMA WB XN Dbg");
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 0, acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
 
             $display("[2/12] HW Requant Xn -> ACT_BANK...");
             run_requant_addr(tcdm_addr(0, XN_BANK), NUM_VEC_XN, tcdm_addr(0, ACT_BANK), "Requant Xn");
 
             $display("[3/12] Fused Q (2048x2048, DMA) + RoPE + LogQ...");
             run_fused_qk_rope_dma_ex(N_TILES_MODEL, DRAM_WQ, tcdm_addr(0, ACT_BANK),
-                                     tcdm_addr(0, OUT_BANK), tcdm_addr(0, ROPE_BANK), 1'b0, "Fused Q+RoPE");
-            for (int h = 0; h < H_Q; h++)
-                for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
-                    logic [71:0] qp;
-                    cpu_mem_read(tcdm_addr(h*K_PACKETS_QK + kp, OUT_BANK), qp);
-                    cpu_mem_write(tcdm_addr(h*K_PACKETS_QK + kp, QPKT_BANK), qp);
-                end
+                                     tcdm_addr(0, QPKT_BANK), tcdm_addr(0, ROPE_BANK), 1'b0, "Fused Q+RoPE");
 
             $display("[4/12] Fused K (512x2048, GQA H_KV=8, DMA) + RoPE + LogQ...");
             run_fused_qk_rope_dma_ex(N_TILES_KV, DRAM_WK, tcdm_addr(0, ACT_BANK),
                                      tcdm_addr(0, OUT_BANK), tcdm_addr(0, ROPE_BANK), 1'b0, "Fused K+RoPE");
 
             $display("[5/12] Decode GEMM V (FP16) + HW Decode V-Transpose (op=2'b10)...");
-            for (int tok = 0; tok < 15; tok++)
-                for (int w = 0; w < N_TILES_KV * 4; w++)
-                    cpu_mem_write(tcdm_addr(640 + w, tok), v_tail_fp16[tok * (N_TILES_KV * 4) + w]);
+            run_dma_1d(2'b00, tcdm_addr(640, 0), DRAM_VTAIL, N_TILES_KV * 4 * 16 * 9, "DMA Load V_tail");
             run_gemm_dma_ex(N_TILES_KV, K_PACKETS_QKV, 0, DRAM_WV, K_PACKETS_QKV * 144,
                             tcdm_addr(0, ACT_BANK), tcdm_addr(640, 15), 1'b0, "Decode GEMM V", 1'b0, 2'd0);
 
@@ -929,17 +971,14 @@ module tb_llama3_1b_configurable;
             wait_job("Decode V-Transpose");
 
             for (int hkv = 0; hkv < H_KV; hkv++) begin
-                for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
-                    logic [71:0] kp_pkt;
-                    cpu_mem_read(tcdm_addr(hkv*K_PACKETS_QK + kp, OUT_BANK), kp_pkt);
-                    write_dram_9b(DRAM_K, ((hkv * KV_TILES + (KV_TILES - 1)) * K_PACKETS_QK + kp) * 16 + 15, kp_pkt);
-                end
+                for (int kp = 0; kp < K_PACKETS_QK; kp++)
+                    run_dma_1d(2'b11, tcdm_addr(hkv * K_PACKETS_QK + kp, OUT_BANK),
+                               DRAM_K + 32'(((((hkv * KV_TILES + (KV_TILES - 1)) * K_PACKETS_QK + kp) * 16) + 15) * 9),
+                               9, "DMA Append K");
                 for (int dvi = 0; dvi < DV_TILES; dvi++)
-                    for (int l = 0; l < 16; l++) begin
-                        logic [71:0] vp_pkt;
-                        cpu_mem_read(tcdm_addr(128 + hkv * DV_TILES + dvi, l), vp_pkt);
-                        write_dram_9b(DRAM_V, ((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES - 1)) * 16 + l, vp_pkt);
-                    end
+                    run_dma_1d(2'b01, tcdm_addr(128 + hkv * DV_TILES + dvi, 0),
+                               DRAM_V + 32'((((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES - 1)) * 16) * 9),
+                               16 * 9, "DMA Append V");
             end
 
             t_attn = cyc_total;
@@ -974,15 +1013,17 @@ module tb_llama3_1b_configurable;
                         tcdm_addr(0, OUT_BANK), 4 * 32,         4 * 32,
                         tcdm_addr(0, X_BANK),   ROW_WORDS * 32, 4 * 32,
                         tcdm_addr(0, RES1_BANK),ROW_WORDS * 32, 4 * 32, 32'h3F800000);
-            accum_rows_1bank(RES1_BANK, 1, 0, 1, acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
-            accum_rows_1bank(RES1_BANK, 1, 0, 2, acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
+            run_dma_1d(2'b11, tcdm_addr(0, RES1_BANK), DRAM_RES1, ROW_WORDS * 9, "DMA WB RES1");
+            accum_rows_dram_1bank(DRAM_RES1, 1, 0, 1, acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
+            accum_rows_dram_1bank(DRAM_RES1, 1, 0, 2, acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
 
             run_sfu_seq(3'd2, 1, 1, K_PACKETS_QKV,
                         tcdm_addr(0, RES1_BANK),            ROW_WORDS * 32, 0,
                         tcdm_addr(GAMMA2_WORD, GAMMA_BANK), 0,              0,
                         tcdm_addr(0, XN_BANK),              ROW_WORDS * 32, 0, 32'h3A000000);
-            accum_rows_1bank(XN_BANK, 1, 0, 3, acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
-            accum_rows_1bank(XN_BANK, 1, 0, 4, acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
+            run_dma_1d(2'b11, tcdm_addr(0, XN_BANK), DRAM_DBG, ROW_WORDS * 9, "DMA WB N2 Dbg");
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 3, acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 4, acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
 
             $display("[9/12] HW Requant Norm2 -> ACT_BANK...");
             run_requant_addr(tcdm_addr(0, XN_BANK), NUM_VEC_XN, tcdm_addr(0, ACT_BANK), "Requant Norm2");
@@ -1013,74 +1054,60 @@ module tb_llama3_1b_configurable;
                         tcdm_addr(0, OUT_BANK),  4 * 32,         4 * 32,
                         tcdm_addr(0, RES1_BANK), ROW_WORDS * 32, 4 * 32,
                         tcdm_addr(0, FIN_BANK),  ROW_WORDS * 32, 4 * 32, 32'h3F800000);
-            accum_rows_1bank(FIN_BANK, 1, 0, 5, acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
-            accum_final_fp32_1bank(FIN_BANK, 1, 0);
-
-            run_dma_writeback(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, 512 * 9, "DMA WB Final Out");
-            verify_dram_vs_tcdm(1'b1, 0, FIN_BANK, DRAM_OUT, 512, "Verify DRAM Final Out");
+            run_dma_1d(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, ROW_WORDS * 9, "DMA WB Final Out");
+            check_dram_canaries(int'(DRAM_OUT), ROW_WORDS * 9, "Decode Final Out");
+            accum_rows_dram_1bank(DRAM_OUT, 1, 0, 5, acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
+            accum_final_fp32_dram_1bank(DRAM_OUT, 1, 0);
         end else begin
             // -----------------------------------------------------------------
-            // PREFILL FLOW (Arbitrary M = 16 * M_CHUNKS, N_KV >= M)
-            //   1) M-batched Pre-Attn projections -> DRAM_QPKT / DRAM_K / DRAM_V
+            // PREFILL FLOW (Arbitrary M = 16 * M_CHUNKS, N_KV >= M, ZERO cpu_mem)
+            //   1) M-batched Pre-Attn projections -> DRAM_QPKT / DRAM_K / DRAM_V via 1D DMA
             //   2) ONE single Sequencer launch for full FlashAttention (Macro Q/O + KV-Pin SepKV + Causal Offset)
-            //   3) M-batched Post-Attn & FFN -> DRAM_OUT + bit-exact verify
+            //   3) M-batched Post-Attn & FFN -> DRAM_OUT via 1D DMA + canary & accuracy verify
             // -----------------------------------------------------------------
             t0 = cyc_total;
             $display("[1/12 .. 5/12] Pre-Attention M-batched (%0d x 16 tokens)...", M_CHUNKS);
             for (int mb = 0; mb < M_CHUNKS; mb++) begin
-                for (int t = 0; t < M_BATCH; t++)
-                    for (int w = 0; w < ROW_WORDS; w++)
-                        cpu_mem_write(tcdm_addr(w, 16 + t), x_fp16_mem[(mb * M_BATCH + t) * ROW_WORDS + w]);
-                for (int w = 0; w < ROW_WORDS; w++)
-                    cpu_mem_write(tcdm_addr(w, 0), gamma1_mem[w]);
+                run_dma_1d(2'b00, tcdm_addr(0, 16), DRAM_X + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Load X");
+                run_dma_1d(2'b10, tcdm_addr(0, 0),  DRAM_GAMMA1,                       ROW_WORDS * 9, "DMA Load Gamma1");
 
                 run_sfu_seq(3'd2, M_BATCH, 1, K_PACKETS_QKV,
                             tcdm_addr(0, 16), 1, 0, tcdm_addr(0, 0), 0, 0,
                             tcdm_addr(512, 16), 1, 0, 32'h3A000000);
-                accum_rows_16bank(512, M_BATCH, mb * M_BATCH, 0,
-                                  acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
-                run_dma_writeback(2'b01, tcdm_addr(0, 16), DRAM_X + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Save X");
+                run_dma_1d(2'b01, tcdm_addr(512, 16), DRAM_DBG, 8192 * 9, "DMA WB XN Dbg");
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 0,
+                                       acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
 
                 run_requant_wrap(tcdm_addr(512, 16), M_BATCH * K_PACKETS_QKV, tcdm_addr(0, 16), 511, 127, "Requant Xn");
-                for (int i = 0; i < 256; i++)
-                    cpu_mem_write(tcdm_addr(128 + i, ROPE_BANK), rope_mb_mem[mb * 256 + i]);
+                run_dma_1d(2'b10, tcdm_addr(512, ROPE_BANK), DRAM_ROPE + 32'(mb) * 32'(256 * 9), 256 * 9, "DMA Load RoPE");
 
-                // Fused Q+RoPE -> pack into DRAM_QPKT in [h][t_abs][kp] order
+                // Fused Q+RoPE w/ out_mode=2 (16-bank scatter) -> 1D-DMA per-(h,t) burst into DRAM_QPKT [h][t_abs][kp]
                 run_fused_qk_rope_dma_ex(N_TILES_MODEL, DRAM_WQ, tcdm_addr(0, 16), tcdm_addr(128, 16),
-                                         tcdm_addr(128, ROPE_BANK), 1'b1, "Fused Q+RoPE", 1'b1, 255, 255);
+                                         tcdm_addr(512, ROPE_BANK), 1'b1, "Fused Q+RoPE",
+                                         2'd2, 1'b0, 0, 1'b1, 255);
                 for (int h = 0; h < H_Q; h++)
                     for (int t = 0; t < M_BATCH; t++)
-                        for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
-                            logic [71:0] qp;
-                            int lin;
-                            lin = (h * K_PACKETS_QK + kp) * M_BATCH + t;
-                            cpu_mem_read(tcdm_addr(128 + (lin & 255), 16 + (lin >> 8)), qp);
-                            write_dram_9b(DRAM_QPKT, (h * M_TOKENS + mb * M_BATCH + t) * K_PACKETS_QK + kp, qp);
-                        end
+                        run_dma_1d(2'b11, tcdm_addr(128 + h * K_PACKETS_QK, 16 + t),
+                                   DRAM_QPKT + 32'(((h * M_TOKENS + mb * M_BATCH + t) * K_PACKETS_QK) * 9),
+                                   K_PACKETS_QK * 9, "DMA WB Q");
 
-                // Fused K+RoPE -> pack into DRAM_K at kj = KV_TILES_PAST + mb
+                // Fused K+RoPE w/ out_mode=2 (16-bank scatter) -> 1D-DMA per-hkv 16-bank burst into DRAM_K [hkv][kj][kp][l]
                 run_fused_qk_rope_dma_ex(N_TILES_KV, DRAM_WK, tcdm_addr(0, 16), tcdm_addr(128, 16),
-                                         tcdm_addr(128, ROPE_BANK), 1'b1, "Fused K+RoPE", 1'b1, 255, 255);
+                                         tcdm_addr(512, ROPE_BANK), 1'b1, "Fused K+RoPE",
+                                         2'd2, 1'b0, 0, 1'b1, 255);
                 for (int hkv = 0; hkv < H_KV; hkv++)
-                    for (int kp = 0; kp < K_PACKETS_QK; kp++)
-                        for (int l = 0; l < 16; l++) begin
-                            logic [71:0] kp_pkt;
-                            int lin;
-                            lin = (hkv * K_PACKETS_QK + kp) * 16 + l;
-                            cpu_mem_read(tcdm_addr(128 + (lin & 255), 16 + (lin >> 8)), kp_pkt);
-                            write_dram_9b(DRAM_K, ((hkv * KV_TILES + (KV_TILES_PAST + mb)) * K_PACKETS_QK + kp) * 16 + l, kp_pkt);
-                        end
+                    run_dma_1d(2'b01, tcdm_addr(128 + hkv * K_PACKETS_QK, 16),
+                               DRAM_K + 32'(((hkv * KV_TILES + (KV_TILES_PAST + mb)) * K_PACKETS_QK * 16) * 9),
+                               K_PACKETS_QK * 16 * 9, "DMA WB K");
 
-                // Fused V+Transpose -> pack into DRAM_V at kj = KV_TILES_PAST + mb
+                // Fused V+Transpose -> 1D-DMA per-(hkv,dvi) 16-bank burst into DRAM_V [hkv][dvi][kj][l]
                 for (int hkv = 0; hkv < H_KV; hkv++)
                     for (int dvi = 0; dvi < DV_TILES; dvi++) begin
                         run_gemm_v_dma_ex(hkv * DV_TILES + dvi, 512 + hkv * DV_TILES + dvi,
                                           32'h0, tcdm_addr(0, 16), 1'b1, "GEMM V");
-                        for (int l = 0; l < 16; l++) begin
-                            logic [71:0] vp_pkt;
-                            cpu_mem_read(tcdm_addr(512 + hkv * DV_TILES + dvi, l), vp_pkt);
-                            write_dram_9b(DRAM_V, ((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES_PAST + mb)) * 16 + l, vp_pkt);
-                        end
+                        run_dma_1d(2'b01, tcdm_addr(512 + hkv * DV_TILES + dvi, 0),
+                                   DRAM_V + 32'((((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES_PAST + mb)) * 16) * 9),
+                                   16 * 9, "DMA WB V");
                     end
             end
             $display("       Pre-Attn cycles=%0d", cyc_total - t0);
@@ -1116,16 +1143,14 @@ module tb_llama3_1b_configurable;
             t0 = cyc_total;
             $display("[7/12 .. 12/12] Post-Attention & FFN M-batched (%0d x 16 tokens)...", M_CHUNKS);
             for (int mb = 0; mb < M_CHUNKS; mb++) begin
-                // Scatter Attn O for chunk mb from DRAM_OPKT ([h][t_abs][dvi]) to banks 16..31 words 0..127
-                for (int t = 0; t < M_BATCH; t++)
-                    for (int h = 0; h < H_Q; h++)
-                        for (int dvi = 0; dvi < DV_TILES; dvi++) begin
-                            logic [71:0] opkt;
-                            read_dram_9b(DRAM_OPKT, (h * M_TOKENS + mb * M_BATCH + t) * DV_TILES + dvi, opkt);
-                            cpu_mem_write(tcdm_addr(h * DV_TILES + dvi, 16 + t), opkt);
-                        end
+                // Scatter Attn O for chunk mb from DRAM_OPKT ([h][t_abs][dvi]) to banks 16..31 words 0..127 via 1D-DMA
+                for (int h = 0; h < H_Q; h++)
+                    for (int t = 0; t < M_BATCH; t++)
+                        run_dma_1d(2'b10, tcdm_addr(h * DV_TILES, 16 + t),
+                                   DRAM_OPKT + 32'(((h * M_TOKENS + mb * M_BATCH + t) * DV_TILES) * 9),
+                                   DV_TILES * 9, "DMA Load O");
 
-                run_dma_writeback(2'b00, tcdm_addr(512, 16), DRAM_X + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Load X");
+                run_dma_1d(2'b00, tcdm_addr(512, 16), DRAM_X + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Load X");
                 for (int c = 0; c < 2; c++) begin
                     run_gemm_dma_ex(64, K_PACKETS_QKV, 0,
                                     DRAM_WO + 32'(c) * 32'd64 * 32'(K_PACKETS_QKV) * 32'd144,
@@ -1136,21 +1161,21 @@ module tb_llama3_1b_configurable;
                                 tcdm_addr(512 + c*256, 16), 1, 4 * 32,
                                 tcdm_addr(512 + c*256, 16), 1, 4 * 32, 32'h3F800000);
                 end
-                accum_rows_16bank(512, M_BATCH, mb * M_BATCH, 1,
-                                  acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
-                accum_rows_16bank(512, M_BATCH, mb * M_BATCH, 2,
-                                  acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
+                run_dma_1d(2'b01, tcdm_addr(512, 16), DRAM_RES1 + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Save RES1");
+                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 1,
+                                       acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
+                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 2,
+                                       acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
 
-                run_dma_writeback(2'b01, tcdm_addr(512, 16), DRAM_RES1 + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Save RES1");
-                for (int w = 0; w < ROW_WORDS; w++)
-                    cpu_mem_write(tcdm_addr(w, 0), gamma2_mem[w]);
+                run_dma_1d(2'b10, tcdm_addr(0, 0), DRAM_GAMMA2, ROW_WORDS * 9, "DMA Load Gamma2");
                 run_sfu_seq(3'd2, M_BATCH, 1, K_PACKETS_QKV,
                             tcdm_addr(512, 16), 1, 0, tcdm_addr(0, 0), 0, 0,
                             tcdm_addr(0, 16),   1, 0, 32'h3A000000);
-                accum_rows_16bank(0, M_BATCH, mb * M_BATCH, 3,
-                                  acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
-                accum_rows_16bank(0, M_BATCH, mb * M_BATCH, 4,
-                                  acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
+                run_dma_1d(2'b01, tcdm_addr(0, 16), DRAM_DBG, 8192 * 9, "DMA WB N2 Dbg");
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 3,
+                                       acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 4,
+                                       acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
 
                 run_requant_wrap(tcdm_addr(0, 16), M_BATCH * K_PACKETS_QKV, tcdm_addr(0, 16), 511, 127, "Requant Norm2");
                 for (int c = 0; c < N_CHUNKS; c++) begin
@@ -1171,21 +1196,23 @@ module tb_llama3_1b_configurable;
                 run_gemm_dma_ex(N_TILES_MODEL, K_TILE_DOWN, 1,
                                 DRAM_WD, K_PACKETS_DOWN * 144,
                                 tcdm_addr(512, 16), tcdm_addr(0, 16), 1'b1, "GEMM Down", 1'b1);
-                run_dma_writeback(2'b00, tcdm_addr(512, 16), DRAM_RES1 + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Load RES1");
+                run_dma_1d(2'b00, tcdm_addr(512, 16), DRAM_RES1 + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Load RES1");
                 run_sfu_seq(3'd1, M_BATCH, N_TILES_MODEL, 1,
                             tcdm_addr(0, 16),   1, 4 * 32,
                             tcdm_addr(512, 16), 1, 4 * 32,
                             tcdm_addr(0, 16),   1, 4 * 32, 32'h3F800000);
 
-                accum_rows_16bank(0, M_BATCH, mb * M_BATCH, 5,
-                                  acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
-                accum_final_fp32_16bank(0, M_BATCH, mb * M_BATCH);
-
-                run_dma_writeback(2'b01, tcdm_addr(0, 16), DRAM_OUT + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA WB Final Out");
-                verify_dram_vs_tcdm(1'b0, 0, 16,           DRAM_OUT + 32'(mb) * 32'(8192 * 9), 8192,     "Verify DRAM Final Out");
+                run_dma_1d(2'b01, tcdm_addr(0, 16), DRAM_OUT + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA WB Final Out");
+                accum_rows_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 5,
+                                       acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
+                accum_final_fp32_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH);
             end
+            check_dram_canaries(int'(DRAM_OUT), EVAL_TOKENS * ROW_WORDS * 9, "Prefill Final Out");
             $display("       Post-Attn/FFN cycles=%0d", cyc_total - t0);
         end
+
+        check(cpu_mem_active_cyc == 0, "ZERO cpu_mem activity");
+        check(max_inflight_seen <= 4,  "inflight_out_cnt <= 4");
 
         $display("\n========================================================================");
         $display("  SEQUENCE-WIDE ACCURACY & PERFORMANCE SUMMARY (%s M=%0d, N_KV=%0d)",
@@ -1200,13 +1227,16 @@ module tb_llama3_1b_configurable;
         report_metric("Final vs FP32",      acc_fnfp_ref2, acc_fnfp_err2, acc_fnfp_dot, acc_fnfp_act2, acc_fnfp_max, 0.78);
         $display("  Total cycles      : %0d (seq=%0d, sfu=%0d, mac=%0d, dma=%0d)",
                  cyc_total, cyc_seq, cyc_sfu, cyc_core_compute, cyc_dma);
+        $display("  cpu_mem_req_valid active cyc : %0d (MUST == 0)", cpu_mem_active_cyc);
+        $display("  DRAM stall cycles            : %0d (DRAM_BP=%0d)", dram_stall_cyc, dram_bp_mode);
+        $display("  Max inflight_out_cnt         : %0d (limit <= 4)", max_inflight_seen);
         $display("  DRAM 512b rd beats: %0d (%0d bytes)", stat_rd_beats, stat_rd_beats * 64);
         $display("  DRAM 512b wr beats: %0d (%0d bytes)", stat_wr_beats, stat_wr_beats * 64);
         $display("  Checks            : %0d passed, %0d failed", checks_pass, checks_fail);
         $display("========================================================================\n");
 
         if (checks_fail == 0)
-            $display(">>> CONFIGURABLE LLAMA-3.2-1B %s (M=%0d, N_KV=%0d) PASSED (0 errors) <<<\n",
+            $display(">>> CONFIGURABLE LLAMA-3.2-1B %s (M=%0d, N_KV=%0d) PASSED (0 errors, 100%% DMA) <<<\n",
                      IS_DECODE ? "DECODE" : "PREFILL", EVAL_TOKENS, N_KV);
         else
             $fatal(1, "CONFIGURABLE LLAMA-3.2-1B FAILED (%0d check fails)", checks_fail);

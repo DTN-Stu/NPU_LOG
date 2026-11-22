@@ -44,7 +44,9 @@ module snax_llm_top_clean #(
     parameter int unsigned NUM_LANES     = 16,
     parameter int unsigned ACC_DEPTH     = 16,
     parameter int unsigned SFU_ALU_LANES = 8,
-    parameter int unsigned DMA_AUX_PORTS = 7
+    parameter int unsigned DMA_AUX_PORTS = 7,
+    parameter bit          ENABLE_LEGACY_DIRECT_CSR = 1'b0,
+    parameter bit          CSR_DOUBLE_BUFFER        = 1'b0
 )(
     input  logic                    clk,
     input  logic                    rst_n,
@@ -480,7 +482,10 @@ module snax_llm_top_clean #(
     // =========================================================================
     // 3b. CONTROL PLANE: CSR FILE + HARDWARE SEQUENCER
     // =========================================================================
-    snax_flash_csr_snax u_csr (
+    snax_flash_csr_snax #(
+        .ENABLE_LEGACY_DIRECT_CSR (ENABLE_LEGACY_DIRECT_CSR),
+        .DOUBLE_BUFFER            (CSR_DOUBLE_BUFFER)
+    ) u_csr (
         .clk                      (clk),
         .rst_n                    (rst_n),
         .csr_req_valid_i          (cpu_csr_req_valid_i),
@@ -743,24 +748,26 @@ module snax_llm_top_clean #(
     );
 
     // -------------------------------------------------------------------------
-    // Control source select: CSR (direct) vs sequencer (autonomous)
+    // Control source select: CSR (direct, only when ENABLE_LEGACY_DIRECT_CSR=1) vs sequencer
     // -------------------------------------------------------------------------
-    assign act_start          = csr_src_sel ? csr_act_start : seq_act_start;
-    assign act_base           = csr_src_sel ? csr_act_base : seq_act_base;
-    assign act_k_blocks       = csr_src_sel ? csr_act_k_blocks : seq_act_k_blocks;
-    assign act_k_stride       = csr_src_sel ? csr_act_k_stride : seq_act_k_stride;
-    assign act_tokens         = csr_src_sel ? csr_act_tokens : seq_act_tokens;
-    assign act_token_stride   = csr_src_sel ? csr_act_token_stride : seq_act_token_stride;
-    assign act_stream_ready   = csr_src_sel ? csr_act_ready : seq_act_ready;
+    wire legacy_src_sel = ENABLE_LEGACY_DIRECT_CSR && csr_src_sel;
 
-    assign wt_start           = csr_src_sel ? csr_wt_start : seq_wt_start;
-    assign wt_base            = csr_src_sel ? csr_wt_base : seq_wt_base;
-    assign wt_repeat          = csr_src_sel ? csr_wt_repeat : seq_wt_repeat;
-    assign wt_k_blocks        = csr_src_sel ? csr_wt_k_blocks : seq_wt_k_blocks;
-    assign wt_k_stride        = csr_src_sel ? csr_wt_k_stride : seq_wt_k_stride;
-    assign wt_num_tiles       = csr_src_sel ? csr_wt_num_tiles : seq_wt_num_tiles;
-    assign wt_tile_step       = csr_src_sel ? csr_wt_tile_step : seq_wt_tile_step;
-    assign wt_stream_ready    = csr_src_sel ? {16{csr_wt_ready}} : seq_wt_ready;
+    assign act_start          = legacy_src_sel ? csr_act_start : seq_act_start;
+    assign act_base           = legacy_src_sel ? csr_act_base : seq_act_base;
+    assign act_k_blocks       = legacy_src_sel ? csr_act_k_blocks : seq_act_k_blocks;
+    assign act_k_stride       = legacy_src_sel ? csr_act_k_stride : seq_act_k_stride;
+    assign act_tokens         = legacy_src_sel ? csr_act_tokens : seq_act_tokens;
+    assign act_token_stride   = legacy_src_sel ? csr_act_token_stride : seq_act_token_stride;
+    assign act_stream_ready   = legacy_src_sel ? csr_act_ready : seq_act_ready;
+
+    assign wt_start           = legacy_src_sel ? csr_wt_start : seq_wt_start;
+    assign wt_base            = legacy_src_sel ? csr_wt_base : seq_wt_base;
+    assign wt_repeat          = legacy_src_sel ? csr_wt_repeat : seq_wt_repeat;
+    assign wt_k_blocks        = legacy_src_sel ? csr_wt_k_blocks : seq_wt_k_blocks;
+    assign wt_k_stride        = legacy_src_sel ? csr_wt_k_stride : seq_wt_k_stride;
+    assign wt_num_tiles       = legacy_src_sel ? csr_wt_num_tiles : seq_wt_num_tiles;
+    assign wt_tile_step       = legacy_src_sel ? csr_wt_tile_step : seq_wt_tile_step;
+    assign wt_stream_ready    = legacy_src_sel ? {16{csr_wt_ready}} : seq_wt_ready;
 
     // Autonomous 2D / 2-Pass SFU Sequencer (replaces CPU per-vector CSR loops)
     wire sfu_seq_active = (csr_src_sel && sfu_en && sfu_seq_en) || sfu_seq_busy;
@@ -818,7 +825,7 @@ module snax_llm_top_clean #(
     assign wo_cfg_bs   = csr_src_sel ? 32'd0              : seq_wo_batch_stride;
 
     logic v_start;
-    assign v_start            = csr_src_sel ? csr_v_start : seq_v_start;
+    assign v_start            = legacy_src_sel ? csr_v_start : seq_v_start;
     assign rd_start           = sfu_seq_active ? sfu_seq_rd_start : (csr_src_sel ? csr_rd_start : seq_rd_start);
     assign rd_b_start         = sfu_seq_active ? sfu_seq_rd_b_start : csr_rd_b_start;
     assign sfu_start          = sfu_seq_active ? sfu_seq_sfu_start  : csr_sfu_start;
@@ -833,15 +840,15 @@ module snax_llm_top_clean #(
     end
     assign wo_mode_fp16 = wo_mode_fp16_q;
 
-    assign cfg_mode           = csr_src_sel ? csr_core_mode : seq_core_mode;
-    assign cfg_row_start      = csr_src_sel ? csr_core_row_start : seq_core_row_start;
-    assign cfg_key_mask       = csr_src_sel ? csr_core_key_mask : seq_core_key_mask;
-    assign cfg_enable_slq     = csr_src_sel ? csr_core_enable_slq : seq_core_enable_slq;
-    assign tile_drain_req     = csr_src_sel ? csr_core_tile_drain_req : seq_core_tile_drain_req;
-    assign tile_drain_idx     = csr_src_sel ? csr_core_tile_drain_idx : seq_core_tile_drain_idx;
-    assign tile_clear_on_drain= csr_src_sel ? csr_core_tile_clear : seq_core_tile_clear;
-    assign lane_valid         = csr_src_sel ? csr_core_lane_valid : seq_core_lane_valid;
-    assign lane_acc_idx       = csr_src_sel ? csr_core_lane_acc_idx : seq_core_lane_acc_idx;
+    assign cfg_mode           = legacy_src_sel ? csr_core_mode : seq_core_mode;
+    assign cfg_row_start      = legacy_src_sel ? csr_core_row_start : seq_core_row_start;
+    assign cfg_key_mask       = legacy_src_sel ? csr_core_key_mask : seq_core_key_mask;
+    assign cfg_enable_slq     = legacy_src_sel ? csr_core_enable_slq : seq_core_enable_slq;
+    assign tile_drain_req     = legacy_src_sel ? csr_core_tile_drain_req : seq_core_tile_drain_req;
+    assign tile_drain_idx     = legacy_src_sel ? csr_core_tile_drain_idx : seq_core_tile_drain_idx;
+    assign tile_clear_on_drain= legacy_src_sel ? csr_core_tile_clear : seq_core_tile_clear;
+    assign lane_valid         = legacy_src_sel ? csr_core_lane_valid : seq_core_lane_valid;
+    assign lane_acc_idx       = legacy_src_sel ? csr_core_lane_acc_idx : seq_core_lane_acc_idx;
 
     assign csr_cfg_ready = !seq_busy && !sfu_seq_busy && !act_busy && !wt_busy &&
                            !wo_busy && !v_busy && !rd_busy &&
@@ -1209,7 +1216,7 @@ module snax_llm_top_clean #(
     assign sfu_in_a_fp16  = sfu_in_a_src ? fused_fifo_mem[fused_rptr] : rd_fp16_data;
     assign sfu_in_a_valid = sfu_in_a_src ? !fused_fifo_empty          : rd_fp16_valid;
 
-    snax_llm_sfu_opt #(
+    snax_llm_sfu_opt_pipe #(
         .NUM_LANES (16),
         .ALU_LANES (SFU_ALU_LANES)
     ) u_sfu (

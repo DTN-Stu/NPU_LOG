@@ -59,6 +59,11 @@ module sfu_fp20_to_fp16 (
     logic               round_up;
 
     always_comb begin
+        e_unbiased = 9'sd0;
+        e_final    = 9'sd0;
+        m_rounded  = 11'd0;
+        round_up   = 1'b0;
+        fp16_o     = 16'd0;
         if (e == 8'hFF) begin
             fp16_o = {s, 5'h1F, (m != 11'd0) ? 10'h200 : 10'd0};
         end else if (e == 8'd0) begin
@@ -92,6 +97,10 @@ module sfu_fp20_mul (
     logic [10:0]       mant_out;
 
     always_comb begin
+        prod_m   = 24'd0;
+        exp_sum  = 10'sd0;
+        mant_out = 11'd0;
+        res_o    = 20'd0;
         if (a_e == 8'd0 || b_e == 8'd0) begin
             res_o = 20'd0;
         end else begin
@@ -134,8 +143,25 @@ module sfu_fp20_addsub (
     logic signed [9:0] res_e;
 
     always_comb begin
-        lzc   = 4'd0;
-        found = 1'b0;
+        a_ge_b     = 1'b0;
+        lg_s       = 1'b0;
+        sm_s       = 1'b0;
+        eff_sub    = 1'b0;
+        res_s      = 1'b0;
+        found      = 1'b0;
+        lg_e       = 8'd0;
+        sm_e       = 8'd0;
+        exp_diff   = 8'd0;
+        lg_m       = 12'd0;
+        sm_m       = 12'd0;
+        lg_ext     = 15'd0;
+        sm_ext     = 15'd0;
+        sm_shifted = 15'd0;
+        norm_m     = 15'd0;
+        sum_m      = 16'd0;
+        lzc        = 4'd0;
+        res_e      = 10'sd0;
+        res_o      = 20'd0;
         if (a_e == 8'd0 && b_e == 8'd0) begin
             res_o = 20'd0;
         end else if (a_e == 8'd0) begin

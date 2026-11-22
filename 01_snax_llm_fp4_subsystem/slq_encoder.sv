@@ -126,6 +126,8 @@ module log_quantizer #(
     logic signed  [7:0] scale_sat ;
 
     always_comb begin
+        scale_raw = 9'sd0;
+        scale_sat = 8'sd0;
         // [FIX] zero-check phải dùng mu_max_q1 (cùng tầng với phép trừ);
         //       tách if/else để nhánh zero không bị ghi đè
         if (mu_max_q1 == 8'd0) begin
