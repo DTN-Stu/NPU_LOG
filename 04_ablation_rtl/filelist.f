@@ -11,6 +11,8 @@
 ../03_baselines/MiX-main/hardware_rtl/src/systolic_arrays/MXFP4_g16/MXFP4_g16_MUL.sv
 ../03_baselines/MiX-main/hardware_rtl/src/systolic_arrays/NVFP4/NVFP4_MUL.sv
 fp32_lane_backend.sv
+LOG8_MUL.sv
+log8_int32_lazy_core.sv
 cfg1_mxfp4_g16_fp32_ff.sv
 cfg2_nvfp4_fp32_ff.sv
 cfg3_nvfp4_int32_lazy_ff.sv

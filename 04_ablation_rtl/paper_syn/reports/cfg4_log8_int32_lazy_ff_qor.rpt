@@ -1,0 +1,83 @@
+ 
+****************************************
+Report : qor
+Design : cfg4_log8_int32_lazy_ff
+Version: O-2018.06-SP1
+Date   : Sat Nov 21 09:54:49 2026
+****************************************
+
+
+  Timing Path Group 'clk'
+  -----------------------------------
+  Levels of Logic:              41.00
+  Critical Path Length:       1522.95
+  Critical Path Slack:           0.01
+  Critical Path Clk Period:   2000.00
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:        -58.17
+  Total Hold Violation:      -4358.32
+  No. of Hold Violations:      130.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:       8546
+  Hierarchical Port Count:      35318
+  Leaf Cell Count:              77454
+  Buf/Inv Cell Count:           18350
+  Buf Cell Count:                 830
+  Inv Cell Count:               17520
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:     68313
+  Sequential Cell Count:         9141
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:     5162.967536
+  Noncombinational Area:  2729.871628
+  Buf/Inv Area:            825.767470
+  Total Buffer Area:            57.02
+  Total Inverter Area:         768.75
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:              7892.839164
+  Design Area:            7892.839164
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:         80595
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: EDAServer
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                   12.14
+  Logic Optimization:                183.31
+  Mapping Optimization:              398.88
+  -----------------------------------------
+  Overall Compile Time:              889.88
+  Overall Compile Wall Clock Time:   335.51
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 58.17  TNS: 4358.32  Number of Violating Paths: 130
+
+  --------------------------------------------------------------------
+
+
+1

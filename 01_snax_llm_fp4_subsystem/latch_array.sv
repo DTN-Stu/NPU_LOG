@@ -105,6 +105,17 @@ module dff (
     end
 endmodule
 
+// D flip-flop without reset pin (maps to compact DFFHQx* when slot_cleared guards reads)
+module dff_no_rst (
+    input  logic clk,
+    input  logic d,
+    output logic q
+);
+    always_ff @(posedge clk) begin
+        q <= d;
+    end
+endmodule
+
 
 // =============================================================================
 // Module: latch_array
@@ -154,6 +165,7 @@ module latch_array #(
     parameter DW    = 32,               // word width in bits
     parameter ICG_GROUP = 32,           // max cell CLK pins driven by one ICG cell
     parameter bit USE_FF = 1'b0,        // 0: D-latch (DHL), 1: D flip-flop (DFF)
+    parameter bit FF_ASYNC_RST = 1'b1,  // 1: DFF with async rst_n, 0: compact DFFHQ (guarded by slot_cleared)
     localparam AW   = $clog2(DEPTH),    // binary address width
     localparam NUM_ICG = (DW + ICG_GROUP - 1) / ICG_GROUP
 ) (
@@ -239,12 +251,20 @@ module latch_array #(
 
                     for (genvar j=0; j<ICG_GROUP; j++) begin: row_gen
                         if ((g*ICG_GROUP + j) < DW) begin: bit_gen
-                            dff u_dff (
-                                .clk    (gclk_col[i][g]),
-                                .rst_n  (reset_n),
-                                .d      (wdata[g*ICG_GROUP + j]),
-                                .q      (q_store[i][g*ICG_GROUP + j])
-                            );
+                            if (FF_ASYNC_RST) begin : gen_rst_dff
+                                dff u_dff (
+                                    .clk    (gclk_col[i][g]),
+                                    .rst_n  (reset_n),
+                                    .d      (wdata[g*ICG_GROUP + j]),
+                                    .q      (q_store[i][g*ICG_GROUP + j])
+                                );
+                            end else begin : gen_compact_dff
+                                dff_no_rst u_dff (
+                                    .clk    (gclk_col[i][g]),
+                                    .d      (wdata[g*ICG_GROUP + j]),
+                                    .q      (q_store[i][g*ICG_GROUP + j])
+                                );
+                            end
                         end
                     end
                 end
@@ -290,8 +310,10 @@ module latch_array #(
     endgenerate
 
 
-    assign rdata1 = ren1 ? q_store[raddr1] : 'd0 ;
-    assign rdata2 = ren2 ? q_store[raddr2] : 'd0 ;
+    wire [AW-1:0] raddr1_eff = ren1 ? raddr1 : '0;
+    wire [AW-1:0] raddr2_eff = ren2 ? raddr2 : '0;
+    assign rdata1 = ren1 ? q_store[raddr1_eff] : 'd0 ;
+    assign rdata2 = ren2 ? q_store[raddr2_eff] : 'd0 ;
 
     
 endmodule

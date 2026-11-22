@@ -1,0 +1,10 @@
+Chronologic VCS simulator copyright 1991-2018
+Contains Synopsys proprietary information.
+Compiler version O-2018.09-SP2_Full64; Runtime version O-2018.09-SP2_Full64;  Nov 21 09:09 2026
+[tb_ablation_saif] Completed 4000 capture cycles cleanly.
+$finish called from file "tb_ablation_saif.sv", line 246.
+$finish at simulation time               813400
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 8134000 ps
+CPU Time:    419.110 seconds;       Data structure size:  22.7Mb
+Sat Nov 21 09:16:51 2026

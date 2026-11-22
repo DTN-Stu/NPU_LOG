@@ -105,9 +105,10 @@ module cfg2_nvfp4_fp32_ff #(
     endgenerate
 
     latch_array #(
-        .DEPTH  (ACC_DEPTH_P),
-        .DW     (TOTAL_W),
-        .USE_FF (1'b1)
+        .DEPTH        (ACC_DEPTH_P),
+        .DW           (TOTAL_W),
+        .USE_FF       (1'b1),
+        .FF_ASYNC_RST (1'b0)
     ) u_ff_acc (
         .clk     (clk),
         .reset_n (reset_n),

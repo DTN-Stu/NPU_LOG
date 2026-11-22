@@ -1,0 +1,81 @@
+ 
+****************************************
+check_design summary:
+Version:     O-2018.06-SP1
+Date:        Sat Nov 21 09:49:01 2026
+****************************************
+
+                   Name                                            Total
+--------------------------------------------------------------------------------
+Inputs/Outputs                                                      1
+    Unconnected ports (LINT-28)                                     1
+
+Cells                                                              57
+    Cells do not drive (LINT-1)                                    52
+    Nets connected to multiple pins on same cell (LINT-33)          5
+--------------------------------------------------------------------------------
+
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_80' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_81' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_82' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_83' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_84' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_85' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_86' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_87' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_88' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_89' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_90' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_91' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_92' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_93' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_94' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_95' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_96' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_97' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_98' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_99' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_100' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_101' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_102' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_103' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_104' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_105' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_106' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_107' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_108' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_109' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_110' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_111' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_112' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_113' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_114' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_115' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_116' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_117' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_118' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_119' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_120' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_121' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_122' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_123' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_124' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_125' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_126' does not drive any nets. (LINT-1)
+Warning: In design 'LOG8_MUL_group_size16', cell 'B_127' does not drive any nets. (LINT-1)
+Warning: In design 'bidirectional_shifter_FRAC_BITS16', cell 'B_3' does not drive any nets. (LINT-1)
+Warning: In design 'bidirectional_shifter_FRAC_BITS16', cell 'C256' does not drive any nets. (LINT-1)
+Warning: In design 'logscale_lazy_drain_norm_FRAC_BITS16', cell 'B_37' does not drive any nets. (LINT-1)
+Warning: In design 'logscale_lazy_drain_norm_FRAC_BITS16', cell 'B_38' does not drive any nets. (LINT-1)
+Warning: In design 'latch_array_16_512_1_0', port 'reset_n' is not connected to any nets. (LINT-28)
+Warning: In design 'log8_int32_lazy_core_16_16_72_16_1', the same net is connected to more than one pin on submodule 'u_acc'. (LINT-33)
+   Net 'lane_acc_idx_q1[3]' is connected to pins 'waddr[3]', 'raddr1[3]''.
+Warning: In design 'log8_int32_lazy_core_16_16_72_16_1', the same net is connected to more than one pin on submodule 'u_acc'. (LINT-33)
+   Net 'lane_acc_idx_q1[2]' is connected to pins 'waddr[2]', 'raddr1[2]''.
+Warning: In design 'log8_int32_lazy_core_16_16_72_16_1', the same net is connected to more than one pin on submodule 'u_acc'. (LINT-33)
+   Net 'lane_acc_idx_q1[1]' is connected to pins 'waddr[1]', 'raddr1[1]''.
+Warning: In design 'log8_int32_lazy_core_16_16_72_16_1', the same net is connected to more than one pin on submodule 'u_acc'. (LINT-33)
+   Net 'lane_acc_idx_q1[0]' is connected to pins 'waddr[0]', 'raddr1[0]''.
+Warning: In design 'log8_int32_lazy_core_16_16_72_16_1', the same net is connected to more than one pin on submodule 'u_acc'. (LINT-33)
+   Net 'any_lane_valid_q1' is connected to pins 'wen', 'ren1''.
+1

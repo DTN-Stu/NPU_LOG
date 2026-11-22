@@ -156,8 +156,19 @@ module tb_ablation_saif;
 
     function automatic logic [PKT_W-1:0] rand_llm_pkt();
         logic [PKT_W-1:0] pkt;
-        // Scale centered in realistic LLM exponent range (e.g., [-24..+8] / E4M3 normal)
+        // Scale centered in realistic LLM exponent range matching each format's encoding
+`ifdef DUT_CFG1
+        // MXFP4 (E8M0, bias=127): 2^-4 .. 2^4
+        pkt[71:64] = 8'($urandom_range(123, 131));
+`elsif DUT_CFG2
+        // NVFP4 (E4M3, bias=7): normal FP8 scales ~ 0.625 .. 7.5
         pkt[71:64] = 8'($urandom_range(50, 75));
+`elsif DUT_CFG3
+        pkt[71:64] = 8'($urandom_range(50, 75));
+`else
+        // Log8 (signed S4.3, 2^(e/8)): e in [-24, +8] -> 2^-3 .. 2^1 (prevents artificial Q16.16 saturation)
+        pkt[71:64] = 8'(signed'($urandom_range(0, 32)) - 24);
+`endif
         for (int e = 0; e < 16; e++) begin
             pkt[e*4 +: 4] = rand_llm_fp4();
         end
@@ -176,9 +187,14 @@ module tb_ablation_saif;
             wt_in[l] = wt_trace_mem[idx * NUM_LANES + l];
         end
 `elsif STIM_UNIFORM
-        act_broadcast = {$random, $random, $random}[PKT_W-1:0];
-        for (int l = 0; l < NUM_LANES; l++) begin
-            wt_in[l] = {$random, $random, $random}[PKT_W-1:0];
+        begin
+            logic [95:0] rtmp;
+            rtmp = {$random, $random, $random};
+            act_broadcast = rtmp[PKT_W-1:0];
+            for (int l = 0; l < NUM_LANES; l++) begin
+                rtmp = {$random, $random, $random};
+                wt_in[l] = rtmp[PKT_W-1:0];
+            end
         end
 `else
         act_broadcast = rand_llm_pkt();

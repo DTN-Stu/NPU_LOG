@@ -1,7 +1,7 @@
 // =============================================================================
-// Config #4: Log8-Scale + INT32 Accumulator + Lazy FP16 Drain (FF DEPTH=16)
+// Config #4: Log8-Scale (LOG8_MUL) + INT32 Accumulator + Lazy FP16 Drain (FF)
 //   - Iso-Throughput: 16 Lanes x 16 Elements = 256 MACs/cycle
-//   - Wraps vsq_matmul_engine with ACC_DEPTH_P=16 and ACC_USE_FF=1 (Flip-Flop)
+//   - Uses clean log8_int32_lazy_core with ACC_USE_FF=1 (Flip-Flop)
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -27,15 +27,13 @@ module cfg4_log8_int32_lazy_ff #(
     output logic                                out_valid
 );
 
-    vsq_matmul_engine #(
-        .NUM_LANES_P       (NUM_LANES_P),
-        .ACC_DEPTH_P       (ACC_DEPTH_P),
-        .PKT_W             (PKT_W),
-        .FRAC_BITS         (FRAC_BITS),
-        .ACC_USE_FF        (1'b1),
-        .ENABLE_RESCALE    (1'b0),
-        .ENABLE_PACKED_OUT (1'b0)
-    ) u_engine (
+    log8_int32_lazy_core #(
+        .NUM_LANES_P (NUM_LANES_P),
+        .ACC_DEPTH_P (ACC_DEPTH_P),
+        .PKT_W       (PKT_W),
+        .FRAC_BITS   (FRAC_BITS),
+        .ACC_USE_FF  (1'b1)
+    ) u_core (
         .clk                 (clk),
         .reset_n             (reset_n),
         .lane_valid_in       (lane_valid_in),
@@ -45,14 +43,8 @@ module cfg4_log8_int32_lazy_ff #(
         .tile_drain_req      (tile_drain_req),
         .tile_drain_acc_idx  (tile_drain_acc_idx),
         .tile_clear_on_drain (tile_clear_on_drain),
-        .acc_rescale_req     (1'b0),
-        .resc_q              (8'sd0),
-        .resc_r              (3'd0),
-        .raw_drained_word    (),
-        .raw_drained_valid   (),
-        .core_vec_out        (out_fp16_vec),
-        .core_vec_packed     (),
-        .core_vec_valid      (out_valid)
+        .out_fp16_vec        (out_fp16_vec),
+        .out_valid           (out_valid)
     );
 
 endmodule
