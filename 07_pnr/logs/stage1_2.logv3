@@ -1,0 +1,1467 @@
+[11/23 05:38:29     0s] 
+[11/23 05:38:29     0s] Cadence Innovus(TM) Implementation System.
+[11/23 05:38:29     0s] Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+[11/23 05:38:29     0s] 
+[11/23 05:38:29     0s] Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+[11/23 05:38:29     0s] Options:	-no_gui -init run_stage1_2.tcl -log logs/stage1_2 
+[11/23 05:38:29     0s] Date:		Mon Nov 23 05:38:29 2026
+[11/23 05:38:29     0s] Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+[11/23 05:38:29     0s] OS:		CentOS release 6.10 (Final)
+[11/23 05:38:29     0s] 
+[11/23 05:38:29     0s] License:
+[11/23 05:38:29     0s] 		invs	Innovus Implementation System	15.2	checkout succeeded
+[11/23 05:38:29     0s] 		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+[11/23 05:38:33     4s] @(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+[11/23 05:38:33     4s] @(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+[11/23 05:38:33     4s] @(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+[11/23 05:38:33     4s] @(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+[11/23 05:38:33     4s] @(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+[11/23 05:38:33     4s] @(#)CDS: CPE v15.20-p002
+[11/23 05:38:33     4s] @(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+[11/23 05:38:33     4s] @(#)CDS: OA 22.50-p028 Thu Jul 23 14:59:57 2015
+[11/23 05:38:33     4s] @(#)CDS: SGN 10.10-p124 (19-Aug-2014) (64 bit executable)
+[11/23 05:38:33     4s] @(#)CDS: RCDB 11.6
+[11/23 05:38:33     4s] --- Running on EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB) ---
+[11/23 05:38:33     4s] Create and set the environment variable TMPDIR to /tmp/innovus_temp_40078_EDAServer_ICer_5qHUuV.
+
+[11/23 05:38:33     4s] 
+[11/23 05:38:33     4s] **INFO:  MMMC transition support version v31-84 
+[11/23 05:38:33     4s] 
+[11/23 05:38:33     4s] <CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+[11/23 05:38:33     4s] <CMD> suppressMessage ENCEXT-2799
+[11/23 05:38:33     4s] <CMD> getVersion
+[11/23 05:38:33     4s] <CMD> getVersion
+[11/23 05:38:33     4s] Sourcing file "run_stage1_2.tcl" ...
+[11/23 05:38:33     4s] <CMD> setMultiCpuUsage -localCpu 8
+[11/23 05:38:33     4s] <CMD> setLibraryUnit -time 1ps -cap 1ff
+[11/23 05:38:33     4s] <CMD> set init_verilog /home/ICer/sys_syn/output_netlist_bu/snax_llm_top_clean.v
+[11/23 05:38:33     4s] <CMD> set init_top_cell snax_llm_top_clean
+[11/23 05:38:33     4s] <CMD> set init_lef_file {/home/ICer/sys_pnr/lef_fixed/asap7_tech_4x_201209.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef /home/ICer/sys_pnr/lef_fixed/srambank_256x4x72_6t122.lef.4x.lef}
+[11/23 05:38:33     4s] <CMD> set init_mmmc_file /home/ICer/sys_pnr/mmmc.tcl
+[11/23 05:38:33     4s] <CMD> set init_pwr_net VDD
+[11/23 05:38:33     4s] <CMD> set init_gnd_net VSS
+[11/23 05:38:33     4s] <CMD> init_design
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] Loading LEF file /home/ICer/sys_pnr/lef_fixed/asap7_tech_4x_201209.lef ...
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef ...
+[11/23 05:38:34     4s] Set DBUPerIGU to M1 pitch 576.
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef ...
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef ...
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] Loading LEF file /home/ICer/sys_pnr/lef_fixed/srambank_256x4x72_6t122.lef.4x.lef ...
+[11/23 05:38:34     4s] 
+[11/23 05:38:34     4s] viaInitial starts at Mon Nov 23 05:38:34 2026
+viaInitial ends at Mon Nov 23 05:38:34 2026
+Loading view definition file from /home/ICer/sys_pnr/mmmc.tcl
+[11/23 05:38:34     4s] Starting library reading in 'Multi-threaded flow' (with '8' threads)
+[11/23 05:38:35    11s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'A2O1A1Ixp33_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'A2O1A1O1Ixp25_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] Read 42 cells in  asap7sc7p5t_AO_RVT_TT_nldm_211120.
+[11/23 05:38:35    11s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx10_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12f_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx16f_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx24_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx3_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx2_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx4f_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx4_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx5_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] Read 37 cells in  asap7sc7p5t_INVBUF_RVT_TT_nldm_211120.
+[11/23 05:38:35    11s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'O2A1O1Ixp33_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] Read 34 cells in  asap7sc7p5t_OA_RVT_TT_nldm_211120.
+[11/23 05:38:35    11s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'QN' of cell 'DFFHQNx1_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'QN' of cell 'DFFASRHQNx1_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'QN' of cell 'DFFHQNx2_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] Read 33 cells in  asap7sc7p5t_SEQ_RVT_TT_nldm_220123.
+[11/23 05:38:35    11s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x4_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x2_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x6_ASAP7_75t_R' is not defined in the library.
+[11/23 05:38:35    11s] Message <TECHLIB-436> has exceeded the message display limit of '20'. setMessageLimit/set_message_limit sets the limit. unsetMessageLimit/unset_message_limit can be used to reset this.
+[11/23 05:38:35    11s] Read 56 cells in  asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_LVT_TT_nldm_211120.lib.
+[11/23 05:38:35    12s] Read 42 cells in  asap7sc7p5t_AO_LVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib.
+[11/23 05:38:35    12s] **WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx10_ASAP7_75t_L' is not defined in the library.
+[11/23 05:38:35    12s] Read 37 cells in  asap7sc7p5t_INVBUF_LVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_LVT_TT_nldm_211120.lib.
+[11/23 05:38:35    12s] Read 34 cells in  asap7sc7p5t_OA_LVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib.
+[11/23 05:38:35    12s] Read 33 cells in  asap7sc7p5t_SEQ_LVT_TT_nldm_220123.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib.
+[11/23 05:38:35    12s] Read 56 cells in  asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib.
+[11/23 05:38:35    12s] Read 42 cells in  asap7sc7p5t_AO_SLVT_TT_nldm_211120.
+[11/23 05:38:35    12s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib.
+[11/23 05:38:35    12s] Read 37 cells in  asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120.
+[11/23 05:38:35    13s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib.
+[11/23 05:38:35    13s] Read 34 cells in  asap7sc7p5t_OA_SLVT_TT_nldm_211120.
+[11/23 05:38:35    13s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib.
+[11/23 05:38:35    13s] Read 33 cells in  asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.
+[11/23 05:38:35    13s] Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib.
+[11/23 05:38:35    13s] Read 56 cells in  asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.
+[11/23 05:38:35    13s] Reading asap7_tt_libs timing library /home/ICer/sys_syn/sram_lib/srambank_256x4x72_6t122.lib.
+[11/23 05:38:35    13s] Read 1 cells in  srambank_256x4x72_6t122.
+[11/23 05:38:35    13s] Library reading multithread flow ended.
+[11/23 05:38:35    13s] *** End library_loading (cpu=0.00min, mem=0.0M, fe_cpu=0.22min, fe_real=0.10min, fe_mem=646.8M) ***
+[11/23 05:38:35    13s] *** Begin netlist parsing (mem=646.8M) ***
+[11/23 05:38:35    13s] **WARN: (IMPVL-536):	The PG type of pin 'VSS' of cell 'srambank_256x4x72_6t122' doesn't match between the timing library and LEF file. In the timing library the pin is defined as 'ground' pin, but in LEF file it is defined as 'power' pin. Check the library data and make the update accordingly.
+[11/23 05:38:35    13s] **WARN: (IMPVL-159):	Pin 'sdel[0]' of cell 'srambank_256x4x72_6t122' is defined in LEF but not in the timing library.
+[11/23 05:38:35    13s] **WARN: (IMPVL-159):	Pin 'sdel[1]' of cell 'srambank_256x4x72_6t122' is defined in LEF but not in the timing library.
+[11/23 05:38:35    13s] **WARN: (IMPVL-159):	Pin 'sdel[2]' of cell 'srambank_256x4x72_6t122' is defined in LEF but not in the timing library.
+[11/23 05:38:35    13s] **WARN: (IMPVL-159):	Pin 'sdel[3]' of cell 'srambank_256x4x72_6t122' is defined in LEF but not in the timing library.
+[11/23 05:38:35    13s] **WARN: (IMPVL-159):	Pin 'sdel[4]' of cell 'srambank_256x4x72_6t122' is defined in LEF but not in the timing library.
+[11/23 05:38:35    13s] Created 607 new cells from 16 timing libraries.
+[11/23 05:38:35    13s] Reading netlist ...
+[11/23 05:38:35    13s] Backslashed names will retain backslash and a trailing blank character.
+[11/23 05:38:36    13s] Reading verilog netlist '/home/ICer/sys_syn/output_netlist_bu/snax_llm_top_clean.v'
+[11/23 05:38:37    15s] 
+[11/23 05:38:37    15s] *** Memory Usage v#1 (Current mem = 882.812M, initial mem = 164.594M) ***
+[11/23 05:38:37    15s] *** End netlist parsing (cpu=0:00:01.9, real=0:00:02.0, mem=882.8M) ***
+[11/23 05:38:37    15s] Set top cell to snax_llm_top_clean.
+[11/23 05:38:37    15s] **WARN: (IMPTS-124):	Timing library description of pin 'sdel[4]' is missing from cell 'srambank_256x4x72_6t122' in timing library 'srambank_256x4x72_6t122'.
+[11/23 05:38:37    15s] **WARN: (IMPTS-124):	Timing library description of pin 'sdel[3]' is missing from cell 'srambank_256x4x72_6t122' in timing library 'srambank_256x4x72_6t122'.
+[11/23 05:38:37    15s] **WARN: (IMPTS-124):	Timing library description of pin 'sdel[2]' is missing from cell 'srambank_256x4x72_6t122' in timing library 'srambank_256x4x72_6t122'.
+[11/23 05:38:37    15s] **WARN: (IMPTS-124):	Timing library description of pin 'sdel[1]' is missing from cell 'srambank_256x4x72_6t122' in timing library 'srambank_256x4x72_6t122'.
+[11/23 05:38:37    15s] **WARN: (IMPTS-124):	Timing library description of pin 'sdel[0]' is missing from cell 'srambank_256x4x72_6t122' in timing library 'srambank_256x4x72_6t122'.
+[11/23 05:38:37    15s] Hooked 607 DB cells to tlib cells.
+[11/23 05:38:37    15s] Starting recursive module instantiation check.
+[11/23 05:38:37    15s] No recursion found.
+[11/23 05:38:37    15s] Building hierarchical netlist for Cell snax_llm_top_clean ...
+[11/23 05:38:38    16s] *** Netlist is unique.
+[11/23 05:38:38    16s] Set DBUPerIGU to techSite asap7sc7p5t width 864.
+[11/23 05:38:38    16s] ** info: there are 11061 modules.
+[11/23 05:38:38    16s] ** info: there are 366217 stdCell insts.
+[11/23 05:38:38    16s] ** info: there are 32 macros.
+[11/23 05:38:38    16s] 
+[11/23 05:38:38    16s] *** Memory Usage v#1 (Current mem = 1149.562M, initial mem = 164.594M) ***
+[11/23 05:38:38    17s] Set Default Net Delay as 1000 ps.
+[11/23 05:38:38    17s] Set Default Net Load as 0.5 pF. 
+[11/23 05:38:38    17s] Set Default Input Pin Transition as 0.1 ps.
+[11/23 05:38:38    17s] Initializing multi-corner RC extraction with 1 active RC Corners ...
+[11/23 05:38:38    17s] Captable file(s) not specified in multi-corner setup. PreRoute extraction will use technology file. For postRoute extraction, default value for effort level would be 'medium' and effort level 'low' would not be allowed.
+[11/23 05:38:39    17s] Importing multi-corner technology file(s) for preRoute extraction...
+[11/23 05:38:39    17s] /mnt/hgfs/NPU_LOG/lib/ASAP7/qrc/qrcTechFile_typ03_scaled4xV06
+[11/23 05:38:41    19s] Completed (cpu: 0:00:02.5 real: 0:00:03.0)
+[11/23 05:38:41    19s] Set Shrink Factor to 1.00000
+[11/23 05:38:41    19s] Summary of Active RC-Corners : 
+[11/23 05:38:41    19s]  
+[11/23 05:38:41    19s]  Analysis View: view_func_tt
+[11/23 05:38:41    19s]     RC-Corner Name        : rc_typ
+[11/23 05:38:41    19s]     RC-Corner Index       : 0
+[11/23 05:38:41    19s]     RC-Corner Temperature : 25 Celsius
+[11/23 05:38:41    19s]     RC-Corner Cap Table   : ''
+[11/23 05:38:41    19s]     RC-Corner PreRoute Res Factor         : 1
+[11/23 05:38:41    19s]     RC-Corner PreRoute Cap Factor         : 1
+[11/23 05:38:41    19s]     RC-Corner PostRoute Res Factor        : 1 {1 1 1}
+[11/23 05:38:41    19s]     RC-Corner PostRoute Cap Factor        : 1 {1 1 1}
+[11/23 05:38:41    19s]     RC-Corner PostRoute XCap Factor       : 1 {1 1 1}
+[11/23 05:38:41    19s]     RC-Corner PreRoute Clock Res Factor   : 1	[Derived from postRoute_res (effortLevel low)]
+[11/23 05:38:41    19s]     RC-Corner PreRoute Clock Cap Factor   : 1	[Derived from postRoute_cap (effortLevel low)]
+[11/23 05:38:41    19s]     RC-Corner PostRoute Clock Cap Factor  : 1 {1 1 1} 	[Derived from postRoute_cap (effortLevel low)]
+[11/23 05:38:41    19s]     RC-Corner PostRoute Clock Res Factor  : 1 {1 1 1} 	[Derived from postRoute_res (effortLevel low)]
+[11/23 05:38:41    19s]     RC-Corner Technology file: '/mnt/hgfs/NPU_LOG/lib/ASAP7/qrc/qrcTechFile_typ03_scaled4xV06'
+[11/23 05:38:41    20s] Default value for postRoute extraction mode's effortLevel (-effortLevel option of setExtractRCMode) changed to 'medium'.
+[11/23 05:38:41    20s] *Info: initialize multi-corner CTS.
+[11/23 05:38:41    20s] Reading timing constraints file '/home/ICer/sys_pnr/snax_500mhz.sdc' ...
+[11/23 05:38:41    20s] Current (total cpu=0:00:19.9, real=0:00:12.0, peak res=898.2M, current mem=1295.0M)
+[11/23 05:38:41    20s] Multithreaded Timing Analysis is initialized with 8 threads
+[11/23 05:38:41    20s]  (File /home/ICer/sys_pnr/snax_500mhz.sdc, Line 113).
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] Number of path exceptions in the constraint file = 3
+[11/23 05:38:41    20s] Number of paths exceptions after getting compressed = 3
+[11/23 05:38:41    20s] INFO (CTE): Constraints read successfully.
+[11/23 05:38:41    20s] WARNING (CTE-25): Line: 8 of File /home/ICer/sys_pnr/snax_500mhz.sdc : Skipped unsupported command: set_units
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] Ending "Constraint file reading stats" (total cpu=0:00:00.4, real=0:00:00.0, peak res=968.5M, current mem=1409.1M)
+[11/23 05:38:41    20s] Current (total cpu=0:00:20.3, real=0:00:12.0, peak res=968.5M, current mem=1409.1M)
+[11/23 05:38:41    20s] Summary for sequential cells idenfication: 
+[11/23 05:38:41    20s] Identified SBFF number: 51
+[11/23 05:38:41    20s] Identified MBFF number: 0
+[11/23 05:38:41    20s] Not identified SBFF number: 0
+[11/23 05:38:41    20s] Not identified MBFF number: 0
+[11/23 05:38:41    20s] Number of sequential cells which are not FFs: 48
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] Total number of combinational cells: 501
+[11/23 05:38:41    20s] Total number of sequential cells: 99
+[11/23 05:38:41    20s] Total number of tristate cells: 0
+[11/23 05:38:41    20s] Total number of level shifter cells: 0
+[11/23 05:38:41    20s] Total number of power gating cells: 0
+[11/23 05:38:41    20s] Total number of isolation cells: 0
+[11/23 05:38:41    20s] Total number of power switch cells: 0
+[11/23 05:38:41    20s] Total number of pulse generator cells: 0
+[11/23 05:38:41    20s] Total number of always on buffers: 0
+[11/23 05:38:41    20s] Total number of retention cells: 0
+[11/23 05:38:41    20s] List of usable buffers: BUFx10_ASAP7_75t_SL BUFx12_ASAP7_75t_SL BUFx12f_ASAP7_75t_SL BUFx16f_ASAP7_75t_SL BUFx24_ASAP7_75t_SL BUFx2_ASAP7_75t_SL BUFx3_ASAP7_75t_SL BUFx4_ASAP7_75t_SL BUFx5_ASAP7_75t_SL BUFx4f_ASAP7_75t_SL BUFx6f_ASAP7_75t_SL BUFx8_ASAP7_75t_SL HB1xp67_ASAP7_75t_SL HB2xp67_ASAP7_75t_SL BUFx10_ASAP7_75t_L BUFx12_ASAP7_75t_L BUFx12f_ASAP7_75t_L BUFx16f_ASAP7_75t_L BUFx24_ASAP7_75t_L BUFx2_ASAP7_75t_L BUFx3_ASAP7_75t_L BUFx4_ASAP7_75t_L BUFx5_ASAP7_75t_L BUFx4f_ASAP7_75t_L BUFx6f_ASAP7_75t_L BUFx8_ASAP7_75t_L HB1xp67_ASAP7_75t_L HB2xp67_ASAP7_75t_L BUFx10_ASAP7_75t_R BUFx12f_ASAP7_75t_R BUFx16f_ASAP7_75t_R BUFx2_ASAP7_75t_R BUFx3_ASAP7_75t_R BUFx5_ASAP7_75t_R BUFx4f_ASAP7_75t_R BUFx6f_ASAP7_75t_R HB1xp67_ASAP7_75t_R
+[11/23 05:38:41    20s] Total number of usable buffers: 37
+[11/23 05:38:41    20s] List of unusable buffers:
+[11/23 05:38:41    20s] Total number of unusable buffers: 0
+[11/23 05:38:41    20s] List of usable inverters: CKINVDCx10_ASAP7_75t_SL CKINVDCx12_ASAP7_75t_SL CKINVDCx11_ASAP7_75t_SL CKINVDCx14_ASAP7_75t_SL CKINVDCx16_ASAP7_75t_SL CKINVDCx20_ASAP7_75t_SL CKINVDCx8_ASAP7_75t_SL CKINVDCx5p33_ASAP7_75t_SL CKINVDCx6p67_ASAP7_75t_SL CKINVDCx9p33_ASAP7_75t_SL INVx11_ASAP7_75t_SL INVx13_ASAP7_75t_SL INVx1_ASAP7_75t_SL INVx2_ASAP7_75t_SL INVx3_ASAP7_75t_SL INVx4_ASAP7_75t_SL INVx5_ASAP7_75t_SL INVx6_ASAP7_75t_SL INVx8_ASAP7_75t_SL INVxp67_ASAP7_75t_SL INVxp33_ASAP7_75t_SL CKINVDCx10_ASAP7_75t_L CKINVDCx12_ASAP7_75t_L CKINVDCx11_ASAP7_75t_L CKINVDCx14_ASAP7_75t_L CKINVDCx16_ASAP7_75t_L CKINVDCx20_ASAP7_75t_L CKINVDCx8_ASAP7_75t_L CKINVDCx5p33_ASAP7_75t_L CKINVDCx6p67_ASAP7_75t_L CKINVDCx9p33_ASAP7_75t_L INVx11_ASAP7_75t_L INVx13_ASAP7_75t_L INVx1_ASAP7_75t_L INVx2_ASAP7_75t_L INVx3_ASAP7_75t_L INVx4_ASAP7_75t_L INVx5_ASAP7_75t_L INVx6_ASAP7_75t_L INVx8_ASAP7_75t_L INVxp67_ASAP7_75t_L INVxp33_ASAP7_75t_L CKINVDCx10_ASAP7_75t_R CKINVDCx12_ASAP7_75t_R CKINVDCx11_ASAP7_75t_R CKINVDCx14_ASAP7_75t_R CKINVDCx16_ASAP7_75t_R CKINVDCx20_ASAP7_75t_R CKINVDCx8_ASAP7_75t_R CKINVDCx5p33_ASAP7_75t_R CKINVDCx6p67_ASAP7_75t_R CKINVDCx9p33_ASAP7_75t_R INVx11_ASAP7_75t_R INVx13_ASAP7_75t_R INVx1_ASAP7_75t_R INVx2_ASAP7_75t_R INVx3_ASAP7_75t_R INVx4_ASAP7_75t_R INVx5_ASAP7_75t_R INVx6_ASAP7_75t_R INVx8_ASAP7_75t_R INVxp67_ASAP7_75t_R INVxp33_ASAP7_75t_R
+[11/23 05:38:41    20s] Total number of usable inverters: 63
+[11/23 05:38:41    20s] List of unusable inverters:
+[11/23 05:38:41    20s] Total number of unusable inverters: 0
+[11/23 05:38:41    20s] List of identified usable delay cells: HB3xp67_ASAP7_75t_SL HB4xp67_ASAP7_75t_SL HB3xp67_ASAP7_75t_L HB4xp67_ASAP7_75t_L BUFx12_ASAP7_75t_R BUFx24_ASAP7_75t_R BUFx4_ASAP7_75t_R BUFx8_ASAP7_75t_R HB2xp67_ASAP7_75t_R HB3xp67_ASAP7_75t_R HB4xp67_ASAP7_75t_R
+[11/23 05:38:41    20s] Total number of identified usable delay cells: 11
+[11/23 05:38:41    20s] List of identified unusable delay cells:
+[11/23 05:38:41    20s] Total number of identified unusable delay cells: 0
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] *** Summary of all messages that are not suppressed in this session:
+[11/23 05:38:41    20s] Severity  ID               Count  Summary                                  
+[11/23 05:38:41    20s] WARNING   IMPTS-124            5  Timing library description of pin '%s' i...
+[11/23 05:38:41    20s] WARNING   IMPVL-536            1  The PG type of pin '%s' of cell '%s' doe...
+[11/23 05:38:41    20s] WARNING   IMPVL-159            5  Pin '%s' of cell '%s' is defined in LEF ...
+[11/23 05:38:41    20s] *** Message Summary: 11 warning(s), 0 error(s)
+[11/23 05:38:41    20s] 
+[11/23 05:38:41    20s] <CMD> globalNetConnect VDD -type pgpin -pin VDD -inst * -module {}
+[11/23 05:38:42    20s] <CMD> globalNetConnect VSS -type pgpin -pin VSS -inst * -module {}
+[11/23 05:38:42    20s] <CMD> floorPlan -site asap7sc7p5t -s 2484.0 2246.4 10.8 10.8 10.8 10.8
+[11/23 05:38:42    20s] **WARN: (IMPFP-325):	Floorplan of the design is resized. All current floorplan objects are automatically derived based on specified new floorplan. This may change blocks, fixed standard cells, existing routes and blockages.
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro 2362.608 421.2 MY -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro 2362.608 793.8 MY -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro 2362.608 1166.4 MY -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro 2362.608 1539.0 MY -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro 425.088 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro 561.168 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro 697.248 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro 833.328 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro 969.408 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro 1105.488 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro 1241.568 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro 1377.648 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro 1513.728 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro 1649.808 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro 1785.888 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro 1921.968 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro 2058.048 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro 2194.128 1911.6 R0 -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro 425.088 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro 561.168 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_20__u_bank/u_sram_macro 697.248 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_21__u_bank/u_sram_macro 833.328 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_22__u_bank/u_sram_macro 969.408 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_23__u_bank/u_sram_macro 1105.488 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_24__u_bank/u_sram_macro 1241.568 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_25__u_bank/u_sram_macro 1377.648 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_26__u_bank/u_sram_macro 1513.728 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_27__u_bank/u_sram_macro 1649.808 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_28__u_bank/u_sram_macro 1785.888 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_29__u_bank/u_sram_macro 1921.968 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_30__u_bank/u_sram_macro 2058.048 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> placeInstance u_tcdm/GEN_BANKS_31__u_bank/u_sram_macro 2194.128 10.8 MX -fixed
+[11/23 05:38:42    22s] <CMD> addHaloToBlock {4.32 4.32 4.32 4.32} -allMacro
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {546.48 1911.6 561.168 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {546.48 10.8 561.168 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {682.56 1911.6 697.248 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {682.56 10.8 697.248 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {818.64 1911.6 833.328 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {818.64 10.8 833.328 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {954.72 1911.6 969.408 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {954.72 10.8 969.408 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1090.8 1911.6 1105.488 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1090.8 10.8 1105.488 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1226.88 1911.6 1241.568 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1226.88 10.8 1241.568 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1362.96 1911.6 1377.648 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1362.96 10.8 1377.648 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1499.04 1911.6 1513.728 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1499.04 10.8 1513.728 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1635.12 1911.6 1649.808 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1635.12 10.8 1649.808 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1771.2 1911.6 1785.888 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1771.2 10.8 1785.888 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1907.28 1911.6 1921.968 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {1907.28 10.8 1921.968 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2043.36 1911.6 2058.048 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2043.36 10.8 2058.048 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2179.44 1911.6 2194.128 2257.2}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2179.44 10.8 2194.128 356.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2362.608 766.8 2484.0 793.8}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2362.608 1139.4 2484.0 1166.4}
+[11/23 05:38:42    22s] <CMD> createPlaceBlockage -type hard -box {2362.608 1512.0 2484.0 1539.0}
+[11/23 05:38:42    22s] <CMD> createGuide u_interconnect 1050.0 420.0 2320.0 1850.0
+[11/23 05:38:42    22s] <CMD> createGuide u_core 180.0 420.0 1040.0 1750.0
+[11/23 05:38:42    22s] <CMD> createGuide u_sfu 60.0 1760.0 410.0 2230.0
+[11/23 05:38:42    22s] <CMD> createGuide u_seq 60.0 30.0 410.0 410.0
+[11/23 05:38:42    22s] <CMD> createGuide u_csr 20.0 800.0 170.0 1400.0
+[11/23 05:38:42    22s] <CMD> add_tracks -honor_pitch
+[11/23 05:38:42    22s] <CMD> setPinAssignMode -pinEditInBatch true
+[11/23 05:38:42    22s] <CMD> editPin -pin * -side LEFT -layer M4 -spreadType SIDE -snap TRACK -fixOverlap 1
+[11/23 05:38:42    22s] **WARN: (IMPTR-2104):	Layer M10: Pitch=1280 is less than min width=640 + min spacing=32000.
+[11/23 05:38:42    22s] Temporarily expand pitch on layer M10 from 1280 to 11520 (9x).
+[11/23 05:38:42    22s] **ERROR: (IMPTR-2101):	Layer M10: Pitch=11520x9 is still less than min width=32000 + min spacing=640.
+[11/23 05:38:42    22s] **WARN: (IMPTR-2108):	For layer M10, the gaps of 7086 out of 7086 tracks are narrower than 8.160um (space 8.000 + width 0.160).
+[11/23 05:38:42    22s] Type 'man IMPTR-2108' for more detail.
+[11/23 05:38:42    22s]  As a result, your trialRoute congestion could be incorrect.
+[11/23 05:38:42    22s] Successfully spread [1887] pins.
+[11/23 05:38:42    22s] editPin : finished (cpu = 0:00:00.0 real = 0:00:00.0, mem = 1520.9M).
+[11/23 05:38:42    22s] <CMD> setPinAssignMode -pinEditInBatch false
+[11/23 05:38:42    22s] <CMD> addWellTap -cell TAPCELL_ASAP7_75t_L -cellInterval 50 -inRowOffset 10.564
+[11/23 05:38:42    22s] #spOpts: VtWidth no_cmu 
+[11/23 05:38:42    22s] Core basic site is asap7sc7p5t
+[11/23 05:38:42    22s] Estimated cell power/ground rail width = 0.135 um
+[11/23 05:38:42    22s] Layer info - lib-1st H=2, V=3.  Cell-FPin=1. Top-pin=2
+[11/23 05:38:42    22s] **WARN: (IMPSP-5134):	Setting cellInterval to 49.896 (microns) as a multiple of cell TAPCELL_ASAP7_75t_L'sType 'man IMPSP-5134' for more detail.
+[11/23 05:38:42    22s] **WARN: (IMPSP-5134):	Setting inRowOffset to 10.368 (microns) as a multiple of cell TAPCELL_ASAP7_75t_L'sType 'man IMPSP-5134' for more detail.
+[11/23 05:38:43    22s] For 79482 new insts, *** Applied 2 GNC rules (cpu = 0:00:00.0)
+[11/23 05:38:43    23s] Inserted 79482 well-taps <TAPCELL_ASAP7_75t_L> cells (prefix WELLTAP).
+[11/23 05:38:43    23s] <CMD> checkFPlan -outFile reports/01_fplan.rpt
+[11/23 05:38:43    23s] Checking routing tracks.....
+[11/23 05:38:43    23s] Checking other grids.....
+[11/23 05:38:43    23s] Checking routing blockage.....
+[11/23 05:38:43    23s] Checking components.....
+[11/23 05:38:43    23s] Checking IO Pins.....
+[11/23 05:38:43    23s] Floating/Unconnected IO Pins = 234 
+[11/23 05:38:43    23s] Checking constraints (guide/region/fence).....
+[11/23 05:38:43    23s] Checking groups.....
+[11/23 05:38:43    23s] 
+[11/23 05:38:43    23s] Checking Ptn Pins .....
+[11/23 05:38:43    23s] Checking Ptn Core Box.....
+[11/23 05:38:43    23s] 
+[11/23 05:38:43    23s] Checking Preroutes.....
+[11/23 05:38:43    23s] No. of regular pre-routes not on tracks : 0 
+[11/23 05:38:43    23s]  <CMD> saveDesign out/01_fplan.enc
+[11/23 05:38:43    23s] Writing Netlist "out/01_fplan.enc.dat.tmp/snax_llm_top_clean.v.gz" ...
+[11/23 05:38:45    24s] Saving AAE Data ...
+[11/23 05:38:45    24s] Saving preference file out/01_fplan.enc.dat.tmp/gui.pref.tcl ...
+[11/23 05:38:45    24s] Saving mode setting ...
+[11/23 05:38:45    24s] Saving global file ...
+[11/23 05:38:45    24s] Saving floorplan file ...
+[11/23 05:38:45    25s] Saving Drc markers ...
+[11/23 05:38:45    25s] ... No Drc file written since there is no markers found.
+[11/23 05:38:45    25s] Saving placement file ...
+[11/23 05:38:45    25s] *** Completed savePlace (cpu=0:00:00.2 real=0:00:00.0 mem=1665.4M) ***
+[11/23 05:38:45    25s] Saving route file ...
+[11/23 05:38:47    26s] *** Completed saveRoute (cpu=0:00:00.4 real=0:00:02.0 mem=1667.4M) ***
+[11/23 05:38:47    26s] Saving DEF file ...
+[11/23 05:38:47    26s] Saving preRoute extracted patterns in file 'out/01_fplan.enc.dat.tmp/snax_llm_top_clean.techData.gz' ...
+[11/23 05:38:47    26s] No integration constraint in the design.
+[11/23 05:38:48    27s] Generated self-contained design 01_fplan.enc.dat.tmp
+[11/23 05:38:48    27s] *** Message Summary: 0 warning(s), 0 error(s)
+[11/23 05:38:48    27s] 
+[11/23 05:38:48    27s] <CMD> setMultiCpuUsage -localCpu 8
+[11/23 05:38:48    27s] <CMD> sroute -connect { blockPin padPin padRing corePin floatingStripe } -layerChangeRange { M1 Pad } -blockPinTarget { nearestTarget } -padPinPortConnect { allPort oneGeom } -padPinTarget { nearestTarget } -corePinTarget { firstAfterRowEnd } -floatingStripeTarget { blockring padring ring stripe ringpin blockpin followpin } -allowJogging 1 -crossoverViaLayerRange { M1 Pad } -nets { VDD VSS } -allowLayerChange 1 -blockPin useLef -targetViaLayerRange { M1 }
+[11/23 05:38:48    27s] <CMD> setAddStripeMode -stacked_via_bottom_layer M1 -stacked_via_top_layer M2 -allow_nonpreferred_dir stripe
+[11/23 05:38:48    27s] Stripes will not use preferred direction when jogging to make target( stripe ) connections
+[11/23 05:38:48    27s] <CMD> setViaGenMode -ignore_viarule_enclosure true
+[11/23 05:38:48    27s] Setting -ignore_viarule_enclosure to 1. ViaGen will ignore enclosures defined in VIARULE GENERATE, but only use those defined in cut layer.
+[11/23 05:38:48    27s] <CMD> addStripe -direction horizontal -set_to_set_distance 2.16 -spacing 1.008 -ybottom_offset -0.036 -ytop_offset -0.036 -width 0.072 -nets {VDD VSS} -layer M2
+[11/23 05:38:48    27s] **WARN: (IMPPP-4022):	Option "-ybottom_offset" is obsolete and has been replaced by "-start_offset". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "-start_offset"..
+[11/23 05:38:48    27s] **WARN: (IMPPP-4022):	Option "-ytop_offset" is obsolete and has been replaced by "-stop_offset". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "-stop_offset"..
+[11/23 05:38:48    27s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:38:48    27s] 
+[11/23 05:38:48    27s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro' was increased to (425.088 1911.600) (546.500 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    27s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro' was increased to (561.168 1911.600) (682.580 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro' was increased to (697.248 1911.600) (818.660 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro' was increased to (833.328 1911.600) (954.740 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro' was increased to (969.408 1911.600) (1090.820 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro' was increased to (1105.488 1911.600) (1226.900 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro' was increased to (1241.568 1911.600) (1362.980 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro' was increased to (1377.648 1911.600) (1499.060 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro' was increased to (1513.728 1911.600) (1635.140 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro' was increased to (1649.808 1911.600) (1771.220 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro' was increased to (1785.888 1911.600) (1907.300 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro' was increased to (1921.968 1911.600) (2043.380 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro' was increased to (2058.048 1911.600) (2179.460 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro' was increased to (2194.128 1911.600) (2315.540 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro' was increased to (2362.588 421.200) (2484.000 766.800) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro' was increased to (2362.588 793.800) (2484.000 1139.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro' was increased to (2362.588 1166.400) (2484.000 1512.000) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro' was increased to (2362.588 1539.000) (2484.000 1884.600) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro' was increased to (425.088 10.800) (546.500 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro' was increased to (561.168 10.800) (682.580 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:48    28s] **WARN: (EMS-27):	Message (IMPPP-133) has exceeded the current message display limit of 20.
+[11/23 05:38:48    28s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:48    28s] Starting stripe generation ...
+[11/23 05:38:48    28s] Non-Default setAddStripeOption Settings :
+[11/23 05:38:48    28s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:38:48    28s] The core ring for VDD is incomplete. The core ring will not be used as a boundary for stripes. In this situation, the power planner will generate stripes only within the core area.
+[11/23 05:38:48    28s] The core ring for VSS is incomplete. The core ring will not be used as a boundary for stripes. In this situation, the power planner will generate stripes only within the core area.
+[11/23 05:38:48    28s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:49    29s] Stripe generation is complete; vias are now being generated.
+[11/23 05:38:49    29s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:49    30s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:49    31s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:50    32s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:50    33s] The power planner created 12289 wires.
+[11/23 05:38:50    33s] *** Ending Stripe Generation (totcpu: 0:00:01.1,real: 0:00:02.0, mem: 1632.9M) ***
+[11/23 05:38:50    33s] <CMD> addStripe -direction horizontal -set_to_set_distance 2.16 -spacing 1.008 -ybottom_offset -0.036 -ytop_offset -0.036 -width 0.072 -nets {VDD VSS} -layer M1
+[11/23 05:38:50    33s] **WARN: (IMPPP-4022):	Option "-ybottom_offset" is obsolete and has been replaced by "-start_offset". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "-start_offset"..
+[11/23 05:38:50    33s] **WARN: (IMPPP-4022):	Option "-ytop_offset" is obsolete and has been replaced by "-stop_offset". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "-stop_offset"..
+[11/23 05:38:50    33s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:38:50    33s] 
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro' was increased to (425.088 1911.600) (546.500 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro' was increased to (561.168 1911.600) (682.580 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro' was increased to (697.248 1911.600) (818.660 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro' was increased to (833.328 1911.600) (954.740 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro' was increased to (969.408 1911.600) (1090.820 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro' was increased to (1105.488 1911.600) (1226.900 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro' was increased to (1241.568 1911.600) (1362.980 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro' was increased to (1377.648 1911.600) (1499.060 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro' was increased to (1513.728 1911.600) (1635.140 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro' was increased to (1649.808 1911.600) (1771.220 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro' was increased to (1785.888 1911.600) (1907.300 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro' was increased to (1921.968 1911.600) (2043.380 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro' was increased to (2058.048 1911.600) (2179.460 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro' was increased to (2194.128 1911.600) (2315.540 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro' was increased to (2362.588 421.200) (2484.000 766.800) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro' was increased to (2362.588 793.800) (2484.000 1139.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro' was increased to (2362.588 1166.400) (2484.000 1512.000) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro' was increased to (2362.588 1539.000) (2484.000 1884.600) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro' was increased to (425.088 10.800) (546.500 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro' was increased to (561.168 10.800) (682.580 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:50    33s] **WARN: (EMS-27):	Message (IMPPP-133) has exceeded the current message display limit of 20.
+[11/23 05:38:50    33s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:50    33s] Starting stripe generation ...
+[11/23 05:38:50    33s] Non-Default setAddStripeOption Settings :
+[11/23 05:38:50    33s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:38:50    33s] The core ring for VDD is incomplete. The core ring will not be used as a boundary for stripes. In this situation, the power planner will generate stripes only within the core area.
+[11/23 05:38:50    33s] The core ring for VSS is incomplete. The core ring will not be used as a boundary for stripes. In this situation, the power planner will generate stripes only within the core area.
+[11/23 05:38:50    33s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:50    34s] Stripe generation is complete; vias are now being generated.
+[11/23 05:38:50    34s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 10.76) (2494.80, 10.84)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 19.40) (424.92, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 45.32) (424.92, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 45.32) (561.00, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 45.32) (697.08, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 28.04) (424.92, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 45.32) (833.16, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 45.32) (969.24, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 45.32) (1105.32, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 45.32) (1241.40, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 45.32) (1377.48, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 45.32) (1513.56, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 45.32) (1649.64, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 45.32) (1785.72, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 45.32) (1921.80, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 45.32) (2057.88, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 45.32) (2193.96, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 45.32) (2494.80, 45.40)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 79.88) (424.92, 79.96)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 79.88) (561.00, 79.96)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 79.88) (697.08, 79.96)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 79.88) (833.16, 79.96)
+[11/23 05:38:51    34s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    34s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 36.68) (424.92, 36.76)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 19.40) (561.00, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 19.40) (697.08, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 19.40) (833.16, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 19.40) (969.24, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 19.40) (1105.32, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 19.40) (1241.40, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 19.40) (1377.48, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 19.40) (1513.56, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 19.40) (1649.64, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 19.40) (1785.72, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 19.40) (1921.80, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 19.40) (2057.88, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 19.40) (2193.96, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 19.40) (2494.80, 19.48)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 53.96) (424.92, 54.04)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 53.96) (561.00, 54.04)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 53.96) (697.08, 54.04)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 53.96) (833.16, 54.04)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 53.96) (969.24, 54.04)
+[11/23 05:38:51    34s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    34s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 28.04) (561.00, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 28.04) (697.08, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 28.04) (833.16, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 28.04) (969.24, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 28.04) (1105.32, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 28.04) (1241.40, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 28.04) (1377.48, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 28.04) (1513.56, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 28.04) (1649.64, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 28.04) (1785.72, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 28.04) (1921.80, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 28.04) (2057.88, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 28.04) (2193.96, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 28.04) (2494.80, 28.12)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 62.60) (424.92, 62.68)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 62.60) (561.00, 62.68)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 62.60) (697.08, 62.68)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 62.60) (833.16, 62.68)
+[11/23 05:38:51    34s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 62.60) (969.24, 62.68)
+[11/23 05:38:51    34s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    34s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 36.68) (561.00, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 36.68) (697.08, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 36.68) (833.16, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 36.68) (969.24, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 36.68) (1105.32, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 36.68) (1241.40, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 36.68) (1377.48, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 36.68) (1513.56, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 36.68) (1649.64, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 36.68) (1785.72, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 36.68) (1921.80, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 36.68) (2057.88, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 36.68) (2193.96, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 36.68) (2494.80, 36.76)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 71.24) (424.92, 71.32)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 71.24) (561.00, 71.32)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 71.24) (697.08, 71.32)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 71.24) (833.16, 71.32)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 71.24) (969.24, 71.32)
+[11/23 05:38:51    35s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    35s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    35s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 12.92) (424.92, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 21.56) (424.92, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 12.92) (561.00, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 12.92) (697.08, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 12.92) (833.16, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 12.92) (969.24, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 12.92) (1105.32, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 12.92) (1241.40, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 12.92) (1377.48, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 12.92) (1513.56, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 12.92) (1649.64, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 12.92) (1785.72, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 12.92) (1921.80, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 12.92) (2057.88, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 12.92) (2193.96, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 12.92) (2494.80, 13.00)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 47.48) (424.92, 47.56)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 47.48) (561.00, 47.56)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 47.48) (697.08, 47.56)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 47.48) (833.16, 47.56)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 47.48) (969.24, 47.56)
+[11/23 05:38:51    35s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    35s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 30.20) (424.92, 30.28)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 21.56) (561.00, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 21.56) (697.08, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 21.56) (833.16, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 21.56) (969.24, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 21.56) (1105.32, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 21.56) (1241.40, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 21.56) (1377.48, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 21.56) (1513.56, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 21.56) (1649.64, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 21.56) (1785.72, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 21.56) (1921.80, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 21.56) (2057.88, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 21.56) (2193.96, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 21.56) (2494.80, 21.64)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 56.12) (424.92, 56.20)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 56.12) (561.00, 56.20)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 56.12) (697.08, 56.20)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 56.12) (833.16, 56.20)
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 56.12) (969.24, 56.20)
+[11/23 05:38:51    35s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    35s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    35s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 38.84) (424.92, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 30.20) (561.00, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 30.20) (697.08, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 30.20) (833.16, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 30.20) (969.24, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 30.20) (1105.32, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 30.20) (1241.40, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 30.20) (1377.48, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 30.20) (1513.56, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 30.20) (1649.64, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 30.20) (1785.72, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 30.20) (1921.80, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 30.20) (2057.88, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 30.20) (2193.96, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 30.20) (2494.80, 30.28)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 64.76) (424.92, 64.84)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 64.76) (561.00, 64.84)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 64.76) (697.08, 64.84)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 64.76) (833.16, 64.84)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 64.76) (969.24, 64.84)
+[11/23 05:38:51    36s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    36s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 38.84) (561.00, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 38.84) (697.08, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 38.84) (833.16, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 38.84) (969.24, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 38.84) (1105.32, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 38.84) (1241.40, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 38.84) (1377.48, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 38.84) (1513.56, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 38.84) (1649.64, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 38.84) (1785.72, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 38.84) (1921.80, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 38.84) (2057.88, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 38.84) (2193.96, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 38.84) (2494.80, 38.92)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 73.40) (424.92, 73.48)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 73.40) (561.00, 73.48)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 73.40) (697.08, 73.48)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 73.40) (833.16, 73.48)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 73.40) (969.24, 73.48)
+[11/23 05:38:51    36s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    36s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    36s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 23.72) (424.92, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 15.08) (424.92, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 15.08) (561.00, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 15.08) (697.08, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 15.08) (833.16, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 15.08) (969.24, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 15.08) (1105.32, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 15.08) (1241.40, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 15.08) (1377.48, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 15.08) (1513.56, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 15.08) (1649.64, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 15.08) (1785.72, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 15.08) (1921.80, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 15.08) (2057.88, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 15.08) (2193.96, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 15.08) (2494.80, 15.16)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 49.64) (424.92, 49.72)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 49.64) (561.00, 49.72)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 49.64) (697.08, 49.72)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 49.64) (833.16, 49.72)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 49.64) (969.24, 49.72)
+[11/23 05:38:51    36s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    36s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 23.72) (561.00, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 23.72) (697.08, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 23.72) (833.16, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 23.72) (969.24, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 23.72) (1105.32, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 23.72) (1241.40, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 23.72) (1377.48, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 23.72) (1513.56, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 23.72) (1649.64, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 23.72) (1785.72, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 23.72) (1921.80, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 23.72) (2057.88, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 23.72) (2193.96, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 23.72) (2494.80, 23.80)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 58.28) (424.92, 58.36)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 58.28) (561.00, 58.36)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 58.28) (697.08, 58.36)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 58.28) (833.16, 58.36)
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 58.28) (969.24, 58.36)
+[11/23 05:38:51    36s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    36s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    36s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 32.36) (424.92, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 41.00) (424.92, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 32.36) (561.00, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 32.36) (697.08, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 32.36) (833.16, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 32.36) (969.24, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 32.36) (1105.32, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 32.36) (1241.40, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 32.36) (1377.48, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 32.36) (1513.56, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 32.36) (1649.64, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 32.36) (1785.72, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 32.36) (1921.80, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 32.36) (2057.88, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 32.36) (2193.96, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 32.36) (2494.80, 32.44)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 66.92) (424.92, 67.00)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 66.92) (561.00, 67.00)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 66.92) (697.08, 67.00)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 66.92) (833.16, 67.00)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 66.92) (969.24, 67.00)
+[11/23 05:38:51    37s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    37s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 41.00) (561.00, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 41.00) (697.08, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 41.00) (833.16, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 41.00) (969.24, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 41.00) (1105.32, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 41.00) (1241.40, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 41.00) (1377.48, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 41.00) (1513.56, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 41.00) (1649.64, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 41.00) (1785.72, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 41.00) (1921.80, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 41.00) (2057.88, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 41.00) (2193.96, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 41.00) (2494.80, 41.08)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 75.56) (424.92, 75.64)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 75.56) (561.00, 75.64)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 75.56) (697.08, 75.64)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 75.56) (833.16, 75.64)
+[11/23 05:38:51    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 75.56) (969.24, 75.64)
+[11/23 05:38:51    37s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:51    37s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:51    37s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 17.24) (424.92, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 25.88) (424.92, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 17.24) (561.00, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 17.24) (697.08, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 17.24) (833.16, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 17.24) (969.24, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 17.24) (1105.32, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 17.24) (1241.40, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 17.24) (1377.48, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 17.24) (1513.56, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 17.24) (1649.64, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 17.24) (1785.72, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 17.24) (1921.80, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 17.24) (2057.88, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 17.24) (2193.96, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 17.24) (2494.80, 17.32)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 51.80) (424.92, 51.88)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 51.80) (561.00, 51.88)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 51.80) (697.08, 51.88)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 51.80) (833.16, 51.88)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 51.80) (969.24, 51.88)
+[11/23 05:38:52    37s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:52    37s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 34.52) (424.92, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 25.88) (561.00, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 25.88) (697.08, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 25.88) (833.16, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 25.88) (969.24, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 25.88) (1105.32, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 25.88) (1241.40, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 25.88) (1377.48, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 25.88) (1513.56, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 25.88) (1649.64, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 25.88) (1785.72, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 25.88) (1921.80, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 43.16) (424.92, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 25.88) (2057.88, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 25.88) (2193.96, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 25.88) (2494.80, 25.96)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 60.44) (424.92, 60.52)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 60.44) (561.00, 60.52)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 60.44) (697.08, 60.52)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 60.44) (833.16, 60.52)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 60.44) (969.24, 60.52)
+[11/23 05:38:52    37s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:52    37s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 34.52) (561.00, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 34.52) (697.08, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 34.52) (833.16, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 34.52) (969.24, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 34.52) (1105.32, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 34.52) (1241.40, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 34.52) (1377.48, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 34.52) (1513.56, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 34.52) (1649.64, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 34.52) (1785.72, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 34.52) (1921.80, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 34.52) (2057.88, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 34.52) (2193.96, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 34.52) (2494.80, 34.60)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 69.08) (424.92, 69.16)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 69.08) (561.00, 69.16)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 69.08) (697.08, 69.16)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 69.08) (833.16, 69.16)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 69.08) (969.24, 69.16)
+[11/23 05:38:52    37s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:52    37s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 43.16) (561.00, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 43.16) (697.08, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 43.16) (833.16, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 43.16) (969.24, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1091.01, 43.16) (1105.32, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1227.09, 43.16) (1241.40, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1363.17, 43.16) (1377.48, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1499.25, 43.16) (1513.56, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1635.33, 43.16) (1649.64, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1771.41, 43.16) (1785.72, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (1907.49, 43.16) (1921.80, 43.24)
+[11/23 05:38:52    37s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2043.57, 43.16) (2057.88, 43.24)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2179.65, 43.16) (2193.96, 43.24)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (2315.73, 43.16) (2494.80, 43.24)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (10.80, 77.72) (424.92, 77.80)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (546.69, 77.72) (561.00, 77.80)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (682.77, 77.72) (697.08, 77.80)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (818.85, 77.72) (833.16, 77.80)
+[11/23 05:38:52    38s] **WARN: (IMPPP-532):	ViaGen Warning: top layer and bottom layer have same direction but only orthogonal via is allowed between layer: M1 & M2 at (954.93, 77.72) (969.24, 77.80)
+[11/23 05:38:52    38s] **WARN: (EMS-27):	Message (IMPPP-532) has exceeded the current message display limit of 20.
+[11/23 05:38:52    38s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:52    38s] The power planner created 12289 wires.
+[11/23 05:38:52    38s] *** Ending Stripe Generation (totcpu: 0:00:00.6,real: 0:00:02.0, mem: 1632.9M) ***
+[11/23 05:38:52    38s] <CMD> setViaGenMode -ignore_viarule_enclosure true
+[11/23 05:38:52    38s] Setting -ignore_viarule_enclosure to 1. ViaGen will ignore enclosures defined in VIARULE GENERATE, but only use those defined in cut layer.
+[11/23 05:38:52    38s] <CMD> editPowerVia -skip_via_on_pin {Pad Block Cover Standardcell} -skip_via_on_wire_shape {Ring Blockring Corewire Blockwire Iowire Padring Fillwire Noshape} -bottom_layer M1 -add_vias 1 -orthogonal_only 0 -top_layer M2
+[11/23 05:38:52    38s] 
+[11/23 05:38:52    38s] The editPowerVia process is running on the entire design.
+[11/23 05:38:52    38s] The editPowerVia process started at Mon Nov 23 05:38:52 2026.
+[11/23 05:38:56    43s] The editPowerVia process ended at Mon Nov 23 05:38:56 2026.
+[11/23 05:38:56    43s] <CMD> setViaGenMode -viarule_preference { M6_M5widePWR1p152 M5_M4widePWR0p864 M4_M3widePWR0p864 }
+[11/23 05:38:56    43s] <CMD> addStripe -extend_to design_boundary -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 31.68 -skip_via_on_pin Standardcell -stacked_via_top_layer Pad -spacing 1.512 -xleft_offset 1.908 -merge_stripes_value 0.16 -layer M3 -width 0.936 -nets {VDD VSS} -stacked_via_bottom_layer M2
+[11/23 05:38:56    43s] **WARN: (IMPPP-4022):	Option "-stacked_via_top_layer" is obsolete and has been replaced by "setAddStripeMode -stacked_via_top_layer". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "setAddStripeMode -stacked_via_top_layer layerName"..
+[11/23 05:38:56    43s] **WARN: (IMPPP-4022):	Option "-xleft_offset" is obsolete and has been replaced by "-start_offset". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "-start_offset"..
+[11/23 05:38:56    43s] **WARN: (IMPPP-4022):	Option "-stacked_via_bottom_layer" is obsolete and has been replaced by "setAddStripeMode -stacked_via_bottom_layer". The obsolete option still works in this release, but to avoid this warning and to ensure compatibility with future releases, update your script to use "setAddStripeMode -stacked_via_bottom_layer layerName"..
+[11/23 05:38:56    43s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:38:56    43s] 
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro' was increased to (425.088 1911.600) (546.500 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro' was increased to (561.168 1911.600) (682.580 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro' was increased to (697.248 1911.600) (818.660 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro' was increased to (833.328 1911.600) (954.740 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro' was increased to (969.408 1911.600) (1090.820 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro' was increased to (1105.488 1911.600) (1226.900 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro' was increased to (1241.568 1911.600) (1362.980 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro' was increased to (1377.648 1911.600) (1499.060 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro' was increased to (1513.728 1911.600) (1635.140 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro' was increased to (1649.808 1911.600) (1771.220 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro' was increased to (1785.888 1911.600) (1907.300 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro' was increased to (1921.968 1911.600) (2043.380 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro' was increased to (2058.048 1911.600) (2179.460 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro' was increased to (2194.128 1911.600) (2315.540 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro' was increased to (2362.588 421.200) (2484.000 766.800) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro' was increased to (2362.588 793.800) (2484.000 1139.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro' was increased to (2362.588 1166.400) (2484.000 1512.000) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro' was increased to (2362.588 1539.000) (2484.000 1884.600) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro' was increased to (425.088 10.800) (546.500 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro' was increased to (561.168 10.800) (682.580 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:38:56    43s] **WARN: (EMS-27):	Message (IMPPP-133) has exceeded the current message display limit of 20.
+[11/23 05:38:56    43s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:57    43s] Starting stripe generation ...
+[11/23 05:38:57    43s] Non-Default setAddStripeOption Settings :
+[11/23 05:38:57    43s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:38:57    43s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:57    44s] Stripe generation is complete; vias are now being generated.
+[11/23 05:38:57    44s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:59    49s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 12.77) (1441.69, 12.87).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 17.09) (1441.69, 17.19).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 21.41) (1441.69, 21.51).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 25.73) (1441.69, 25.83).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 30.05) (1441.69, 30.15).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 34.37) (1441.69, 34.47).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 38.69) (1441.69, 38.79).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 43.01) (1441.69, 43.11).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 47.33) (1441.69, 47.43).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 51.65) (1441.69, 51.75).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 55.97) (1441.69, 56.07).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 60.29) (1441.69, 60.39).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 64.61) (1441.69, 64.71).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 68.93) (1441.69, 69.03).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 73.25) (1441.69, 73.35).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 77.57) (1441.69, 77.67).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 81.89) (1441.69, 81.99).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 86.21) (1441.69, 86.31).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 90.53) (1441.69, 90.63).
+[11/23 05:38:59    49s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1440.76, 94.85) (1441.69, 94.95).
+[11/23 05:38:59    49s] **WARN: (EMS-27):	Message (IMPPP-570) has exceeded the current message display limit of 20.
+[11/23 05:38:59    49s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:38:59    49s] **WARN: (IMPPP-531):	ViaGen Warning: MINAREA rule violation, no via created on layer M4 at (1441.69, 200.92) (1441.69, 201.04)
+[11/23 05:38:59    49s] **WARN: (IMPPP-531):	ViaGen Warning: MINAREA rule violation, no via created on layer M4 at (1441.69, 2067.37) (1441.69, 2067.44)
+[11/23 05:39:00    54s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 12.77) (1980.25, 12.87).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 17.09) (1980.25, 17.19).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 21.41) (1980.25, 21.51).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 25.73) (1980.25, 25.83).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 30.05) (1980.25, 30.15).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 34.37) (1980.25, 34.47).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 38.69) (1980.25, 38.79).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 43.01) (1980.25, 43.11).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 47.33) (1980.25, 47.43).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 51.65) (1980.25, 51.75).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 55.97) (1980.25, 56.07).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 60.29) (1980.25, 60.39).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 64.61) (1980.25, 64.71).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 68.93) (1980.25, 69.03).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 73.25) (1980.25, 73.35).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 77.57) (1980.25, 77.67).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 81.89) (1980.25, 81.99).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 86.21) (1980.25, 86.31).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 90.53) (1980.25, 90.63).
+[11/23 05:39:01    54s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (1979.32, 94.85) (1980.25, 94.95).
+[11/23 05:39:01    54s] **WARN: (EMS-27):	Message (IMPPP-570) has exceeded the current message display limit of 20.
+[11/23 05:39:01    54s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:39:01    54s] **WARN: (IMPPP-531):	ViaGen Warning: SPACING rule violation, no via created on layer V3 at (1979.32, 200.80) (1979.63, 200.83)
+[11/23 05:39:01    54s] **WARN: (IMPPP-531):	ViaGen Warning: SPACING rule violation, no via created on layer V3 at (1979.32, 2067.17) (1979.63, 2067.20)
+[11/23 05:39:01    59s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 12.29) (488.84, 12.39).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 16.61) (488.84, 16.71).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 20.93) (488.84, 21.03).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 25.25) (488.84, 25.35).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 29.57) (488.84, 29.67).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 33.89) (488.84, 33.99).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 38.21) (488.84, 38.31).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 42.53) (488.84, 42.63).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 46.85) (488.84, 46.95).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 51.17) (488.84, 51.27).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 55.49) (488.84, 55.59).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 59.81) (488.84, 59.91).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 64.13) (488.84, 64.23).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 68.45) (488.84, 68.55).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 72.77) (488.84, 72.87).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 77.09) (488.84, 77.19).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 81.41) (488.84, 81.51).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 85.73) (488.84, 85.83).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 90.05) (488.84, 90.15).
+[11/23 05:39:02    59s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 94.37) (488.84, 94.47).
+[11/23 05:39:02    59s] **WARN: (EMS-27):	Message (IMPPP-570) has exceeded the current message display limit of 20.
+[11/23 05:39:02    59s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:39:02    59s] **WARN: (IMPPP-531):	ViaGen Warning: MINAREA rule violation, no via created on layer M4 at (488.84, 200.54) (488.84, 200.66)
+[11/23 05:39:02    59s] **WARN: (IMPPP-531):	ViaGen Warning: MINAREA rule violation, no via created on layer M4 at (488.11, 2067.75) (488.11, 2067.82)
+[11/23 05:39:03    64s] The power planner created 406 wires.
+[11/23 05:39:03    64s] *** Ending Stripe Generation (totcpu: 0:00:02.4,real: 0:00:07.0, mem: 1702.0M) ***
+[11/23 05:39:03    64s] <CMD> setAddStripeMode -max_via_size { Stripe 100 100 100 } -via_using_exact_crossover_size true -stacked_via_bottom_layer M3 -stacked_via_top_layer M4
+[11/23 05:39:03    64s] <CMD> addStripe -extend_to design_boundary -direction horizontal -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 61.44 -skip_via_on_pin Standardcell -spacing 2.016 -start_offset 2.46 -merge_stripes_value 0.16 -layer M4 -width 0.864 -nets {VDD VSS}
+[11/23 05:39:03    64s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:39:03    64s] 
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro' was increased to (425.088 1911.600) (546.500 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro' was increased to (561.168 1911.600) (682.580 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro' was increased to (697.248 1911.600) (818.660 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro' was increased to (833.328 1911.600) (954.740 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro' was increased to (969.408 1911.600) (1090.820 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro' was increased to (1105.488 1911.600) (1226.900 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro' was increased to (1241.568 1911.600) (1362.980 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro' was increased to (1377.648 1911.600) (1499.060 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro' was increased to (1513.728 1911.600) (1635.140 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro' was increased to (1649.808 1911.600) (1771.220 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro' was increased to (1785.888 1911.600) (1907.300 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro' was increased to (1921.968 1911.600) (2043.380 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro' was increased to (2058.048 1911.600) (2179.460 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro' was increased to (2194.128 1911.600) (2315.540 2257.200) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro' was increased to (2362.588 421.200) (2484.000 766.800) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro' was increased to (2362.588 793.800) (2484.000 1139.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro' was increased to (2362.588 1166.400) (2484.000 1512.000) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro' was increased to (2362.588 1539.000) (2484.000 1884.600) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro' was increased to (425.088 10.800) (546.500 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (IMPPP-133):	The block boundary of instance 'u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro' was increased to (561.168 10.800) (682.580 356.400) because pins or obstructions were outside the original block boundary.
+[11/23 05:39:03    64s] **WARN: (EMS-27):	Message (IMPPP-133) has exceeded the current message display limit of 20.
+[11/23 05:39:03    64s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:39:03    64s] Starting stripe generation ...
+[11/23 05:39:03    64s] Non-Default setAddStripeOption Settings :
+[11/23 05:39:03    64s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:39:03    64s] **WARN: (IMPPP-4055):	The run time of addStripe will degrade with multiple cpu setting according to the number of stripe sets, ingore the setting of setMultiCpuUsage in addStripe.
+[11/23 05:39:03    64s] Stripe generation is complete; vias are now being generated.
+[11/23 05:39:03    64s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (425.58, 13.26) (425.65, 14.12).
+[11/23 05:39:03    64s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (481.66, 13.26) (481.74, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (484.26, 13.26) (484.62, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (487.91, 13.26) (488.84, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (489.87, 13.26) (489.94, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (545.96, 13.26) (546.03, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (561.66, 13.26) (561.73, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (617.74, 13.26) (617.82, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (620.34, 13.26) (620.70, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (625.95, 13.26) (626.02, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (682.04, 13.26) (682.11, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (697.74, 13.26) (697.81, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (753.82, 13.26) (753.90, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (756.42, 13.26) (756.78, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (762.03, 13.26) (762.10, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (818.12, 13.26) (818.19, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (833.82, 13.26) (833.89, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (889.90, 13.26) (889.98, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (892.50, 13.26) (892.86, 14.12).
+[11/23 05:39:03    65s] **WARN: (IMPPP-570):	The power planner detected cut layer obstruction(s) and cannot create the via on layer V3 at (898.11, 13.26) (898.18, 14.12).
+[11/23 05:39:03    65s] **WARN: (EMS-27):	Message (IMPPP-570) has exceeded the current message display limit of 20.
+[11/23 05:39:03    65s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (425.61, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (481.70, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (489.91, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (546.00, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (561.69, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (617.78, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (625.99, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (682.08, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (697.77, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (753.86, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (762.07, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (818.16, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (833.85, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (889.94, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (898.15, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (954.24, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (969.93, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (1026.02, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (1034.23, 136.98)
+[11/23 05:39:03    65s] **WARN: (IMPPP-612):	The intersection area is insufficient to satisfy MINIMUMCUT rule, so no via was created between layer: M3 & M4, size: 0.07 x 0.06 at (1090.32, 136.98)
+[11/23 05:39:03    65s] **WARN: (EMS-27):	Message (IMPPP-612) has exceeded the current message display limit of 20.
+[11/23 05:39:03    65s] To increase the message display limit, refer to the product command reference manual.
+[11/23 05:39:04    65s] The power planner created 348 wires.
+[11/23 05:39:04    65s] *** Ending Stripe Generation (totcpu: 0:00:00.9,real: 0:00:01.0, mem: 1710.0M) ***
+[11/23 05:39:04    65s] <CMD> setAddStripeMode -stacked_via_bottom_layer M4 -stacked_via_top_layer M5
+[11/23 05:39:04    65s] <CMD> addStripe -extend_to design_boundary -direction vertical -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 61.44 -skip_via_on_pin Standardcell -spacing 2.016 -start_offset 6.744 -merge_stripes_value 0.16 -layer M5 -width 0.864 -nets {VDD VSS}
+[11/23 05:39:04    65s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:39:04    65s] 
+[11/23 05:39:04    65s] Starting stripe generation ...
+[11/23 05:39:04    65s] Non-Default setAddStripeOption Settings :
+[11/23 05:39:04    65s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:39:04    65s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:04    66s] Stripe generation is complete; vias are now being generated.
+[11/23 05:39:04    66s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:04    66s] **WARN: (IMPPP-613):	Any via in the intersection area will cause DRC violation, no via was created between layer: M4 & M5, size: 0.05 x 0.86 at (1984.46, 75.13)
+[11/23 05:39:04    66s] **WARN: (IMPPP-613):	Any via in the intersection area will cause DRC violation, no via was created between layer: M4 & M5, size: 0.05 x 0.86 at (1984.46, 1918.33)
+[11/23 05:39:05    66s] **WARN: (IMPPP-531):	ViaGen Warning: SPACING rule violation, no via created on layer V4 at (757.70, 163.97) (758.57, 164.05)
+[11/23 05:39:05    66s] **WARN: (IMPPP-531):	ViaGen Warning: SPACING rule violation, no via created on layer V4 at (757.70, 2103.95) (758.57, 2104.03)
+[11/23 05:39:05    67s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:05    69s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:05    70s] Multi-CPU acceleration using 4 CPU(s).
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 12.29) (1923.05, 12.39)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 16.61) (1923.05, 16.71)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 20.93) (1923.05, 21.03)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 25.25) (1923.05, 25.35)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 29.57) (1923.05, 29.67)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 33.89) (1923.05, 33.99)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 38.21) (1923.05, 38.31)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 42.53) (1923.05, 42.63)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 46.85) (1923.05, 46.95)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 51.17) (1923.05, 51.27)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 55.49) (1923.05, 55.59)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 59.81) (1923.05, 59.91)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 64.13) (1923.05, 64.23)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 68.45) (1923.05, 68.55)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 72.77) (1923.05, 72.87)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 77.09) (1923.05, 77.19)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 81.41) (1923.05, 81.51)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 85.73) (1923.05, 85.83)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 90.05) (1923.05, 90.15)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 94.37) (1923.05, 94.47)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 98.69) (1923.05, 98.79)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 103.01) (1923.05, 103.11)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 107.33) (1923.05, 107.43)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 111.65) (1923.05, 111.75)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 115.97) (1923.05, 116.07)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 120.29) (1923.05, 120.39)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 124.61) (1923.05, 124.71)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 128.93) (1923.05, 129.03)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 133.25) (1923.05, 133.35)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 137.57) (1923.05, 137.67)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 141.89) (1923.05, 141.99)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 146.21) (1923.05, 146.31)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 150.53) (1923.05, 150.63)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 154.85) (1923.05, 154.95)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 159.17) (1923.05, 159.27)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 163.49) (1923.05, 163.59)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 200.32) (1923.05, 200.42)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 204.64) (1923.05, 204.74)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 208.96) (1923.05, 209.06)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 213.28) (1923.05, 213.38)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 217.60) (1923.05, 217.70)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    70s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    70s] 	layer V4 at (1922.38, 221.92) (1923.05, 222.02)
+[11/23 05:39:06    70s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 226.24) (1923.05, 226.34)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 230.56) (1923.05, 230.66)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 234.88) (1923.05, 234.98)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 239.20) (1923.05, 239.30)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 243.52) (1923.05, 243.62)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 247.84) (1923.05, 247.94)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 252.16) (1923.05, 252.26)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 256.48) (1923.05, 256.58)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 260.80) (1923.05, 260.90)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 265.12) (1923.05, 265.22)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 269.44) (1923.05, 269.54)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 273.76) (1923.05, 273.86)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 278.08) (1923.05, 278.18)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 282.40) (1923.05, 282.50)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 286.72) (1923.05, 286.82)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 291.04) (1923.05, 291.14)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 295.36) (1923.05, 295.46)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 299.68) (1923.05, 299.78)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 304.00) (1923.05, 304.10)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 308.32) (1923.05, 308.42)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 312.64) (1923.05, 312.74)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 316.96) (1923.05, 317.06)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 321.28) (1923.05, 321.38)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 325.60) (1923.05, 325.70)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 329.92) (1923.05, 330.02)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 334.24) (1923.05, 334.34)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 338.56) (1923.05, 338.66)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 342.88) (1923.05, 342.98)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 347.20) (1923.05, 347.30)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 351.52) (1923.05, 351.62)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1916.38) (1923.05, 1916.48)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1920.70) (1923.05, 1920.80)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1925.02) (1923.05, 1925.12)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1929.34) (1923.05, 1929.44)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1933.66) (1923.05, 1933.76)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1937.98) (1923.05, 1938.08)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1942.30) (1923.05, 1942.40)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1946.62) (1923.05, 1946.72)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1950.94) (1923.05, 1951.04)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1955.26) (1923.05, 1955.36)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1959.58) (1923.05, 1959.68)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1963.90) (1923.05, 1964.00)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1968.22) (1923.05, 1968.32)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1972.54) (1923.05, 1972.64)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1976.86) (1923.05, 1976.96)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1981.18) (1923.05, 1981.28)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1985.50) (1923.05, 1985.60)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1989.82) (1923.05, 1989.92)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1994.14) (1923.05, 1994.24)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 1998.46) (1923.05, 1998.56)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2002.78) (1923.05, 2002.88)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2007.10) (1923.05, 2007.20)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2011.42) (1923.05, 2011.52)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2015.74) (1923.05, 2015.84)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2020.06) (1923.05, 2020.16)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2024.38) (1923.05, 2024.48)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2028.70) (1923.05, 2028.80)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen Warning: Via in a partial overlap area is NOT allowed to be trimmed when WIDTHTABLE rule exists, no via created:
+[11/23 05:39:06    71s] 	layer V4 at (1922.38, 2033.02) (1923.05, 2033.12)
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    71s] **WARN: ViaGen messages reach 100 limit, stop issuing.
+[11/23 05:39:06    71s] The power planner created 110 wires.
+[11/23 05:39:06    71s] *** Ending Stripe Generation (totcpu: 0:00:00.7,real: 0:00:02.0, mem: 1710.0M) ***
+[11/23 05:39:06    71s] <CMD> setAddStripeMode -stacked_via_bottom_layer M5 -stacked_via_top_layer M6
+[11/23 05:39:06    71s] <CMD> addStripe -extend_to design_boundary -direction horizontal -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 56.32 -skip_via_on_pin Standardcell -spacing 2.688 -start_offset 6.408 -merge_stripes_value 0.16 -layer M6 -width 1.152 -nets {VDD VSS}
+[11/23 05:39:06    71s] **WARN: (IMPPP-4063):	Multi-CPU is set to 4 in addStripe.  When the number of CPU in setMultiCpuUsage is more than 4, addStripe gets worse runtime caused by data exchange and other time consuming operations
+[11/23 05:39:06    71s] 
+[11/23 05:39:06    72s] Starting stripe generation ...
+[11/23 05:39:06    72s] Non-Default setAddStripeOption Settings :
+[11/23 05:39:06    72s]   -allow_nonpreferred_dir { stripe }
+[11/23 05:39:06    72s] **WARN: (IMPPP-4055):	The run time of addStripe will degrade with multiple cpu setting according to the number of stripe sets, ingore the setting of setMultiCpuUsage in addStripe.
+[11/23 05:39:06    72s] Stripe generation is complete; vias are now being generated.
+[11/23 05:39:07    72s] The power planner created 80 wires.
+[11/23 05:39:07    72s] *** Ending Stripe Generation (totcpu: 0:00:00.7,real: 0:00:01.0, mem: 1710.0M) ***
+[11/23 05:39:07    72s] <CMD> verifyConnectivity -type special -noAntenna -error 1000 -report reports/02_pwr_conn.rpt
+[11/23 05:39:07    72s] VERIFY_CONNECTIVITY use new engine.
+[11/23 05:39:07    72s] 
+[11/23 05:39:07    72s] ******** Start: VERIFY CONNECTIVITY ********
+[11/23 05:39:07    72s] Start Time: Mon Nov 23 05:39:07 2026
+[11/23 05:39:07    72s] 
+[11/23 05:39:07    72s] Design Name: snax_llm_top_clean
+[11/23 05:39:07    72s] Database Units: 4000
+[11/23 05:39:07    72s] Design Boundary: (0.0000, 0.0000) (2505.6000, 2268.0000)
+[11/23 05:39:07    72s] Error Limit = 1000; Warning Limit = 50
+[11/23 05:39:07    72s] Check specified nets
+[11/23 05:39:07    72s] Multi-CPU acceleration using 8 CPU(s).
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 6
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 4
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 3
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 6
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 7
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 6
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 7
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 6
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 5
+[11/23 05:39:07    73s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 7
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 8
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 6
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 7
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 6
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 10000 nets (Total 30000) in Job 8
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 7
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 15000 nets (Total 30000) in Job 8
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 7
+[11/23 05:39:07    74s] **** 05:39:07 **** Processed 20000 nets (Total 30000) in Job 8
+[11/23 05:39:07    75s] **** 05:39:07 **** Processed 25000 nets (Total 30000) in Job 8
+[11/23 05:39:07    75s] **** 05:39:07 **** Processed 30000 nets (Total 30000) in Job 8
+[11/23 05:39:07    75s] **** 05:39:07 **** Processed 5000 nets (Total 30000) in Job 9
+[11/23 05:39:08    76s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 9
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 9
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 9
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 5000 nets (Total 30000) in Job 10
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 9
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 10
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 9
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 5000 nets (Total 30000) in Job 11
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 10
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 11
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 10
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 11
+[11/23 05:39:08    77s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 10
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 11
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 10
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 5000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 5000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 11
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 5000 nets (Total 30000) in Job 14
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 11
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 10000 nets (Total 30000) in Job 14
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 5000 nets (Total 21125) in Job 15
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 15000 nets (Total 30000) in Job 14
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 10000 nets (Total 21125) in Job 15
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 20000 nets (Total 30000) in Job 14
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 13
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 15000 nets (Total 21125) in Job 15
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 12
+[11/23 05:39:08    78s] **** 05:39:08 **** Processed 25000 nets (Total 30000) in Job 14
+[11/23 05:39:08    79s] **** 05:39:08 **** Processed 20000 nets (Total 21125) in Job 15
+[11/23 05:39:08    79s] **** 05:39:08 **** Processed 30000 nets (Total 30000) in Job 14
+[11/23 05:39:08    80s] 
+[11/23 05:39:08    80s] Begin Summary 
+[11/23 05:39:08    80s]     3 Problem(s) (IMPVFC-98): Net has no global routing and no special routing.
+[11/23 05:39:08    80s]     997 Problem(s) (IMPVFC-200): Special Wires: Pieces of the net are not connected together.
+[11/23 05:39:08    80s]     1000 total info(s) created.
+[11/23 05:39:08    80s] End Summary
+[11/23 05:39:08    80s] 
+[11/23 05:39:08    80s] End Time: Mon Nov 23 05:39:08 2026
+[11/23 05:39:08    80s] Time Elapsed: 0:00:01.0
+[11/23 05:39:08    80s] 
+[11/23 05:39:08    80s] ******** End: VERIFY CONNECTIVITY ********
+[11/23 05:39:08    80s]   Verification Complete : 1000 Viols.  0 Wrngs.
+[11/23 05:39:08    80s]   (CPU Time: 0:00:01.0  MEM: 0.188M)
+[11/23 05:39:08    80s] 
+[11/23 05:39:08    80s] <CMD> verify_drc -limit 1000 -report reports/02_pwr_drc.rpt
+[11/23 05:39:08    80s]  *** Starting Verify DRC (MEM: 1710.0) ***
+[11/23 05:39:08    80s] 
+[11/23 05:39:08    80s] #ERROR (NRFL-2) Line 97: cannot find the keyword for RIGHTWAYONGRIDONLY.
+[11/23 05:39:08    80s] #ERROR in reading lib
+[11/23 05:39:08    80s] **ERROR: (IMPVFG-1183):	verify_drc is not completed due to library initialization error. Check the log file for details and rerun verify_drc after correcting errors in library.
+[11/23 05:39:08    80s] <CMD> saveDesign out/02_power.enc
+[11/23 05:39:08    80s] Writing Netlist "out/02_power.enc.dat/snax_llm_top_clean.v.gz" ...
+[11/23 05:39:10    82s] Saving AAE Data ...
+[11/23 05:39:10    82s] Saving preference file out/02_power.enc.dat/gui.pref.tcl ...
+[11/23 05:39:10    82s] Saving mode setting ...
+[11/23 05:39:10    82s] Saving global file ...
+[11/23 05:39:10    82s] Saving floorplan file ...
+[11/23 05:39:10    82s] Saving Drc markers ...
+[11/23 05:39:10    82s] ... 1000 markers are saved ...
+[11/23 05:39:10    82s] ... 0 geometry drc markers are saved ...
+[11/23 05:39:10    82s] ... 0 antenna drc markers are saved ...
+[11/23 05:39:10    82s] Saving placement file ...
+[11/23 05:39:11    83s] *** Completed savePlace (cpu=0:00:00.2 real=0:00:01.0 mem=1679.3M) ***
+[11/23 05:39:11    83s] Saving route file ...
+[11/23 05:39:12    84s] *** Completed saveRoute (cpu=0:00:00.4 real=0:00:01.0 mem=1682.7M) ***
+[11/23 05:39:12    84s] Saving DEF file ...
+[11/23 05:39:12    84s] Saving preRoute extracted patterns in file 'out/02_power.enc.dat/snax_llm_top_clean.techData.gz' ...
+[11/23 05:39:12    84s] No integration constraint in the design.
+[11/23 05:39:12    84s] 'can't set "var": variable is array'.
+[11/23 05:39:12    84s] *** Message Summary: 0 warning(s), 0 error(s)
+[11/23 05:39:12    84s] 
+[11/23 05:39:12    84s] 
+[11/23 05:39:12    84s] *** Memory Usage v#1 (Current mem = 1679.277M, initial mem = 164.594M) ***
+[11/23 05:39:12    84s] 
+[11/23 05:39:12    84s] *** Summary of all messages that are not suppressed in this session:
+[11/23 05:39:12    84s] Severity  ID               Count  Summary                                  
+[11/23 05:39:12    84s] WARNING   IMPFP-325            1  Floorplan of the design is resized. All ...
+[11/23 05:39:12    84s] WARNING   IMPTS-124            5  Timing library description of pin '%s' i...
+[11/23 05:39:12    84s] WARNING   IMPVL-536            1  The PG type of pin '%s' of cell '%s' doe...
+[11/23 05:39:12    84s] WARNING   IMPVL-159            5  Pin '%s' of cell '%s' is defined in LEF ...
+[11/23 05:39:12    84s] ERROR     IMPVFG-1183          1  verify_drc is not completed due to libra...
+[11/23 05:39:12    84s] WARNING   IMPPP-133          128  The block boundary of instance '%s' was ...
+[11/23 05:39:12    84s] WARNING   IMPPP-4022           7  Option "-%s" is obsolete and has been re...
+[11/23 05:39:12    84s] WARNING   IMPPP-570         1000  The power planner detected cut layer obs...
+[11/23 05:39:12    84s] WARNING   IMPPP-4055           2  The run time of addStripe will degrade w...
+[11/23 05:39:12    84s] WARNING   IMPPP-4063           6  Multi-CPU is set to 4 in addStripe.  Whe...
+[11/23 05:39:12    84s] WARNING   IMPPP-612           60  The intersection area is insufficient to...
+[11/23 05:39:12    84s] WARNING   IMPSP-5134           2  Setting %s to %0.3f (microns) as a multi...
+[11/23 05:39:12    84s] ERROR     IMPTR-2101           1  Layer %s: Pitch=%dx%d is still less than...
+[11/23 05:39:12    84s] WARNING   IMPTR-2104           1  Layer %s: Pitch=%d is less than min widt...
+[11/23 05:39:12    84s] WARNING   IMPTR-2108           1  For layer M%d, the gaps of %d out of %d ...
+[11/23 05:39:12    84s] *** Message Summary: 1219 warning(s), 2 error(s)
+[11/23 05:39:12    84s] 
+[11/23 05:39:12    84s] --- Ending "Innovus" (totcpu=0:00:39.3, real=0:00:43.0, mem=1679.3M) ---

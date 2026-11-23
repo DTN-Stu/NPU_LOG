@@ -1,0 +1,134 @@
+
+Cadence Innovus(TM) Implementation System.
+Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+
+Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+Options:	-no_gui -init 03_place.tcl -log logs/stage3 
+Date:		Mon Nov 23 05:44:23 2026
+Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+OS:		CentOS release 6.10 (Final)
+
+License:
+		invs	Innovus Implementation System	15.2	checkout succeeded
+		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+
+**INFO:  MMMC transition support version v31-84 
+
+<CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+<CMD> suppressMessage ENCEXT-2799
+<CMD> getVersion
+<CMD> getVersion
+Sourcing file "03_place.tcl" ...
+<CMD> setMultiCpuUsage -localCpu 8
+<CMD> setLibraryUnit -time 1ps -cap 1ff
+<CMD> restoreDesign out/02_power.enc.dat snax_llm_top_clean
+exclude_path_collection 0
+Set Default Input Pin Transition as 0.1 ps.
+**WARN: (GLOBAL-100):	Global 'timing_enable_default_delay_arc' has become obsolete. It will be removed in the next release.
+
+Loading LEF file /home/ICer/sys_pnr/lef_fixed/asap7_tech_4x_201209.lef ...
+
+Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef ...
+Set DBUPerIGU to M1 pitch 576.
+
+Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef ...
+
+Loading LEF file /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef ...
+
+Loading LEF file /home/ICer/sys_pnr/lef_fixed/srambank_256x4x72_6t122.lef.4x.lef ...
+
+viaInitial starts at Mon Nov 23 05:44:28 2026
+viaInitial ends at Mon Nov 23 05:44:28 2026
+Loading view definition file from out/02_power.enc.dat/viewDefinition.tcl
+Starting library reading in 'Multi-threaded flow' (with '8' threads)
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib.
+Read 42 cells in  asap7sc7p5t_AO_RVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_RVT_TT_nldm_220122.lib.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx10_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12f_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx16f_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx24_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx2_ASAP7_75t_R' is not defined in the library.
+Message <TECHLIB-436> has exceeded the message display limit of '20'. setMessageLimit/set_message_limit sets the limit. unsetMessageLimit/unset_message_limit can be used to reset this.
+Read 37 cells in  asap7sc7p5t_INVBUF_RVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_RVT_TT_nldm_211120.lib.
+Read 34 cells in  asap7sc7p5t_OA_RVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_RVT_TT_nldm_220123.lib.
+Read 33 cells in  asap7sc7p5t_SEQ_RVT_TT_nldm_220123.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.lib.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x2_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x4_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND2x6_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND3x2_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND3x4_ASAP7_75t_R' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'AND3x1_ASAP7_75t_R' is not defined in the library.
+Read 56 cells in  asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_LVT_TT_nldm_211120.lib.
+Read 42 cells in  asap7sc7p5t_AO_LVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_LVT_TT_nldm_220122.lib.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx10_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx12f_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx16f_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx24_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx2_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx3_ASAP7_75t_L' is not defined in the library.
+**WARN: (TECHLIB-436):	Attribute 'max_fanout' on 'output/inout' pin 'Y' of cell 'BUFx4_ASAP7_75t_L' is not defined in the library.
+Read 37 cells in  asap7sc7p5t_INVBUF_LVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_LVT_TT_nldm_211120.lib.
+Read 34 cells in  asap7sc7p5t_OA_LVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_LVT_TT_nldm_220123.lib.
+Read 33 cells in  asap7sc7p5t_SEQ_LVT_TT_nldm_220123.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.lib.
+Read 56 cells in  asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_AO_SLVT_TT_nldm_211120.lib.
+Read 42 cells in  asap7sc7p5t_AO_SLVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_INVBUF_SLVT_TT_nldm_220122.lib.
+Read 37 cells in  asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_OA_SLVT_TT_nldm_211120.lib.
+Read 34 cells in  asap7sc7p5t_OA_SLVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.lib.
+Read 33 cells in  asap7sc7p5t_SEQ_SLVT_TT_nldm_220123.
+Reading asap7_tt_libs timing library /mnt/hgfs/NPU_LOG/lib/ASAP7/lib/asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.lib.
+Read 56 cells in  asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120.
+Reading asap7_tt_libs timing library /home/ICer/sys_syn/sram_lib/srambank_256x4x72_6t122.lib.
+Read 1 cells in  srambank_256x4x72_6t122.
+Library reading multithread flow ended.
+*** End library_loading (cpu=0.00min, mem=0.0M, fe_cpu=0.26min, fe_real=0.12min, fe_mem=642.9M) ***
+**ERROR: (IMPSYT-16038):	The specified file 'out/02_power.enc.dat.tmp/snax_llm_top_clean.v.gz' could not be found. Check your file system, correct the file name.
+**ERROR: (IMPIMEX-7008):	No netlist files are found.
+
+
+ERROR: 
+
+
+    while executing
+"error $catchMsg"
+    (procedure "restoreDesign" line 24)
+
+
+**ERROR: (IMPSYT-6692):	Invalid return code while executing '03_place.tcl' was returned and script processing was stopped. Review the following error in '03_place.tcl' then restart.
+Error info: 03_place.tcl: 
+    while executing
+"error $catchMsg"
+    (procedure "restoreDesign" line 24)
+    invoked from within
+"restoreDesign out/02_power.enc.dat snax_llm_top_clean"
+    (file "03_place.tcl" line 8)
+    invoked from within
+"::se_source_orig 03_place.tcl"
+    ("uplevel" body line 1)
+    invoked from within
+"uplevel [concat ::se_source_orig $args]"
+    (procedure "source" line 97)
+    invoked from within
+"source 03_place.tcl"
+    (in namespace inscope "::" script line 1)
+    invoked from within
+"namespace inscope :: source $fileName".
+
+*** Memory Usage v#1 (Current mem = 642.938M, initial mem = 167.594M) ***
+*** Message Summary: 0 warning(s), 3 error(s)
+
+--- Ending "Innovus" (totcpu=0:00:15.7, real=0:00:07.0, mem=642.9M) ---

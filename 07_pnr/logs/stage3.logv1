@@ -1,0 +1,49 @@
+[11/23 05:46:33     0s] 
+[11/23 05:46:33     0s] Cadence Innovus(TM) Implementation System.
+[11/23 05:46:33     0s] Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+[11/23 05:46:33     0s] 
+[11/23 05:46:33     0s] Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+[11/23 05:46:33     0s] Options:	-no_gui -init 03_place.tcl -log logs/stage3 
+[11/23 05:46:33     0s] Date:		Mon Nov 23 05:46:33 2026
+[11/23 05:46:33     0s] Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+[11/23 05:46:33     0s] OS:		CentOS release 6.10 (Final)
+[11/23 05:46:33     0s] 
+[11/23 05:46:33     0s] License:
+[11/23 05:46:33     0s] 		invs	Innovus Implementation System	15.2	checkout succeeded
+[11/23 05:46:33     0s] 		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+[11/23 05:46:37     3s] @(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+[11/23 05:46:37     3s] @(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+[11/23 05:46:37     3s] @(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+[11/23 05:46:37     3s] @(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+[11/23 05:46:37     3s] @(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+[11/23 05:46:37     3s] @(#)CDS: CPE v15.20-p002
+[11/23 05:46:37     3s] @(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+[11/23 05:46:37     3s] @(#)CDS: OA 22.50-p028 Thu Jul 23 14:59:57 2015
+[11/23 05:46:37     3s] @(#)CDS: SGN 10.10-p124 (19-Aug-2014) (64 bit executable)
+[11/23 05:46:37     3s] @(#)CDS: RCDB 11.6
+[11/23 05:46:37     3s] --- Running on EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB) ---
+[11/23 05:46:37     3s] Create and set the environment variable TMPDIR to /tmp/innovus_temp_42067_EDAServer_ICer_444tPY.
+
+[11/23 05:46:37     3s] 
+[11/23 05:46:37     3s] **INFO:  MMMC transition support version v31-84 
+[11/23 05:46:37     3s] 
+[11/23 05:46:37     3s] <CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+[11/23 05:46:37     3s] <CMD> suppressMessage ENCEXT-2799
+[11/23 05:46:37     3s] <CMD> getVersion
+[11/23 05:46:37     3s] <CMD> getVersion
+[11/23 05:46:37     3s] Sourcing file "03_place.tcl" ...
+[11/23 05:46:37     3s] <CMD> setMultiCpuUsage -localCpu 8
+[11/23 05:46:37     3s] <CMD> setMaxRouteLayer 6
+[11/23 05:46:37     3s] **ERROR: Design must be in memory before running "setCTSMode"
+[11/23 05:46:37     3s] **ERROR: (IMPSYT-6692):	Invalid return code while executing '03_place.tcl' was returned and script processing was stopped. Review the following error in '03_place.tcl' then restart.
+[11/23 05:46:37     3s] **ERROR: (IMPSYT-6693):	Error message: 03_place.tcl: Design must be in memory before running "setCTSMode".
+[11/23 05:46:37     3s] 
+[11/23 05:46:37     3s] *** Memory Usage v#1 (Current mem = 419.613M, initial mem = 167.594M) ***
+[11/23 05:46:37     3s] 
+[11/23 05:46:37     3s] *** Summary of all messages that are not suppressed in this session:
+[11/23 05:46:37     3s] Severity  ID               Count  Summary                                  
+[11/23 05:46:37     3s] ERROR     IMPSYT-6692          1  Invalid return code while executing '%s'...
+[11/23 05:46:37     3s] ERROR     IMPSYT-6693          1  Error message: %s: %s.                   
+[11/23 05:46:37     3s] *** Message Summary: 0 warning(s), 2 error(s)
+[11/23 05:46:37     3s] 
+[11/23 05:46:37     3s] --- Ending "Innovus" (totcpu=0:00:03.9, real=0:00:04.0, mem=419.6M) ---

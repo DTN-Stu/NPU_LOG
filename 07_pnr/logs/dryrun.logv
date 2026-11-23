@@ -1,0 +1,46 @@
+[11/23 05:15:07     0s] 
+[11/23 05:15:07     0s] Cadence Innovus(TM) Implementation System.
+[11/23 05:15:07     0s] Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+[11/23 05:15:07     0s] 
+[11/23 05:15:07     0s] Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+[11/23 05:15:07     0s] Options:	-no_gui -init pnr_dryrun.tcl -log logs/dryrun 
+[11/23 05:15:07     0s] Date:		Mon Nov 23 05:15:07 2026
+[11/23 05:15:07     0s] Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+[11/23 05:15:07     0s] OS:		CentOS release 6.10 (Final)
+[11/23 05:15:07     0s] 
+[11/23 05:15:07     0s] License:
+[11/23 05:15:08     0s] 		invs	Innovus Implementation System	15.2	checkout succeeded
+[11/23 05:15:08     0s] 		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+[11/23 05:15:13     4s] @(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+[11/23 05:15:13     4s] @(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+[11/23 05:15:13     4s] @(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+[11/23 05:15:13     4s] @(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+[11/23 05:15:13     4s] @(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+[11/23 05:15:13     4s] @(#)CDS: CPE v15.20-p002
+[11/23 05:15:13     4s] @(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+[11/23 05:15:13     4s] @(#)CDS: OA 22.50-p028 Thu Jul 23 14:59:57 2015
+[11/23 05:15:13     4s] @(#)CDS: SGN 10.10-p124 (19-Aug-2014) (64 bit executable)
+[11/23 05:15:13     4s] @(#)CDS: RCDB 11.6
+[11/23 05:15:13     4s] --- Running on EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB) ---
+[11/23 05:15:13     4s] Create and set the environment variable TMPDIR to /tmp/innovus_temp_37739_EDAServer_ICer_nZ0uBm.
+
+[11/23 05:15:13     4s] 
+[11/23 05:15:13     4s] **INFO:  MMMC transition support version v31-84 
+[11/23 05:15:13     4s] 
+[11/23 05:15:13     4s] <CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+[11/23 05:15:13     4s] <CMD> suppressMessage ENCEXT-2799
+[11/23 05:15:13     4s] <CMD> getVersion
+[11/23 05:15:13     4s] <CMD> getVersion
+[11/23 05:15:13     4s] Sourcing file "pnr_dryrun.tcl" ...
+[11/23 05:15:13     4s] **ERROR: (IMPSYT-6692):	Invalid return code while executing 'pnr_dryrun.tcl' was returned and script processing was stopped. Review the following error in 'pnr_dryrun.tcl' then restart.
+[11/23 05:15:13     4s] **ERROR: (IMPSYT-6693):	Error message: pnr_dryrun.tcl: invalid command name "set_multi_cpu_usage".
+[11/23 05:15:13     4s] 
+[11/23 05:15:13     4s] *** Memory Usage v#1 (Current mem = 412.582M, initial mem = 164.594M) ***
+[11/23 05:15:13     4s] 
+[11/23 05:15:13     4s] *** Summary of all messages that are not suppressed in this session:
+[11/23 05:15:13     4s] Severity  ID               Count  Summary                                  
+[11/23 05:15:13     4s] ERROR     IMPSYT-6692          1  Invalid return code while executing '%s'...
+[11/23 05:15:13     4s] ERROR     IMPSYT-6693          1  Error message: %s: %s.                   
+[11/23 05:15:13     4s] *** Message Summary: 0 warning(s), 2 error(s)
+[11/23 05:15:13     4s] 
+[11/23 05:15:13     4s] --- Ending "Innovus" (totcpu=0:00:04.8, real=0:00:06.0, mem=412.6M) ---

@@ -1,0 +1,124 @@
+#######################################################
+#                                                     
+#  Innovus Command Logging File                     
+#  Created on Mon Nov 23 05:38:33 2026                
+#                                                     
+#######################################################
+
+#@(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+#@(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+#@(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+#@(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+#@(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+#@(#)CDS: CPE v15.20-p002
+#@(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+
+set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+suppressMessage ENCEXT-2799
+getVersion
+getVersion
+setMultiCpuUsage -localCpu 8
+setLibraryUnit -time 1ps -cap 1ff
+set init_verilog /home/ICer/sys_syn/output_netlist_bu/snax_llm_top_clean.v
+set init_top_cell snax_llm_top_clean
+set init_lef_file {/home/ICer/sys_pnr/lef_fixed/asap7_tech_4x_201209.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef /home/ICer/sys_pnr/lef_fixed/srambank_256x4x72_6t122.lef.4x.lef}
+set init_mmmc_file /home/ICer/sys_pnr/mmmc.tcl
+set init_pwr_net VDD
+set init_gnd_net VSS
+init_design
+globalNetConnect VDD -type pgpin -pin VDD -inst * -module {}
+globalNetConnect VSS -type pgpin -pin VSS -inst * -module {}
+floorPlan -site asap7sc7p5t -s 2484.0 2246.4 10.8 10.8 10.8 10.8
+placeInstance u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro 2362.608 421.2 MY -fixed
+placeInstance u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro 2362.608 793.8 MY -fixed
+placeInstance u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro 2362.608 1166.4 MY -fixed
+placeInstance u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro 2362.608 1539.0 MY -fixed
+placeInstance u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro 425.088 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro 561.168 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro 697.248 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro 833.328 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro 969.408 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro 1105.488 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro 1241.568 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro 1377.648 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro 1513.728 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro 1649.808 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro 1785.888 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro 1921.968 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro 2058.048 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro 2194.128 1911.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro 425.088 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro 561.168 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_20__u_bank/u_sram_macro 697.248 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_21__u_bank/u_sram_macro 833.328 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_22__u_bank/u_sram_macro 969.408 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_23__u_bank/u_sram_macro 1105.488 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_24__u_bank/u_sram_macro 1241.568 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_25__u_bank/u_sram_macro 1377.648 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_26__u_bank/u_sram_macro 1513.728 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_27__u_bank/u_sram_macro 1649.808 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_28__u_bank/u_sram_macro 1785.888 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_29__u_bank/u_sram_macro 1921.968 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_30__u_bank/u_sram_macro 2058.048 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_31__u_bank/u_sram_macro 2194.128 10.8 MX -fixed
+addHaloToBlock {4.32 4.32 4.32 4.32} -allMacro
+createPlaceBlockage -type hard -box {546.48 1911.6 561.168 2257.2}
+createPlaceBlockage -type hard -box {546.48 10.8 561.168 356.4}
+createPlaceBlockage -type hard -box {682.56 1911.6 697.248 2257.2}
+createPlaceBlockage -type hard -box {682.56 10.8 697.248 356.4}
+createPlaceBlockage -type hard -box {818.64 1911.6 833.328 2257.2}
+createPlaceBlockage -type hard -box {818.64 10.8 833.328 356.4}
+createPlaceBlockage -type hard -box {954.72 1911.6 969.408 2257.2}
+createPlaceBlockage -type hard -box {954.72 10.8 969.408 356.4}
+createPlaceBlockage -type hard -box {1090.8 1911.6 1105.488 2257.2}
+createPlaceBlockage -type hard -box {1090.8 10.8 1105.488 356.4}
+createPlaceBlockage -type hard -box {1226.88 1911.6 1241.568 2257.2}
+createPlaceBlockage -type hard -box {1226.88 10.8 1241.568 356.4}
+createPlaceBlockage -type hard -box {1362.96 1911.6 1377.648 2257.2}
+createPlaceBlockage -type hard -box {1362.96 10.8 1377.648 356.4}
+createPlaceBlockage -type hard -box {1499.04 1911.6 1513.728 2257.2}
+createPlaceBlockage -type hard -box {1499.04 10.8 1513.728 356.4}
+createPlaceBlockage -type hard -box {1635.12 1911.6 1649.808 2257.2}
+createPlaceBlockage -type hard -box {1635.12 10.8 1649.808 356.4}
+createPlaceBlockage -type hard -box {1771.2 1911.6 1785.888 2257.2}
+createPlaceBlockage -type hard -box {1771.2 10.8 1785.888 356.4}
+createPlaceBlockage -type hard -box {1907.28 1911.6 1921.968 2257.2}
+createPlaceBlockage -type hard -box {1907.28 10.8 1921.968 356.4}
+createPlaceBlockage -type hard -box {2043.36 1911.6 2058.048 2257.2}
+createPlaceBlockage -type hard -box {2043.36 10.8 2058.048 356.4}
+createPlaceBlockage -type hard -box {2179.44 1911.6 2194.128 2257.2}
+createPlaceBlockage -type hard -box {2179.44 10.8 2194.128 356.4}
+createPlaceBlockage -type hard -box {2362.608 766.8 2484.0 793.8}
+createPlaceBlockage -type hard -box {2362.608 1139.4 2484.0 1166.4}
+createPlaceBlockage -type hard -box {2362.608 1512.0 2484.0 1539.0}
+createGuide u_interconnect 1050.0 420.0 2320.0 1850.0
+createGuide u_core 180.0 420.0 1040.0 1750.0
+createGuide u_sfu 60.0 1760.0 410.0 2230.0
+createGuide u_seq 60.0 30.0 410.0 410.0
+createGuide u_csr 20.0 800.0 170.0 1400.0
+add_tracks -honor_pitch
+setPinAssignMode -pinEditInBatch true
+editPin -pin * -side LEFT -layer M4 -spreadType SIDE -snap TRACK -fixOverlap 1
+setPinAssignMode -pinEditInBatch false
+addWellTap -cell TAPCELL_ASAP7_75t_L -cellInterval 50 -inRowOffset 10.564
+checkFPlan -outFile reports/01_fplan.rpt
+saveDesign out/01_fplan.enc
+setMultiCpuUsage -localCpu 8
+sroute -connect { blockPin padPin padRing corePin floatingStripe } -layerChangeRange { M1 Pad } -blockPinTarget { nearestTarget } -padPinPortConnect { allPort oneGeom } -padPinTarget { nearestTarget } -corePinTarget { firstAfterRowEnd } -floatingStripeTarget { blockring padring ring stripe ringpin blockpin followpin } -allowJogging 1 -crossoverViaLayerRange { M1 Pad } -nets { VDD VSS } -allowLayerChange 1 -blockPin useLef -targetViaLayerRange { M1 }
+setAddStripeMode -stacked_via_bottom_layer M1 -stacked_via_top_layer M2 -allow_nonpreferred_dir stripe
+setViaGenMode -ignore_viarule_enclosure true
+addStripe -direction horizontal -set_to_set_distance 2.16 -spacing 1.008 -ybottom_offset -0.036 -ytop_offset -0.036 -width 0.072 -nets {VDD VSS} -layer M2
+addStripe -direction horizontal -set_to_set_distance 2.16 -spacing 1.008 -ybottom_offset -0.036 -ytop_offset -0.036 -width 0.072 -nets {VDD VSS} -layer M1
+setViaGenMode -ignore_viarule_enclosure true
+editPowerVia -skip_via_on_pin {Pad Block Cover Standardcell} -skip_via_on_wire_shape {Ring Blockring Corewire Blockwire Iowire Padring Fillwire Noshape} -bottom_layer M1 -add_vias 1 -orthogonal_only 0 -top_layer M2
+setViaGenMode -viarule_preference { M6_M5widePWR1p152 M5_M4widePWR0p864 M4_M3widePWR0p864 }
+addStripe -extend_to design_boundary -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 31.68 -skip_via_on_pin Standardcell -stacked_via_top_layer Pad -spacing 1.512 -xleft_offset 1.908 -merge_stripes_value 0.16 -layer M3 -width 0.936 -nets {VDD VSS} -stacked_via_bottom_layer M2
+setAddStripeMode -max_via_size { Stripe 100 100 100 } -via_using_exact_crossover_size true -stacked_via_bottom_layer M3 -stacked_via_top_layer M4
+addStripe -extend_to design_boundary -direction horizontal -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 61.44 -skip_via_on_pin Standardcell -spacing 2.016 -start_offset 2.46 -merge_stripes_value 0.16 -layer M4 -width 0.864 -nets {VDD VSS}
+setAddStripeMode -stacked_via_bottom_layer M4 -stacked_via_top_layer M5
+addStripe -extend_to design_boundary -direction vertical -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 61.44 -skip_via_on_pin Standardcell -spacing 2.016 -start_offset 6.744 -merge_stripes_value 0.16 -layer M5 -width 0.864 -nets {VDD VSS}
+setAddStripeMode -stacked_via_bottom_layer M5 -stacked_via_top_layer M6
+addStripe -extend_to design_boundary -direction horizontal -skip_via_on_wire_shape Noshape -max_same_layer_jog_length 0.32 -set_to_set_distance 56.32 -skip_via_on_pin Standardcell -spacing 2.688 -start_offset 6.408 -merge_stripes_value 0.16 -layer M6 -width 1.152 -nets {VDD VSS}
+verifyConnectivity -type special -noAntenna -error 1000 -report reports/02_pwr_conn.rpt
+verify_drc -limit 1000 -report reports/02_pwr_drc.rpt
+saveDesign out/02_power.enc

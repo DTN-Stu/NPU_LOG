@@ -1,0 +1,28 @@
+#######################################################
+#                                                     
+#  Innovus Command Logging File                     
+#  Created on Mon Nov 23 05:15:47 2026                
+#                                                     
+#######################################################
+
+#@(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+#@(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+#@(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+#@(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+#@(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+#@(#)CDS: CPE v15.20-p002
+#@(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+
+set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+suppressMessage ENCEXT-2799
+getVersion
+getVersion
+setMultiCpuUsage -localCpu 8
+set init_verilog /home/ICer/sys_syn/output_netlist_bu/snax_llm_top_clean.v
+set init_top_cell snax_llm_top_clean
+set init_lef_file {/mnt/hgfs/NPU_LOG/lib/ASAP7/lef/asap7_tech_4x_201209.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef /home/ICer/sys_syn/sram_lib/srambank_256x4x72_6t122.lef.4x.lef}
+set init_mmmc_file /home/ICer/sys_pnr/mmmc.tcl
+set init_pwr_net VDD
+set init_gnd_net VSS
+init_design
+setLibraryUnit -time 1ps

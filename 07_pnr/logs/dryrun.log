@@ -1,0 +1,28 @@
+
+Cadence Innovus(TM) Implementation System.
+Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+
+Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+Options:	-no_gui -init pnr_dryrun.tcl -log logs/dryrun 
+Date:		Mon Nov 23 05:15:07 2026
+Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+OS:		CentOS release 6.10 (Final)
+
+License:
+		invs	Innovus Implementation System	15.2	checkout succeeded
+		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+
+**INFO:  MMMC transition support version v31-84 
+
+<CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+<CMD> suppressMessage ENCEXT-2799
+<CMD> getVersion
+<CMD> getVersion
+Sourcing file "pnr_dryrun.tcl" ...
+**ERROR: (IMPSYT-6692):	Invalid return code while executing 'pnr_dryrun.tcl' was returned and script processing was stopped. Review the following error in 'pnr_dryrun.tcl' then restart.
+**ERROR: (IMPSYT-6693):	Error message: pnr_dryrun.tcl: invalid command name "set_multi_cpu_usage".
+
+*** Memory Usage v#1 (Current mem = 412.582M, initial mem = 164.594M) ***
+*** Message Summary: 0 warning(s), 2 error(s)
+
+--- Ending "Innovus" (totcpu=0:00:04.8, real=0:00:06.0, mem=412.6M) ---

@@ -1,0 +1,31 @@
+
+Cadence Innovus(TM) Implementation System.
+Copyright 2015 Cadence Design Systems, Inc. All rights reserved worldwide.
+
+Version:	v15.20-p005_1, built Wed Nov 11 11:16:39 PST 2015
+Options:	-no_gui -init 03_place.tcl -log logs/stage3 
+Date:		Mon Nov 23 05:46:33 2026
+Host:		EDAServer (x86_64 w/Linux 2.6.32-754.35.1.el6.x86_64) (1core*8cpus*AMD Ryzen 5 5600H with Radeon Graphics  512KB)
+OS:		CentOS release 6.10 (Final)
+
+License:
+		invs	Innovus Implementation System	15.2	checkout succeeded
+		8 CPU jobs allowed with the current license(s). Use setMultiCpuUsage to set your required CPU count.
+
+**INFO:  MMMC transition support version v31-84 
+
+<CMD> set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+<CMD> suppressMessage ENCEXT-2799
+<CMD> getVersion
+<CMD> getVersion
+Sourcing file "03_place.tcl" ...
+<CMD> setMultiCpuUsage -localCpu 8
+<CMD> setMaxRouteLayer 6
+**ERROR: Design must be in memory before running "setCTSMode"
+**ERROR: (IMPSYT-6692):	Invalid return code while executing '03_place.tcl' was returned and script processing was stopped. Review the following error in '03_place.tcl' then restart.
+**ERROR: (IMPSYT-6693):	Error message: 03_place.tcl: Design must be in memory before running "setCTSMode".
+
+*** Memory Usage v#1 (Current mem = 419.613M, initial mem = 167.594M) ***
+*** Message Summary: 0 warning(s), 2 error(s)
+
+--- Ending "Innovus" (totcpu=0:00:03.9, real=0:00:04.0, mem=419.6M) ---

@@ -1,0 +1,68 @@
+#######################################################
+#                                                     
+#  Innovus Command Logging File                     
+#  Created on Mon Nov 23 05:17:07 2026                
+#                                                     
+#######################################################
+
+#@(#)CDS: Innovus v15.20-p005_1 (64bit) 11/11/2015 11:16 (Linux 2.6.18-194.el5)
+#@(#)CDS: NanoRoute 15.20-p005_1 NR151028-1715/15_20-UB (database version 2.30, 298.6.1) {superthreading v1.26}
+#@(#)CDS: AAE 15.20-p002 (64bit) 11/11/2015 (Linux 2.6.18-194.el5)
+#@(#)CDS: CTE 15.20-p001_1 () Oct 29 2015 01:50:39 ( )
+#@(#)CDS: SYNTECH 15.20-b002_1 () Oct 20 2015 02:35:29 ( )
+#@(#)CDS: CPE v15.20-p002
+#@(#)CDS: IQRC/TQRC 15.1.2-s269 (64bit) Mon Aug 24 18:22:18 PDT 2015 (Linux 2.6.18-194.el5)
+
+set_global _enable_mmmc_by_default_flow      $CTE::mmmc_default
+suppressMessage ENCEXT-2799
+getVersion
+getVersion
+setMultiCpuUsage -localCpu 8
+setLibraryUnit -time 1ps -cap 1ff
+set init_verilog /home/ICer/sys_syn/output_netlist_bu/snax_llm_top_clean.v
+set init_top_cell snax_llm_top_clean
+set init_lef_file {/home/ICer/sys_pnr/lef_fixed/asap7_tech_4x_201209.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_R_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_L_4x_220121a.lef /mnt/hgfs/NPU_LOG/lib/ASAP7/lef/scaled/asap7sc7p5t_28_SL_4x_220121a.lef /home/ICer/sys_pnr/lef_fixed/srambank_256x4x72_6t122.lef.4x.lef}
+set init_mmmc_file /home/ICer/sys_pnr/mmmc.tcl
+set init_pwr_net VDD
+set init_gnd_net VSS
+init_design
+globalNetConnect VDD -type pgpin -pin vdd -inst * -module {}
+globalNetConnect VSS -type pgpin -pin vss -inst * -module {}
+globalNetConnect VDD -type pgpin -pin VDD -inst * -module {}
+globalNetConnect VSS -type pgpin -pin VSS -inst * -module {}
+floorPlan -site asap7sc7p5t -s 2250.0 2408.4 10.8 10.8 10.8 10.8
+placeInstance u_tcdm/GEN_BANKS_10__u_bank/u_sram_macro 1904.4 410.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_11__u_bank/u_sram_macro 1904.4 545.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_12__u_bank/u_sram_macro 1904.4 680.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_13__u_bank/u_sram_macro 1904.4 815.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_14__u_bank/u_sram_macro 1904.4 950.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_15__u_bank/u_sram_macro 1904.4 1085.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_16__u_bank/u_sram_macro 1904.4 1220.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_17__u_bank/u_sram_macro 1904.4 1355.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_18__u_bank/u_sram_macro 1904.4 1490.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_19__u_bank/u_sram_macro 1904.4 1625.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_20__u_bank/u_sram_macro 1904.4 1760.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_21__u_bank/u_sram_macro 1904.4 1895.4 R90 -fixed
+placeInstance u_tcdm/GEN_BANKS_0__u_bank/u_sram_macro 511.2 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_1__u_bank/u_sram_macro 647.28 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_2__u_bank/u_sram_macro 783.36 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_3__u_bank/u_sram_macro 919.44 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_4__u_bank/u_sram_macro 1055.52 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_5__u_bank/u_sram_macro 1191.6 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_6__u_bank/u_sram_macro 1327.68 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_7__u_bank/u_sram_macro 1463.76 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_8__u_bank/u_sram_macro 1599.84 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_9__u_bank/u_sram_macro 1735.92 2073.6 R0 -fixed
+placeInstance u_tcdm/GEN_BANKS_22__u_bank/u_sram_macro 511.2 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_23__u_bank/u_sram_macro 647.28 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_24__u_bank/u_sram_macro 783.36 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_25__u_bank/u_sram_macro 919.44 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_26__u_bank/u_sram_macro 1055.52 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_27__u_bank/u_sram_macro 1191.6 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_28__u_bank/u_sram_macro 1327.68 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_29__u_bank/u_sram_macro 1463.76 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_30__u_bank/u_sram_macro 1599.84 10.8 MX -fixed
+placeInstance u_tcdm/GEN_BANKS_31__u_bank/u_sram_macro 1735.92 10.8 MX -fixed
+addHaloToBlock {4.32 4.32 4.32 4.32} -allMacro
+checkFPlan -outFile reports/dryrun_fplan.rpt
+saveDesign out/dryrun_fplan.enc
