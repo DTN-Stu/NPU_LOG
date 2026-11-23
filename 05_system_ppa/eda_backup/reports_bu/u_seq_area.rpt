@@ -1,0 +1,63 @@
+ 
+****************************************
+Report : area
+Design : snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16
+Version: O-2018.06-SP1
+Date   : Mon Nov 23 01:04:23 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Warning: Design 'snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16' contains 1 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+Library(s) Used:
+
+    asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_OA_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/OA_SLVT_TT.db)
+    asap7sc7p5t_OA_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/OA_LVT_TT.db)
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_AO_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_SLVT_TT.db)
+    asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_SLVT_TT.db)
+    asap7sc7p5t_INVBUF_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db)
+    asap7sc7p5t_AO_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_LVT_TT.db)
+    asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_SLVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+    asap7sc7p5t_SEQ_SLVT_TT_nldm_220123 (File: /home/ICer/asap7_multivt/db/SEQ_SLVT_TT.db)
+    asap7sc7p5t_SEQ_LVT_TT_nldm_220123 (File: /home/ICer/asap7_multivt/db/SEQ_LVT_TT.db)
+
+Number of ports:                         5065
+Number of nets:                         19132
+Number of cells:                        15531
+Number of combinational cells:          14208
+Number of sequential cells:              1320
+Number of macros/black boxes:               0
+Number of buf/inv:                       2923
+Number of references:                      69
+
+Combinational area:               1144.792435
+Buf/Inv area:                      132.532202
+Noncombinational area:             500.385597
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                  1645.178032
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area          Local cell area
+                                  ------------------  ---------------------------- 
+Hierarchical cell                 Absolute   Percent  Combi-     Noncombi-  Black-
+                                  Total      Total    national   national   boxes   Design
+--------------------------------  ---------  -------  ---------  ---------  ------  ----------------------------------------------------
+snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16
+                                  1645.1780    100.0    19.4935     0.0000  0.0000  snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16
+u_cmp_fsm                          955.2524     58.1   691.4128   263.8397  0.0000  snax_seq_cmp_fsm_00000020_00000010_00000004_00000010
+u_dma_fsm                          660.0366     40.1   427.2815   232.7551  0.0000  snax_seq_dma_fsm_00000020_00000004_00020000
+u_dr_fsm                            10.3955      0.6     6.6047     3.7908  0.0000  snax_seq_dr_fsm_00000010_00000004
+--------------------------------  ---------  -------  ---------  ---------  ------  ----------------------------------------------------
+Total                                                 1144.7924   500.3856  0.0000
+
+1

@@ -1,0 +1,25 @@
+ 
+****************************************
+Report : clock_gating
+        -verbose
+Design : snax_llm_top_clean
+Version: O-2018.06-SP1
+Date   : Sun Nov 22 06:46:00 2026
+****************************************
+
+
+
+                             Clock Gating Summary
+          ------------------------------------------------------------
+          |    Number of Clock gating elements    |        0         |
+          |                                       |                  |
+          |    Number of Gated registers          |     0 (0.00%)    |
+          |                                       |                  |
+          |    Number of Ungated registers        | 24144 (100.00%)  |
+          |                                       |                  |
+          |    Total number of registers          |    24144         |
+          ------------------------------------------------------------
+
+
+
+1

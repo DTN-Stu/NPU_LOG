@@ -1,0 +1,83 @@
+ 
+****************************************
+Report : qor
+Design : snax_flash_csr_snax_ENABLE_LEGACY_DIRECT_CSR0_DOUBLE_BUFFER0
+Version: O-2018.06-SP1
+Date   : Sun Nov 22 03:29:19 2026
+****************************************
+
+
+  Timing Path Group 'clk'
+  -----------------------------------
+  Levels of Logic:              10.00
+  Critical Path Length:        539.93
+  Critical Path Slack:        1039.55
+  Critical Path Clk Period:   1666.70
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:        -21.52
+  Total Hold Violation:        -31.51
+  No. of Hold Violations:        2.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:          0
+  Hierarchical Port Count:          0
+  Leaf Cell Count:               3460
+  Buf/Inv Cell Count:             991
+  Buf Cell Count:                  71
+  Inv Cell Count:                 920
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:      2585
+  Sequential Cell Count:          875
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:      180.660782
+  Noncombinational Area:   331.694998
+  Buf/Inv Area:             45.095940
+  Total Buffer Area:             4.67
+  Total Inverter Area:          40.43
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:               512.355780
+  Design Area:             512.355780
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:          3527
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: EDAServer
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                    0.51
+  Logic Optimization:                 82.28
+  Mapping Optimization:              372.66
+  -----------------------------------------
+  Overall Compile Time:              936.25
+  Overall Compile Wall Clock Time:   933.41
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 21.52  TNS: 31.51  Number of Violating Paths: 2
+
+  --------------------------------------------------------------------
+
+
+1

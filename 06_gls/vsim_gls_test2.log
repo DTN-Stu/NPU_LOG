@@ -1,0 +1,70 @@
+Reading pref.tcl
+
+# 2024.1
+
+# vsim -c -64 opt_gls "+TEST=2" "+NO_WAVE" -do "run -all; quit -f" 
+# Start time: 17:56:54 on Nov 23,2026
+# //  Questa Sim-64
+# //  Version 2024.1 win64 Feb  1 2024
+# //
+# // Unpublished work. Copyright 2024 Siemens
+# //
+# // This material contains trade secrets or otherwise confidential information
+# // owned by Siemens Industry Software Inc. or its affiliates (collectively,
+# // "SISW"), or its licensors. Access to and use of this information is strictly
+# // limited as set forth in the Customer's applicable agreements with SISW.
+# //
+# // This material may not be copied, distributed, or otherwise disclosed outside
+# // of the Customer's facilities without the express written permission of SISW,
+# // and may not be used in any way not expressly authorized by SISW.
+# //
+# Loading sv_std.std
+# Loading work.tb_gemm_os_gls(fast)
+# Loading work.snax_llm_top_clean(fast)
+# Loading work.interleaved_interconnect_72b_29_0_1fc00001_00000020_00000048_00000020_00000400(fast)
+# Loading work.multi_bank_tcdm_72b_00000020_00000048_00000009_00000400(fast)
+# Loading work.snax_flash_csr_snax_ENABLE_LEGACY_DIRECT_CSR0_DOUBLE_BUFFER0(fast)
+# Loading work.snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16(fast)
+# Loading work.snax_sfu_sequencer_00000020(fast)
+# Loading work.snax_transpose_buffer_TOKENS16_CHANNELS16_DATA_WIDTH16(fast)
+# Loading work.snax_transpose_ctrl_TOKENS16(fast)
+# Loading work.log_quantizer_BLOCK_SIZE16_PACKET_WIDTH72(fast)
+# Loading work.snax_streamer_act_bcast_DATA_WIDTH72_ADDR_WIDTH32_STRB_WIDTH9(fast)
+# Loading work.snax_streamer_wt_16ch_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9(fast)
+# Loading work.snax_streamer_write_out_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9(fast)
+# Loading work.snax_stream_read_fp16_DATA_WIDTH72_ADDR_WIDTH32_STRB_WIDTH9_1(fast)
+# Loading work.snax_stream_read_fp16_DATA_WIDTH72_ADDR_WIDTH32_STRB_WIDTH9_0(fast)
+# Loading work.snax_llm_sfu_opt_pipe_NUM_LANES16_ALU_LANES8(fast)
+# Loading work.snax_fused_llm_core_NUM_LANES_P16_ACC_DEPTH_P16_PKT_W72_FRAC_BITS16_P_FIFO_DEPTH16_NUM_QUERIES8_USE_OUTPUT_READY1(fast)
+# Loading work.log8_fp4_mac_array_NUM_LANES_P16_ACC_DEPTH_P16_PKT_W72_FRAC_BITS16(fast)
+# Loading work.rmw_latch_acc_buffer_16_16_0(fast)
+# Loading work.attn_o_rescaler_bank_NUM_LANES_P16(fast)
+# Loading work.softmax_requantizer_BLOCK_SIZE16_SCORE_FRAC16_NUM_QUERIES8(fast)
+# Loading work.p_fifo_DATA_WIDTH87_DEPTH16(fast)
+# Loading work.l_accumulator_SCORE_FRAC16_NUM_QUERIES8(fast)
+# Loading work.final_normalizer_NUM_LANES_P16_FRAC_BITS16(fast)
+# run -all
+# [TB] +TEST=2 | Waveform: OFF (+NO_WAVE)
+# 
+# [TEST 2] Prefill M=32, N=32, K=64 (sel=2): out_mode & layouts via DMA + SW Golden ...
+#     [MATH] TEST2 Prefill SW-vs-Real   : SQNR= 49.21 dB, Cos=0.999995, sat=0
+#     [PASS] 2A out=0 act_lin dma=1: 256/256 words bit-exact vs SW!
+#     [PASS] 2B out=0 act_16bank dma=1: 256/256 words bit-exact vs SW!
+#     [PASS] 2C out=1 FP4 linear dma=1: 64/64 pkts bit-exact vs SW!
+#     [PASS] 2D out=2 FP4 scatter dma=1: 64/64 pkts bit-exact vs SW!
+#     [PASS] 2E Fused-V K_TILES=2 dma=1: 64/64 cols bit-exact vs SW Transpose+SLQ!
+# 
+# ========================================================================
+#   STRICT ZERO-CHEAT SYSTEM TESTBENCH SUMMARY (tb_gemm_os_all_sizes)
+#   Selected test (+TEST)        : 2
+#   cpu_mem_req_valid active cyc : 0 (MUST == 0)
+#   DMA active cyc / rd / wr     : 1574 cyc / 265 rd beats / 99 wr beats
+#   DRAM stalls / TCDM WO stalls : 118 / 0
+#   Max inflight_out_cnt         : 0 (limit <= 4)
+#   Total errors                 : 0
+# ========================================================================
+# >>> ALL STRICT SYSTEM TESTS PASSED (0 errors, 100% DMA, SW Golden) <<<
+# ** Note: $finish    : ./tb_gemm_os_gls.sv(2224)
+#    Time: 42945 ns  Iteration: 1  Instance: /tb_gemm_os_gls
+# End time: 17:57:10 on Nov 23,2026, Elapsed time: 0:00:16
+# Errors: 0, Warnings: 0

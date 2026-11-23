@@ -1,0 +1,1462 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -nets
+        -max_paths 10
+        -transition_time
+Design : snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16
+Version: O-2018.06-SP1
+Date   : Mon Nov 23 01:04:24 2026
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_a_h_q_reg[6]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U229/Y (NAND2xp33_ASAP7_75t_L)                         21.93     17.04     389.89 r
+  n200 (net)                                    1                   0.00     389.89 r
+  U240/Y (OAI21xp5_ASAP7_75t_SL)                         76.11     35.81     425.70 f
+  macro_m_total[11] (net)                      14                   0.00     425.70 f
+  U370/Y (NOR4xp25_ASAP7_75t_SL)                         41.07     26.64     452.34 r
+  n245 (net)                                    1                   0.00     452.34 r
+  U312/Y (NAND3xp33_ASAP7_75t_L)                         18.21     11.39     463.73 f
+  n262 (net)                                    1                   0.00     463.73 f
+  U379/Y (NOR2xp33_ASAP7_75t_SL)                         17.38     10.02     473.75 r
+  n269 (net)                                    1                   0.00     473.75 r
+  U380/Y (AOI21xp5_ASAP7_75t_SL)                         19.55      9.92     483.67 f
+  n271 (net)                                    1                   0.00     483.67 f
+  U218/Y (BUFx6f_ASAP7_75t_L)                            24.29     26.33     510.00 f
+  n406 (net)                                   24                   0.00     510.00 f
+  U496/Y (NAND2xp5_ASAP7_75t_L)                          12.74     10.43     520.42 r
+  n402 (net)                                    1                   0.00     520.42 r
+  U272/Y (OAI21xp33_ASAP7_75t_L)                         19.79     11.23     531.65 f
+  eff_m_sub[0] (net)                            1                   0.00     531.65 f
+  U291/Y (BUFx3_ASAP7_75t_L)                             14.18     21.91     553.56 f
+  n196 (net)                                    9                   0.00     553.56 f
+  u_dma_fsm/eff_m_sub_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     553.56 f
+  u_dma_fsm/eff_m_sub_i[0] (net)                                    0.00     553.56 f
+  u_dma_fsm/U394/Y (BUFx3_ASAP7_75t_L)                   18.25     22.63     576.19 f
+  u_dma_fsm/n3447 (net)                        13                   0.00     576.19 f
+  u_dma_fsm/U2668/Y (INVxp33_ASAP7_75t_R)                25.58     19.08     595.27 r
+  u_dma_fsm/n530 (net)                          2                   0.00     595.27 r
+  u_dma_fsm/U2755/Y (AOI22xp33_ASAP7_75t_R)              22.97     18.18     613.44 f
+  u_dma_fsm/n542 (net)                          1                   0.00     613.44 f
+  u_dma_fsm/U2759/Y (O2A1O1Ixp33_ASAP7_75t_R)            38.73     26.23     639.67 r
+  u_dma_fsm/n543 (net)                          1                   0.00     639.67 r
+  u_dma_fsm/U2760/Y (MAJIxp5_ASAP7_75t_R)                18.15     16.40     656.06 f
+  u_dma_fsm/n550 (net)                          1                   0.00     656.06 f
+  u_dma_fsm/U270/Y (AOI22xp33_ASAP7_75t_R)               39.65     26.39     682.46 r
+  u_dma_fsm/n552 (net)                          1                   0.00     682.46 r
+  u_dma_fsm/U2763/Y (MAJIxp5_ASAP7_75t_R)                18.01     19.05     701.51 f
+  u_dma_fsm/n558 (net)                          1                   0.00     701.51 f
+  u_dma_fsm/U1342/Y (AOI22xp33_ASAP7_75t_R)              39.49     26.35     727.86 r
+  u_dma_fsm/n559 (net)                          1                   0.00     727.86 r
+  u_dma_fsm/U2764/Y (MAJIxp5_ASAP7_75t_R)                17.97     19.02     746.88 f
+  u_dma_fsm/n565 (net)                          1                   0.00     746.88 f
+  u_dma_fsm/U2210/Y (AOI22xp33_ASAP7_75t_R)              47.57     26.34     773.22 r
+  u_dma_fsm/n567 (net)                          1                   0.00     773.22 r
+  u_dma_fsm/U2766/Y (MAJIxp5_ASAP7_75t_R)                21.08     21.50     794.72 f
+  u_dma_fsm/n573 (net)                          1                   0.00     794.72 f
+  u_dma_fsm/U264/Y (AOI22xp5_ASAP7_75t_R)                35.59     22.85     817.57 r
+  u_dma_fsm/n575 (net)                          1                   0.00     817.57 r
+  u_dma_fsm/U2767/Y (MAJIxp5_ASAP7_75t_L)                19.81     14.82     832.39 f
+  u_dma_fsm/n581 (net)                          1                   0.00     832.39 f
+  u_dma_fsm/U381/Y (AOI22xp5_ASAP7_75t_L)                36.12     17.84     850.23 r
+  u_dma_fsm/n583 (net)                          1                   0.00     850.23 r
+  u_dma_fsm/U2768/Y (MAJIxp5_ASAP7_75t_L)                18.56     14.89     865.12 f
+  u_dma_fsm/n590 (net)                          1                   0.00     865.12 f
+  u_dma_fsm/U1083/Y (AO22x2_ASAP7_75t_L)                 32.10     36.00     901.13 f
+  u_dma_fsm/n21 (net)                          17                   0.00     901.13 f
+  u_dma_fsm/U570/Y (INVx3_ASAP7_75t_L)                   26.91     19.26     920.39 r
+  u_dma_fsm/n671 (net)                         16                   0.00     920.39 r
+  u_dma_fsm/U2772/Y (AOI22xp5_ASAP7_75t_L)               25.36     14.22     934.61 f
+  u_dma_fsm/n639 (net)                          3                   0.00     934.61 f
+  u_dma_fsm/U2773/Y (NOR2xp33_ASAP7_75t_L)               59.48     31.97     966.57 r
+  u_dma_fsm/n637 (net)                          2                   0.00     966.57 r
+  u_dma_fsm/U1067/Y (MAJIxp5_ASAP7_75t_SL)               42.54     23.92     990.49 f
+  u_dma_fsm/n634 (net)                          2                   0.00     990.49 f
+  u_dma_fsm/U1340/Y (MAJIxp5_ASAP7_75t_R)                58.24     40.43    1030.92 r
+  u_dma_fsm/n631 (net)                          2                   0.00    1030.92 r
+  u_dma_fsm/U559/Y (MAJIxp5_ASAP7_75t_L)                 45.90     28.46    1059.38 f
+  u_dma_fsm/n629 (net)                          2                   0.00    1059.38 f
+  u_dma_fsm/U555/Y (MAJIxp5_ASAP7_75t_L)                 51.74     36.49    1095.87 r
+  u_dma_fsm/n626 (net)                          2                   0.00    1095.87 r
+  u_dma_fsm/U2774/Y (MAJIxp5_ASAP7_75t_SL)               38.68     19.40    1115.27 f
+  u_dma_fsm/n624 (net)                          2                   0.00    1115.27 f
+  u_dma_fsm/U2775/Y (MAJIxp5_ASAP7_75t_L)                45.26     29.52    1144.79 r
+  u_dma_fsm/n621 (net)                          2                   0.00    1144.79 r
+  u_dma_fsm/U2776/Y (MAJIxp5_ASAP7_75t_SL)               44.18     25.54    1170.33 f
+  u_dma_fsm/n619 (net)                          2                   0.00    1170.33 f
+  u_dma_fsm/U2777/Y (MAJIxp5_ASAP7_75t_SL)               47.05     30.37    1200.69 r
+  u_dma_fsm/n616 (net)                          2                   0.00    1200.69 r
+  u_dma_fsm/U2778/Y (MAJIxp5_ASAP7_75t_SL)               37.88     19.29    1219.99 f
+  u_dma_fsm/n614 (net)                          2                   0.00    1219.99 f
+  u_dma_fsm/U2779/Y (MAJIxp5_ASAP7_75t_SL)               46.29     26.86    1246.85 r
+  u_dma_fsm/n612 (net)                          2                   0.00    1246.85 r
+  u_dma_fsm/U2780/Y (MAJIxp5_ASAP7_75t_SL)               38.94     22.50    1269.35 f
+  u_dma_fsm/n610 (net)                          2                   0.00    1269.35 f
+  u_dma_fsm/U2781/Y (MAJIxp5_ASAP7_75t_SL)               54.37     30.43    1299.78 r
+  u_dma_fsm/n607 (net)                          2                   0.00    1299.78 r
+  u_dma_fsm/U2782/Y (MAJIxp5_ASAP7_75t_SL)               40.65     24.91    1324.68 f
+  u_dma_fsm/n674 (net)                          2                   0.00    1324.68 f
+  u_dma_fsm/U2805/Y (MAJIxp5_ASAP7_75t_SL)               38.01     21.99    1346.68 r
+  u_dma_fsm/n675 (net)                          1                   0.00    1346.68 r
+  u_dma_fsm/U798/SN (FAx1_ASAP7_75t_L)                   30.01     36.07    1382.75 f
+  u_dma_fsm/n679 (net)                          2                   0.00    1382.75 f
+  u_dma_fsm/U148/Y (NAND2xp33_ASAP7_75t_R)               36.79     28.58    1411.33 r
+  u_dma_fsm/n3750 (net)                         2                   0.00    1411.33 r
+  u_dma_fsm/U787/Y (AOI211xp5_ASAP7_75t_L)               28.81     20.68    1432.01 f
+  u_dma_fsm/n4317 (net)                         2                   0.00    1432.01 f
+  u_dma_fsm/U773/Y (NAND2xp5_ASAP7_75t_L)                30.50     20.05    1452.06 r
+  u_dma_fsm/n4311 (net)                         3                   0.00    1452.06 r
+  u_dma_fsm/U27/Y (NOR2xp33_ASAP7_75t_SL)                21.73     14.66    1466.72 f
+  u_dma_fsm/n3779 (net)                         2                   0.00    1466.72 f
+  u_dma_fsm/U468/Y (NAND2xp5_ASAP7_75t_L)                26.19     18.59    1485.31 r
+  u_dma_fsm/n3780 (net)                         3                   0.00    1485.31 r
+  u_dma_fsm/U465/Y (NOR2x1_ASAP7_75t_L)                  17.97     12.07    1497.37 f
+  u_dma_fsm/n3786 (net)                         3                   0.00    1497.37 f
+  u_dma_fsm/U463/Y (NAND2xp5_ASAP7_75t_L)                28.68     18.35    1515.72 r
+  u_dma_fsm/n3787 (net)                         3                   0.00    1515.72 r
+  u_dma_fsm/U738/Y (NOR2x1_ASAP7_75t_L)                  20.32     14.11    1529.83 f
+  u_dma_fsm/n4313 (net)                         3                   0.00    1529.83 f
+  u_dma_fsm/U732/Y (XOR2xp5_ASAP7_75t_R)                 17.97     21.49    1551.32 f
+  u_dma_fsm/n4314 (net)                         1                   0.00    1551.32 f
+  u_dma_fsm/U1758/Y (NOR2xp33_ASAP7_75t_R)               24.90     16.52    1567.84 r
+  u_dma_fsm/n2357 (net)                         1                   0.00    1567.84 r
+  u_dma_fsm/dma_a_h_q_reg[6]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         24.90      0.00    1567.84 r
+  data arrival time                                                         1567.84
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_a_h_q_reg[6]/CLK (DFFASRHQNx1_ASAP7_75t_R)          0.00    1583.40 r
+  library setup time                                              -15.45    1567.95
+  data required time                                                        1567.95
+  ------------------------------------------------------------------------------------
+  data required time                                                        1567.95
+  data arrival time                                                        -1567.84
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.11
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: act_base_o[31]
+            (output port clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U245/Y (AND3x1_ASAP7_75t_L)                            10.62     15.52     361.13 f
+  n420 (net)                                    1                   0.00     361.13 f
+  U306/Y (BUFx6f_ASAP7_75t_SL)                           22.38     20.72     381.85 f
+  n195 (net)                                   38                   0.00     381.85 f
+  u_cmp_fsm/macro_dma_en_i (snax_seq_cmp_fsm_00000020_00000010_00000004_00000010)
+                                                                    0.00     381.85 f
+  u_cmp_fsm/macro_dma_en_i (net)                                    0.00     381.85 f
+  u_cmp_fsm/U176/Y (INVx4_ASAP7_75t_L)                   41.21     25.12     406.97 r
+  u_cmp_fsm/n6957 (net)                        39                   0.00     406.97 r
+  u_cmp_fsm/U1567/Y (NOR2x1_ASAP7_75t_L)                 30.55     21.79     428.76 f
+  u_cmp_fsm/n5243 (net)                         6                   0.00     428.76 f
+  u_cmp_fsm/U6412/Y (AND2x2_ASAP7_75t_R)                  9.14     26.91     455.67 f
+  u_cmp_fsm/n4061 (net)                         2                   0.00     455.67 f
+  u_cmp_fsm/U2546/Y (NAND2xp5_ASAP7_75t_R)               17.86     12.16     467.84 r
+  u_cmp_fsm/n4070 (net)                         2                   0.00     467.84 r
+  u_cmp_fsm/U6433/Y (INVxp67_ASAP7_75t_R)                16.97     14.49     482.32 f
+  u_cmp_fsm/n4197 (net)                         2                   0.00     482.32 f
+  u_cmp_fsm/U1496/Y (AO22x1_ASAP7_75t_L)                 13.93     24.88     507.20 f
+  u_cmp_fsm/n4212 (net)                         2                   0.00     507.20 f
+  u_cmp_fsm/U1487/Y (AO22x1_ASAP7_75t_L)                 14.05     23.53     530.73 f
+  u_cmp_fsm/n4228 (net)                         2                   0.00     530.73 f
+  u_cmp_fsm/U1480/Y (AO22x1_ASAP7_75t_L)                 14.05     23.55     554.28 f
+  u_cmp_fsm/n4262 (net)                         2                   0.00     554.28 f
+  u_cmp_fsm/U1474/Y (AO22x1_ASAP7_75t_L)                 14.05     23.55     577.83 f
+  u_cmp_fsm/n4417 (net)                         2                   0.00     577.83 f
+  u_cmp_fsm/U6695/Y (AO22x1_ASAP7_75t_L)                 13.96     23.49     601.32 f
+  u_cmp_fsm/n4450 (net)                         2                   0.00     601.32 f
+  u_cmp_fsm/U6718/Y (AO22x1_ASAP7_75t_R)                 15.70     30.00     631.32 f
+  u_cmp_fsm/n4478 (net)                         2                   0.00     631.32 f
+  u_cmp_fsm/U2431/Y (AO22x1_ASAP7_75t_R)                 15.70     30.44     661.76 f
+  u_cmp_fsm/n4518 (net)                         2                   0.00     661.76 f
+  u_cmp_fsm/U115/Y (AO22x1_ASAP7_75t_R)                  15.70     30.44     692.21 f
+  u_cmp_fsm/n4544 (net)                         2                   0.00     692.21 f
+  u_cmp_fsm/U109/Y (AO22x1_ASAP7_75t_R)                  16.19     30.52     722.72 f
+  u_cmp_fsm/n4548 (net)                         2                   0.00     722.72 f
+  u_cmp_fsm/U2416/Y (AO22x1_ASAP7_75t_L)                 14.38     23.94     746.66 f
+  u_cmp_fsm/n4563 (net)                         2                   0.00     746.66 f
+  u_cmp_fsm/U2411/Y (AO22x1_ASAP7_75t_L)                 14.08     23.61     770.27 f
+  u_cmp_fsm/n4572 (net)                         2                   0.00     770.27 f
+  u_cmp_fsm/U890/Y (AO22x1_ASAP7_75t_L)                  14.08     23.56     793.83 f
+  u_cmp_fsm/n4577 (net)                         2                   0.00     793.83 f
+  u_cmp_fsm/U888/Y (AO22x1_ASAP7_75t_L)                  14.94     24.09     817.92 f
+  u_cmp_fsm/n4584 (net)                         2                   0.00     817.92 f
+  u_cmp_fsm/U6798/Y (AO22x2_ASAP7_75t_L)                 10.93     22.41     840.33 f
+  u_cmp_fsm/n4592 (net)                         2                   0.00     840.33 f
+  u_cmp_fsm/U6806/Y (AO22x2_ASAP7_75t_L)                 10.82     21.34     861.67 f
+  u_cmp_fsm/n4607 (net)                         2                   0.00     861.67 f
+  u_cmp_fsm/U89/Y (AO22x1_ASAP7_75t_L)                   14.08     22.97     884.64 f
+  u_cmp_fsm/n4613 (net)                         2                   0.00     884.64 f
+  u_cmp_fsm/U86/Y (AO22x1_ASAP7_75t_L)                   14.08     23.56     908.19 f
+  u_cmp_fsm/n4719 (net)                         2                   0.00     908.19 f
+  u_cmp_fsm/U83/Y (AO22x1_ASAP7_75t_L)                   14.08     23.56     931.75 f
+  u_cmp_fsm/n4727 (net)                         2                   0.00     931.75 f
+  u_cmp_fsm/U79/Y (AO22x1_ASAP7_75t_L)                   14.94     24.09     955.84 f
+  u_cmp_fsm/n4735 (net)                         2                   0.00     955.84 f
+  u_cmp_fsm/U6840/Y (AO22x2_ASAP7_75t_L)                 11.04     22.41     978.26 f
+  u_cmp_fsm/n4745 (net)                         2                   0.00     978.26 f
+  u_cmp_fsm/U6846/Y (AO22x2_ASAP7_75t_L)                 10.99     21.68     999.93 f
+  u_cmp_fsm/n4751 (net)                         2                   0.00     999.93 f
+  u_cmp_fsm/U6851/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1021.60 f
+  u_cmp_fsm/n4762 (net)                         2                   0.00    1021.60 f
+  u_cmp_fsm/U6858/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1043.27 f
+  u_cmp_fsm/n4768 (net)                         2                   0.00    1043.27 f
+  u_cmp_fsm/U6864/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1064.94 f
+  u_cmp_fsm/n4855 (net)                         2                   0.00    1064.94 f
+  u_cmp_fsm/U6893/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1086.61 f
+  u_cmp_fsm/n4927 (net)                         2                   0.00    1086.61 f
+  u_cmp_fsm/U6978/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1108.27 f
+  u_cmp_fsm/n4987 (net)                         2                   0.00    1108.27 f
+  u_cmp_fsm/U7003/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1129.94 f
+  u_cmp_fsm/n5075 (net)                         2                   0.00    1129.94 f
+  u_cmp_fsm/U7077/Y (AO22x2_ASAP7_75t_L)                 10.99     21.67    1151.61 f
+  u_cmp_fsm/n5092 (net)                         2                   0.00    1151.61 f
+  u_cmp_fsm/U7092/Y (AO22x2_ASAP7_75t_L)                 10.50     21.31    1172.92 f
+  u_cmp_fsm/n5241 (net)                         2                   0.00    1172.92 f
+  u_cmp_fsm/U2326/Y (AO22x1_ASAP7_75t_R)                 13.12     27.26    1200.18 f
+  u_cmp_fsm/n5249 (net)                         1                   0.00    1200.18 f
+  u_cmp_fsm/U2742/Y (XOR2xp5_ASAP7_75t_R)                93.34     49.68    1249.86 r
+  u_cmp_fsm/act_tile_tcdm_addr[31] (net)        1                   0.00    1249.86 r
+  u_cmp_fsm/act_base_o[31] (snax_seq_cmp_fsm_00000020_00000010_00000004_00000010)
+                                                                    0.00    1249.86 r
+  act_base_o[31] (net)                                              0.00    1249.86 r
+  act_base_o[31] (out)                                   93.34      0.00    1249.86 r
+  data arrival time                                                         1249.86
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  output external delay                                          -333.34    1250.06
+  data required time                                                        1250.06
+  ------------------------------------------------------------------------------------
+  data required time                                                        1250.06
+  data arrival time                                                        -1249.86
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.20
+
+
+  Startpoint: u_dma_fsm/v_pinned_cnt_q_reg[2]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: dma_req_tcdm_addr_o[31]
+            (output port clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  u_dma_fsm/v_pinned_cnt_q_reg[2]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00 #     0.00 r
+  u_dma_fsm/v_pinned_cnt_q_reg[2]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         24.68     61.91      61.91 f
+  u_dma_fsm/n1865 (net)                         3                   0.00      61.91 f
+  u_dma_fsm/U4186/Y (INVxp33_ASAP7_75t_R)                19.90     17.14      79.05 r
+  u_dma_fsm/v_pinned_cnt_o[2] (net)             1                   0.00      79.05 r
+  u_dma_fsm/v_pinned_cnt_o[2] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00      79.05 r
+  v_pinned_cnt_q[2] (net)                                           0.00      79.05 r
+  u_cmp_fsm/v_pinned_cnt_i[2] (snax_seq_cmp_fsm_00000020_00000010_00000004_00000010)
+                                                                    0.00      79.05 r
+  u_cmp_fsm/v_pinned_cnt_i[2] (net)                                 0.00      79.05 r
+  u_cmp_fsm/U1626/Y (INVxp67_ASAP7_75t_SL)               16.32     10.55      89.60 f
+  u_cmp_fsm/n1668 (net)                         2                   0.00      89.60 f
+  u_cmp_fsm/U2604/Y (AND2x2_ASAP7_75t_L)                  9.35     19.75     109.35 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n636 (net)     1                   0.00     109.35 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U619/CON (FAx1_ASAP7_75t_L)
+                                                         33.07     15.68     125.03 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n627 (net)     1                   0.00     125.03 r
+  u_cmp_fsm/U213/Y (INVx1_ASAP7_75t_L)                   17.21     12.43     137.46 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n617 (net)     1                   0.00     137.46 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U612/CON (FAx1_ASAP7_75t_L)
+                                                         29.03     15.46     152.92 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n618 (net)     1                   0.00     152.92 r
+  u_cmp_fsm/U3129/Y (INVxp33_ASAP7_75t_R)                37.93     28.76     181.67 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n608 (net)     1                   0.00     181.67 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U606/CON (FAx1_ASAP7_75t_SL)
+                                                         37.25     19.65     201.32 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n609 (net)     1                   0.00     201.32 r
+  u_cmp_fsm/U5554/Y (INVx1_ASAP7_75t_SL)                 18.18     10.31     211.63 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n599 (net)     1                   0.00     211.63 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U600/CON (FAx1_ASAP7_75t_SL)
+                                                         36.32     15.84     227.47 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n600 (net)     1                   0.00     227.47 r
+  u_cmp_fsm/U5555/Y (INVx1_ASAP7_75t_SL)                 17.63     10.00     237.47 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n590 (net)     1                   0.00     237.47 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U594/CON (FAx1_ASAP7_75t_L)
+                                                         36.91     18.11     255.58 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n591 (net)     1                   0.00     255.58 r
+  u_cmp_fsm/U5556/Y (INVx1_ASAP7_75t_SL)                 18.10     10.29     265.87 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n581 (net)     1                   0.00     265.87 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U588/CON (FAx1_ASAP7_75t_SL)
+                                                         36.32     15.82     281.68 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n582 (net)     1                   0.00     281.68 r
+  u_cmp_fsm/U5557/Y (INVx1_ASAP7_75t_SL)                 17.63     10.00     291.68 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n572 (net)     1                   0.00     291.68 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U582/CON (FAx1_ASAP7_75t_L)
+                                                         34.21     16.66     308.34 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n573 (net)     1                   0.00     308.34 r
+  u_cmp_fsm/U895/Y (INVxp67_ASAP7_75t_R)                 23.59     20.78     329.13 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n563 (net)     1                   0.00     329.13 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U576/CON (FAx1_ASAP7_75t_L)
+                                                         43.75     23.41     352.54 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n564 (net)     1                   0.00     352.54 r
+  u_cmp_fsm/U891/Y (INVx2_ASAP7_75t_L)                   13.73      8.83     361.36 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n554 (net)     1                   0.00     361.36 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U570/CON (FAx1_ASAP7_75t_L)
+                                                         36.34     16.73     378.09 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n555 (net)     1                   0.00     378.09 r
+  u_cmp_fsm/U615/Y (INVx1_ASAP7_75t_R)                   19.62     17.85     395.95 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n547 (net)     1                   0.00     395.95 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U566/CON (FAx1_ASAP7_75t_SL)
+                                                         36.06     16.08     412.03 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n548 (net)     1                   0.00     412.03 r
+  u_cmp_fsm/U882/Y (INVx1_ASAP7_75t_L)                   18.24     13.06     425.09 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n538 (net)     1                   0.00     425.09 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/U561/CON (FAx1_ASAP7_75t_SL)
+                                                         53.49     22.57     447.66 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/n539 (net)     1                   0.00     447.66 r
+  u_cmp_fsm/DP_OP_912J1_131_8561/U556/SN (FAx1_ASAP7_75t_L)
+                                                         30.91     37.40     485.07 f
+  u_cmp_fsm/DP_OP_912J1_131_8561/n530 (net)     2                   0.00     485.07 f
+  u_cmp_fsm/U170/Y (NOR2xp33_ASAP7_75t_R)                29.49     22.87     507.94 r
+  u_cmp_fsm/n1973 (net)                         2                   0.00     507.94 r
+  u_cmp_fsm/U2349/Y (NOR2xp33_ASAP7_75t_SL)              24.62     16.10     524.03 f
+  u_cmp_fsm/n1975 (net)                         2                   0.00     524.03 f
+  u_cmp_fsm/U1387/Y (NAND2xp33_ASAP7_75t_SL)             17.52     12.76     536.80 r
+  u_cmp_fsm/n1978 (net)                         1                   0.00     536.80 r
+  u_cmp_fsm/U2342/Y (OAI21xp33_ASAP7_75t_SL)             16.38      9.30     546.10 f
+  u_cmp_fsm/n1999 (net)                         1                   0.00     546.10 f
+  u_cmp_fsm/U1377/Y (AOI21xp5_ASAP7_75t_L)               17.57     11.88     557.98 r
+  u_cmp_fsm/n2001 (net)                         1                   0.00     557.98 r
+  u_cmp_fsm/U5738/Y (AO21x1_ASAP7_75t_SL)                11.74     14.60     572.58 r
+  u_cmp_fsm/attn_v_ready_o (net)                2                   0.00     572.58 r
+  u_cmp_fsm/attn_v_ready_o (snax_seq_cmp_fsm_00000020_00000010_00000004_00000010)
+                                                                    0.00     572.58 r
+  attn_v_ready (net)                                                0.00     572.58 r
+  u_dma_fsm/attn_v_ready_i (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     572.58 r
+  u_dma_fsm/attn_v_ready_i (net)                                    0.00     572.58 r
+  u_dma_fsm/U909/Y (NAND2xp5_ASAP7_75t_L)                14.24      7.90     580.48 f
+  u_dma_fsm/n72 (net)                           1                   0.00     580.48 f
+  u_dma_fsm/U2465/Y (AOI21xp5_ASAP7_75t_SL)              23.06     12.41     592.89 r
+  u_dma_fsm/n78 (net)                           1                   0.00     592.89 r
+  u_dma_fsm/U1536/Y (OAI21x1_ASAP7_75t_L)                19.68      9.81     602.70 f
+  u_dma_fsm/n677 (net)                          3                   0.00     602.70 f
+  u_dma_fsm/U2477/Y (NAND2xp5_ASAP7_75t_L)               17.49     12.75     615.45 r
+  u_dma_fsm/n780 (net)                          2                   0.00     615.45 r
+  u_dma_fsm/U3050/Y (OR2x2_ASAP7_75t_SL)                 14.37     17.77     633.22 r
+  u_dma_fsm/n4755 (net)                         4                   0.00     633.22 r
+  u_dma_fsm/U3051/Y (INVx2_ASAP7_75t_L)                  12.26      9.22     642.44 f
+  u_dma_fsm/n938 (net)                          3                   0.00     642.44 f
+  u_dma_fsm/U550/Y (NAND2x1p5_ASAP7_75t_L)               25.96     14.30     656.74 r
+  u_dma_fsm/n4817 (net)                         5                   0.00     656.74 r
+  u_dma_fsm/U887/Y (INVx2_ASAP7_75t_L)                   19.78     14.33     671.07 f
+  u_dma_fsm/n4911 (net)                         9                   0.00     671.07 f
+  u_dma_fsm/U1071/Y (AO222x2_ASAP7_75t_SL)               13.76     26.28     697.35 f
+  u_dma_fsm/n4849 (net)                         1                   0.00     697.35 f
+  u_dma_fsm/U4712/Y (OR2x2_ASAP7_75t_L)                   8.13     18.68     716.03 f
+  u_dma_fsm/n4850 (net)                         2                   0.00     716.03 f
+  u_dma_fsm/U4714/Y (NOR2xp33_ASAP7_75t_L)               26.98     15.01     731.04 r
+  u_dma_fsm/n4867 (net)                         3                   0.00     731.04 r
+  u_dma_fsm/U4724/Y (OAI21xp33_ASAP7_75t_R)              21.14     17.81     748.86 f
+  u_dma_fsm/n4868 (net)                         1                   0.00     748.86 f
+  u_dma_fsm/U4725/Y (AOI21xp5_ASAP7_75t_SL)              33.52     19.75     768.61 r
+  u_dma_fsm/n4881 (net)                         2                   0.00     768.61 r
+  u_dma_fsm/U4734/Y (OAI21x1_ASAP7_75t_SL)               18.39      8.61     777.22 f
+  u_dma_fsm/n4894 (net)                         2                   0.00     777.22 f
+  u_dma_fsm/U58/Y (AOI21xp5_ASAP7_75t_SL)                34.30     18.44     795.65 r
+  u_dma_fsm/n4906 (net)                         2                   0.00     795.65 r
+  u_dma_fsm/U4752/Y (OAI21x1_ASAP7_75t_SL)               21.58      9.45     805.10 f
+  u_dma_fsm/n4920 (net)                         2                   0.00     805.10 f
+  u_dma_fsm/U4763/Y (AOI21x1_ASAP7_75t_L)                22.71     14.90     820.01 r
+  u_dma_fsm/n4933 (net)                         2                   0.00     820.01 r
+  u_dma_fsm/U4776/Y (OAI21x1_ASAP7_75t_SL)               20.47      9.39     829.40 f
+  u_dma_fsm/n4949 (net)                         2                   0.00     829.40 f
+  u_dma_fsm/U4787/Y (AOI21x1_ASAP7_75t_SL)               22.25     13.09     842.49 r
+  u_dma_fsm/n4964 (net)                         2                   0.00     842.49 r
+  u_dma_fsm/U4799/Y (OAI21x1_ASAP7_75t_SL)               21.68      9.23     851.73 f
+  u_dma_fsm/n4980 (net)                         2                   0.00     851.73 f
+  u_dma_fsm/U4809/Y (AOI21x1_ASAP7_75t_SL)               21.11     12.17     863.90 r
+  u_dma_fsm/n4993 (net)                         2                   0.00     863.90 r
+  u_dma_fsm/U4821/Y (OAI21x1_ASAP7_75t_SL)               20.96      9.63     873.53 f
+  u_dma_fsm/n5009 (net)                         2                   0.00     873.53 f
+  u_dma_fsm/U4832/Y (AOI21x1_ASAP7_75t_SL)               21.11     12.10     885.63 r
+  u_dma_fsm/n5022 (net)                         2                   0.00     885.63 r
+  u_dma_fsm/U4843/Y (OAI21x1_ASAP7_75t_SL)               20.26      9.20     894.83 f
+  u_dma_fsm/n5037 (net)                         2                   0.00     894.83 f
+  u_dma_fsm/U728/Y (AOI21x1_ASAP7_75t_L)                 23.50     15.71     910.54 r
+  u_dma_fsm/n5055 (net)                         2                   0.00     910.54 r
+  u_dma_fsm/U1089/Y (OAI21x1_ASAP7_75t_L)                20.99     11.67     922.21 f
+  u_dma_fsm/n5074 (net)                         2                   0.00     922.21 f
+  u_dma_fsm/U722/Y (AOI21x1_ASAP7_75t_L)                 18.79     13.15     935.36 r
+  u_dma_fsm/n5083 (net)                         2                   0.00     935.36 r
+  u_dma_fsm/U4874/Y (OAI21xp5_ASAP7_75t_L)               23.02     14.98     950.35 f
+  u_dma_fsm/n5101 (net)                         2                   0.00     950.35 f
+  u_dma_fsm/U719/Y (AO22x1_ASAP7_75t_SL)                 13.55     21.51     971.86 f
+  u_dma_fsm/n5113 (net)                         2                   0.00     971.86 f
+  u_dma_fsm/U718/Y (AO22x1_ASAP7_75t_SL)                 13.90     19.47     991.33 f
+  u_dma_fsm/n5125 (net)                         2                   0.00     991.33 f
+  u_dma_fsm/U339/Y (AO22x1_ASAP7_75t_SL)                 14.58     19.94    1011.27 f
+  u_dma_fsm/n5137 (net)                         2                   0.00    1011.27 f
+  u_dma_fsm/U4912/Y (AO22x2_ASAP7_75t_L)                 11.47     22.39    1033.67 f
+  u_dma_fsm/n5149 (net)                         2                   0.00    1033.67 f
+  u_dma_fsm/U4921/Y (AO22x2_ASAP7_75t_SL)                11.40     17.96    1051.62 f
+  u_dma_fsm/n5162 (net)                         2                   0.00    1051.62 f
+  u_dma_fsm/U4929/Y (AO22x2_ASAP7_75t_L)                 11.40     21.74    1073.37 f
+  u_dma_fsm/n5173 (net)                         2                   0.00    1073.37 f
+  u_dma_fsm/U4938/Y (AO22x2_ASAP7_75t_L)                 11.28     21.75    1095.11 f
+  u_dma_fsm/n5184 (net)                         2                   0.00    1095.11 f
+  u_dma_fsm/U4947/Y (AO22x2_ASAP7_75t_L)                 11.00     21.72    1116.84 f
+  u_dma_fsm/n5195 (net)                         2                   0.00    1116.84 f
+  u_dma_fsm/U4955/Y (AO22x2_ASAP7_75t_L)                 11.00     21.67    1138.51 f
+  u_dma_fsm/n5206 (net)                         2                   0.00    1138.51 f
+  u_dma_fsm/U4964/Y (AO22x2_ASAP7_75t_L)                 11.00     21.67    1160.17 f
+  u_dma_fsm/n5218 (net)                         2                   0.00    1160.17 f
+  u_dma_fsm/U4973/Y (AO22x2_ASAP7_75t_L)                 10.67     21.44    1181.61 f
+  u_dma_fsm/n5231 (net)                         2                   0.00    1181.61 f
+  u_dma_fsm/U714/Y (AO22x1_ASAP7_75t_L)                  12.04     21.48    1203.09 f
+  u_dma_fsm/n5244 (net)                         1                   0.00    1203.09 f
+  u_dma_fsm/U1073/Y (XOR2xp5_ASAP7_75t_L)                16.72     15.58    1218.67 f
+  u_dma_fsm/n5245 (net)                         1                   0.00    1218.67 f
+  u_dma_fsm/U1072/Y (AO221x2_ASAP7_75t_SL)               23.41     30.98    1249.65 f
+  u_dma_fsm/dma_req_tcdm_addr_o[31] (net)       1                   0.00    1249.65 f
+  u_dma_fsm/dma_req_tcdm_addr_o[31] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00    1249.65 f
+  dma_req_tcdm_addr_o[31] (net)                                     0.00    1249.65 f
+  dma_req_tcdm_addr_o[31] (out)                          23.41      0.00    1249.65 f
+  data arrival time                                                         1249.65
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  output external delay                                          -333.34    1250.06
+  data required time                                                        1250.06
+  ------------------------------------------------------------------------------------
+  data required time                                                        1250.06
+  data arrival time                                                        -1249.65
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.41
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[0]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2130/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2241 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[0]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[1]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2128/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2240 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[1]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[1]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[2]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2124/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2239 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[2]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[2]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[3]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2438/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2238 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[3]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[3]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[4]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2118/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2237 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[4]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[4]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[5]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2114/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2236 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[5]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[5]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+  Startpoint: cfg_op_mode_i[1]
+              (input port clocked by clk)
+  Endpoint: u_dma_fsm/dma_w_m_base_q_reg[6]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  input external delay                                            333.34     333.34 r
+  cfg_op_mode_i[1] (in)                                  11.75      2.45     335.79 r
+  cfg_op_mode_i[1] (net)                        2                   0.00     335.79 r
+  U303/Y (NOR2x1p5_ASAP7_75t_SL)                         14.67      9.82     345.61 f
+  n237 (net)                                    3                   0.00     345.61 f
+  U307/Y (AND2x6_ASAP7_75t_SL)                           26.26     27.24     372.85 f
+  n418 (net)                                   40                   0.00     372.85 f
+  U262/Y (NAND2xp5_ASAP7_75t_L)                          14.71     11.91     384.76 r
+  n232 (net)                                    1                   0.00     384.76 r
+  U244/Y (OAI21xp5_ASAP7_75t_L)                          18.20      9.66     394.42 f
+  n234 (net)                                    1                   0.00     394.42 f
+  U367/Y (BUFx3_ASAP7_75t_SL)                            13.83     18.61     413.04 f
+  n408 (net)                                   10                   0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (snax_seq_dma_fsm_00000020_00000004_00020000)
+                                                                    0.00     413.04 f
+  u_dma_fsm/macro_m_total_i[0] (net)                                0.00     413.04 f
+  u_dma_fsm/U85/Y (INVx1_ASAP7_75t_L)                    18.87     12.82     425.86 r
+  u_dma_fsm/n365 (net)                          5                   0.00     425.86 r
+  u_dma_fsm/U405/Y (NAND2xp5_ASAP7_75t_R)                33.51     21.57     447.43 f
+  u_dma_fsm/n363 (net)                          2                   0.00     447.43 f
+  u_dma_fsm/U403/Y (MAJIxp5_ASAP7_75t_L)                 35.50     26.45     473.87 r
+  u_dma_fsm/n361 (net)                          2                   0.00     473.87 r
+  u_dma_fsm/U626/Y (MAJIxp5_ASAP7_75t_L)                 34.82     22.91     496.78 f
+  u_dma_fsm/n357 (net)                          2                   0.00     496.78 f
+  u_dma_fsm/U622/Y (MAJIxp5_ASAP7_75t_L)                 38.74     26.79     523.57 r
+  u_dma_fsm/n356 (net)                          2                   0.00     523.57 r
+  u_dma_fsm/U618/Y (MAJIxp5_ASAP7_75t_L)                 34.98     23.62     547.19 f
+  u_dma_fsm/n353 (net)                          2                   0.00     547.19 f
+  u_dma_fsm/U612/Y (MAJIxp5_ASAP7_75t_L)                 35.82     26.83     574.01 r
+  u_dma_fsm/n351 (net)                          2                   0.00     574.01 r
+  u_dma_fsm/U606/Y (MAJIxp5_ASAP7_75t_L)                 34.72     22.98     597.00 f
+  u_dma_fsm/n348 (net)                          2                   0.00     597.00 f
+  u_dma_fsm/U602/Y (MAJIxp5_ASAP7_75t_L)                 38.84     26.76     623.76 r
+  u_dma_fsm/n378 (net)                          2                   0.00     623.76 r
+  u_dma_fsm/U396/Y (MAJIxp5_ASAP7_75t_L)                 35.00     23.64     647.39 f
+  u_dma_fsm/n380 (net)                          2                   0.00     647.39 f
+  u_dma_fsm/U395/Y (MAJIxp5_ASAP7_75t_L)                 39.36     26.83     674.23 r
+  u_dma_fsm/n346 (net)                          2                   0.00     674.23 r
+  u_dma_fsm/U393/Y (MAJIxp5_ASAP7_75t_L)                 35.12     23.75     697.98 f
+  u_dma_fsm/n343 (net)                          2                   0.00     697.98 f
+  u_dma_fsm/U1115/Y (XNOR2xp5_ASAP7_75t_R)               31.33     34.11     732.09 f
+  u_dma_fsm/n402 (net)                          3                   0.00     732.09 f
+  u_dma_fsm/U2664/Y (AND2x2_ASAP7_75t_L)                  8.57     21.57     753.66 f
+  u_dma_fsm/n389 (net)                          2                   0.00     753.66 f
+  u_dma_fsm/U78/Y (AO21x1_ASAP7_75t_R)                    9.83     20.97     774.63 f
+  u_dma_fsm/n383 (net)                          1                   0.00     774.63 f
+  u_dma_fsm/U269/Y (AOI21xp5_ASAP7_75t_R)                19.68     13.14     787.77 r
+  u_dma_fsm/n384 (net)                          1                   0.00     787.77 r
+  u_dma_fsm/U265/Y (A2O1A1Ixp33_ASAP7_75t_R)             20.92     17.13     804.90 f
+  u_dma_fsm/n388 (net)                          1                   0.00     804.90 f
+  u_dma_fsm/U2675/Y (OAI31xp33_ASAP7_75t_L)              26.20     10.88     815.78 r
+  u_dma_fsm/n391 (net)                          1                   0.00     815.78 r
+  u_dma_fsm/U579/Y (OAI22xp5_ASAP7_75t_L)                30.57     14.21     829.99 f
+  u_dma_fsm/n393 (net)                          1                   0.00     829.99 f
+  u_dma_fsm/U575/Y (MAJIxp5_ASAP7_75t_L)                 29.47     22.69     852.69 r
+  u_dma_fsm/n397 (net)                          1                   0.00     852.69 r
+  u_dma_fsm/U573/Y (MAJIxp5_ASAP7_75t_L)                 30.66     18.28     870.97 f
+  u_dma_fsm/n398 (net)                          1                   0.00     870.97 f
+  u_dma_fsm/U262/Y (MAJIxp5_ASAP7_75t_SL)                22.58     15.52     886.49 r
+  u_dma_fsm/n399 (net)                          1                   0.00     886.49 r
+  u_dma_fsm/U69/Y (BUFx2_ASAP7_75t_L)                    36.50     31.32     917.81 r
+  u_dma_fsm/n448 (net)                         17                   0.00     917.81 r
+  u_dma_fsm/U67/Y (INVx2_ASAP7_75t_R)                    34.97     28.16     945.97 f
+  u_dma_fsm/n446 (net)                         16                   0.00     945.97 f
+  u_dma_fsm/U98/Y (AOI22xp33_ASAP7_75t_R)                75.70     48.48     994.45 r
+  u_dma_fsm/n3338 (net)                         6                   0.00     994.45 r
+  u_dma_fsm/U1331/Y (NOR2xp33_ASAP7_75t_R)               59.26     50.48    1044.93 f
+  u_dma_fsm/n3336 (net)                         2                   0.00    1044.93 f
+  u_dma_fsm/U3972/Y (MAJIxp5_ASAP7_75t_R)                53.93     44.35    1089.28 r
+  u_dma_fsm/n3333 (net)                         2                   0.00    1089.28 r
+  u_dma_fsm/U3973/Y (MAJIxp5_ASAP7_75t_L)                39.37     26.56    1115.84 f
+  u_dma_fsm/n3327 (net)                         2                   0.00    1115.84 f
+  u_dma_fsm/U253/Y (MAJIxp5_ASAP7_75t_L)                 45.02     28.13    1143.97 r
+  u_dma_fsm/n3324 (net)                         2                   0.00    1143.97 r
+  u_dma_fsm/U3974/Y (MAJIxp5_ASAP7_75t_L)                39.45     25.38    1169.35 f
+  u_dma_fsm/n3318 (net)                         2                   0.00    1169.35 f
+  u_dma_fsm/U251/Y (MAJIxp5_ASAP7_75t_L)                 42.90     28.14    1197.49 r
+  u_dma_fsm/n3315 (net)                         2                   0.00    1197.49 r
+  u_dma_fsm/U3975/Y (MAJIxp5_ASAP7_75t_L)                40.03     25.10    1222.59 f
+  u_dma_fsm/n3309 (net)                         2                   0.00    1222.59 f
+  u_dma_fsm/U554/Y (MAJIxp5_ASAP7_75t_L)                 52.90     28.25    1250.84 r
+  u_dma_fsm/n3306 (net)                         2                   0.00    1250.84 r
+  u_dma_fsm/U546/Y (MAJIxp5_ASAP7_75t_L)                 41.21     26.42    1277.26 f
+  u_dma_fsm/n3365 (net)                         2                   0.00    1277.26 f
+  u_dma_fsm/U541/Y (MAJIxp5_ASAP7_75t_L)                 43.21     28.42    1305.68 r
+  u_dma_fsm/n3300 (net)                         2                   0.00    1305.68 r
+  u_dma_fsm/U532/Y (MAJIxp5_ASAP7_75t_L)                 37.32     26.04    1331.72 f
+  u_dma_fsm/n3293 (net)                         2                   0.00    1331.72 f
+  u_dma_fsm/U1082/Y (XNOR2xp5_ASAP7_75t_R)               26.71     22.47    1354.18 r
+  u_dma_fsm/n3295 (net)                         1                   0.00    1354.18 r
+  u_dma_fsm/U522/Y (INVx1_ASAP7_75t_R)                   15.35     14.21    1368.40 f
+  u_dma_fsm/n3302 (net)                         3                   0.00    1368.40 f
+  u_dma_fsm/U509/Y (OAI22xp33_ASAP7_75t_R)               22.33     16.57    1384.97 r
+  u_dma_fsm/n3371 (net)                         1                   0.00    1384.97 r
+  u_dma_fsm/U4007/Y (NOR2xp33_ASAP7_75t_R)               17.77     16.58    1401.55 f
+  u_dma_fsm/n3372 (net)                         1                   0.00    1401.55 f
+  u_dma_fsm/U825/Y (AOI31xp33_ASAP7_75t_R)               27.81     21.82    1423.37 r
+  u_dma_fsm/n3375 (net)                         1                   0.00    1423.37 r
+  u_dma_fsm/U802/Y (AOI22xp5_ASAP7_75t_R)                25.21     19.22    1442.59 f
+  u_dma_fsm/n3385 (net)                         1                   0.00    1442.59 f
+  u_dma_fsm/U238/Y (MAJIxp5_ASAP7_75t_L)                 28.21     21.41    1464.01 r
+  u_dma_fsm/n3387 (net)                         1                   0.00    1464.01 r
+  u_dma_fsm/U353/Y (MAJIxp5_ASAP7_75t_L)                 22.84     17.80    1481.81 f
+  u_dma_fsm/n3395 (net)                         1                   0.00    1481.81 f
+  u_dma_fsm/U476/Y (MAJIxp5_ASAP7_75t_L)                 17.41     15.22    1497.02 r
+  u_dma_fsm/n3396 (net)                         1                   0.00    1497.02 r
+  u_dma_fsm/U12/Y (NOR2xp33_ASAP7_75t_L)                 32.79     20.93    1517.95 f
+  u_dma_fsm/n4301 (net)                         2                   0.00    1517.95 f
+  u_dma_fsm/U4008/Y (NAND3x1_ASAP7_75t_L)                67.14     38.83    1556.78 r
+  u_dma_fsm/n3470 (net)                        16                   0.00    1556.78 r
+  u_dma_fsm/U2111/Y (OAI22xp33_ASAP7_75t_R)              28.79     22.74    1579.51 f
+  u_dma_fsm/n2235 (net)                         1                   0.00    1579.51 f
+  u_dma_fsm/dma_w_m_base_q_reg[6]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         28.79      0.00    1579.51 f
+  data arrival time                                                         1579.51
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  u_dma_fsm/dma_w_m_base_q_reg[6]/CLK (DFFASRHQNx1_ASAP7_75t_R)     0.00    1583.40 r
+  library setup time                                               -3.30    1580.10
+  data required time                                                        1580.10
+  ------------------------------------------------------------------------------------
+  data required time                                                        1580.10
+  data arrival time                                                        -1579.51
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                                  0.59
+
+
+1

@@ -1,0 +1,557 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -nets
+        -max_paths 10
+        -transition_time
+Design : snax_flash_csr_snax_ENABLE_LEGACY_DIRECT_CSR0_DOUBLE_BUFFER0
+Version: O-2018.06-SP1
+Date   : Sun Nov 22 03:29:19 2026
+****************************************
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][18]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3541/Y (AOI22xp33_ASAP7_75t_R)                        36.31     24.77     539.93 f
+  n1950 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][18]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.31      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][18]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.92    1579.48
+  data required time                                                        1579.48
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.48
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.55
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][19]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3763/Y (AOI22xp33_ASAP7_75t_R)                        36.31     24.77     539.93 f
+  n1949 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][19]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.31      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][19]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.92    1579.48
+  data required time                                                        1579.48
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.48
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.55
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][0]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3559/Y (AOI22xp33_ASAP7_75t_R)                        34.32     24.77     539.93 f
+  n1968 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][0]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.32      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.75    1579.65
+  data required time                                                        1579.65
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.65
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.71
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][8]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3551/Y (AOI22xp33_ASAP7_75t_R)                        34.32     24.77     539.93 f
+  n1960 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][8]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.32      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][8]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.75    1579.65
+  data required time                                                        1579.65
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.65
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.71
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][9]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3550/Y (AOI22xp33_ASAP7_75t_R)                        34.31     24.77     539.93 f
+  n1959 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][9]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.31      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][9]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.75    1579.65
+  data required time                                                        1579.65
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.65
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.71
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][10]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3549/Y (AOI22xp33_ASAP7_75t_R)                        34.31     24.77     539.93 f
+  n1958 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][10]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.31      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][10]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.75    1579.65
+  data required time                                                        1579.65
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.65
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.71
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][11]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3548/Y (AOI22xp33_ASAP7_75t_R)                        34.31     24.77     539.93 f
+  n1957 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][11]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.31      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][11]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.75    1579.65
+  data required time                                                        1579.65
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.65
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.71
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][16]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3543/Y (AOI22xp33_ASAP7_75t_R)                        34.07     24.77     539.93 f
+  n1952 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][16]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.07      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][16]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.73    1579.67
+  data required time                                                        1579.67
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.67
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.73
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][17]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3542/Y (AOI22xp33_ASAP7_75t_R)                        34.07     24.77     539.93 f
+  n1951 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][17]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         34.07      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][17]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.73    1579.67
+  data required time                                                        1579.67
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.67
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.73
+
+
+  Startpoint: gen_compact_csr.req_addr_q_reg[0]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][4]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                       Fanout     Trans      Incr       Path
+  ------------------------------------------------------------------------------------
+  clock clk (rise edge)                                             0.00       0.00
+  clock network delay (ideal)                                       0.00       0.00
+  gen_compact_csr.req_addr_q_reg[0]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                         25.00      0.00       0.00 r
+  gen_compact_csr.req_addr_q_reg[0]/QN (DFFASRHQNx1_ASAP7_75t_R)
+                                                         36.08     69.37      69.37 r
+  n912 (net)                                    5                   0.00      69.37 r
+  U3141/Y (INVx1_ASAP7_75t_R)                            31.40     26.10      95.47 f
+  n3313 (net)                                   9                   0.00      95.47 f
+  U2534/Y (NAND2xp33_ASAP7_75t_R)                        76.49     47.75     143.22 r
+  n2667 (net)                                   6                   0.00     143.22 r
+  U3921/Y (NOR2xp33_ASAP7_75t_R)                         42.41     38.68     181.90 f
+  n2790 (net)                                   3                   0.00     181.90 f
+  U2531/Y (INVxp33_ASAP7_75t_R)                          70.50     47.87     229.77 r
+  n2638 (net)                                   3                   0.00     229.77 r
+  U3128/Y (NOR2xp67_ASAP7_75t_L)                         78.91     54.04     283.81 f
+  n2586 (net)                                  19                   0.00     283.81 f
+  U3154/Y (INVx1_ASAP7_75t_R)                            76.43     59.63     343.44 r
+  n3376 (net)                                  15                   0.00     343.44 r
+  U4895/Y (NOR2x1_ASAP7_75t_R)                           60.91     52.35     395.79 f
+  n3127 (net)                                  18                   0.00     395.79 f
+  U2508/Y (HB1xp67_ASAP7_75t_R)                          70.43     64.78     460.57 f
+  n3143 (net)                                  16                   0.00     460.57 f
+  U3082/Y (INVx2_ASAP7_75t_R)                            71.22     54.60     515.17 r
+  n2557 (net)                                  32                   0.00     515.17 r
+  U3555/Y (AOI22xp33_ASAP7_75t_R)                        33.35     24.77     539.93 f
+  n1964 (net)                                   1                   0.00     539.93 f
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][4]/D (DFFASRHQNx1_ASAP7_75t_R)
+                                                         33.35      0.00     539.93 f
+  data arrival time                                                          539.93
+
+  clock clk (rise edge)                                          1666.70    1666.70
+  clock network delay (ideal)                                       0.00    1666.70
+  clock uncertainty                                               -83.30    1583.40
+  gen_compact_csr.gen_sb.sb_cfg_q_reg[rd_ls][4]/CLK (DFFASRHQNx1_ASAP7_75t_R)
+                                                                    0.00    1583.40 r
+  library setup time                                               -3.67    1579.73
+  data required time                                                        1579.73
+  ------------------------------------------------------------------------------------
+  data required time                                                        1579.73
+  data arrival time                                                         -539.93
+  ------------------------------------------------------------------------------------
+  slack (MET)                                                               1039.79
+
+
+1

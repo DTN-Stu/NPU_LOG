@@ -1,0 +1,94 @@
+ 
+****************************************
+Report : area
+Design : snax_llm_sfu_opt_pipe_NUM_LANES16_ALU_LANES8
+Version: O-2018.06-SP1
+Date   : Sun Nov 22 02:57:34 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Warning: Design 'snax_llm_sfu_opt_pipe_NUM_LANES16_ALU_LANES8' contains 2 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+Library(s) Used:
+
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_OA_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/OA_LVT_TT.db)
+    asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db)
+    asap7sc7p5t_AO_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_LVT_TT.db)
+    asap7sc7p5t_INVBUF_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+
+Number of ports:                         2694
+Number of nets:                         24079
+Number of cells:                        21358
+Number of combinational cells:          19748
+Number of sequential cells:              1570
+Number of macros/black boxes:               0
+Number of buf/inv:                       3980
+Number of references:                     124
+
+Combinational area:               1530.068937
+Buf/Inv area:                      184.145402
+Noncombinational area:             595.155596
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                  2125.224533
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area          Local cell area
+                                  ------------------  ---------------------------- 
+Hierarchical cell                 Absolute   Percent  Combi-     Noncombi-  Black-
+                                  Total      Total    national   national   boxes   Design
+--------------------------------  ---------  -------  ---------  ---------  ------  -------------------
+snax_llm_sfu_opt_pipe_NUM_LANES16_ALU_LANES8
+                                  2125.2245    100.0   502.8788   595.1556  0.0000  snax_llm_sfu_opt_pipe_NUM_LANES16_ALU_LANES8
+GEN_PACK[0].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_7
+GEN_PACK[1].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_6
+GEN_PACK[2].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_5
+GEN_PACK[3].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_4
+GEN_PACK[4].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_3
+GEN_PACK[5].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_2
+GEN_PACK[6].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_1
+GEN_PACK[7].u_pack                   4.8114      0.2     4.8114     0.0000  0.0000  sfu_fp20_to_fp16_0
+GEN_SHARED_ALU[0].u_add             48.0265      2.3    48.0265     0.0000  0.0000  sfu_fp20_addsub_7
+GEN_SHARED_ALU[0].u_mul             61.6588      2.9    61.6588     0.0000  0.0000  sfu_fp20_mul_7
+GEN_SHARED_ALU[1].u_add             49.0034      2.3    49.0034     0.0000  0.0000  sfu_fp20_addsub_6
+GEN_SHARED_ALU[1].u_mul             61.4839      2.9    61.4839     0.0000  0.0000  sfu_fp20_mul_6
+GEN_SHARED_ALU[2].u_add             48.7118      2.3    48.7118     0.0000  0.0000  sfu_fp20_addsub_5
+GEN_SHARED_ALU[2].u_mul             62.1254      2.9    62.1254     0.0000  0.0000  sfu_fp20_mul_5
+GEN_SHARED_ALU[3].u_add             49.3825      2.3    49.3825     0.0000  0.0000  sfu_fp20_addsub_4
+GEN_SHARED_ALU[3].u_mul             61.4839      2.9    61.4839     0.0000  0.0000  sfu_fp20_mul_4
+GEN_SHARED_ALU[4].u_add             48.0411      2.3    48.0411     0.0000  0.0000  sfu_fp20_addsub_3
+GEN_SHARED_ALU[4].u_mul             62.5482      2.9    62.5482     0.0000  0.0000  sfu_fp20_mul_3
+GEN_SHARED_ALU[5].u_add             48.0411      2.3    48.0411     0.0000  0.0000  sfu_fp20_addsub_2
+GEN_SHARED_ALU[5].u_mul             62.5336      2.9    62.5336     0.0000  0.0000  sfu_fp20_mul_2
+GEN_SHARED_ALU[6].u_add             47.5745      2.2    47.5745     0.0000  0.0000  sfu_fp20_addsub_1
+GEN_SHARED_ALU[6].u_mul             61.7900      2.9    61.7900     0.0000  0.0000  sfu_fp20_mul_1
+GEN_SHARED_ALU[7].u_add             47.5016      2.2    47.5016     0.0000  0.0000  sfu_fp20_addsub_0
+GEN_SHARED_ALU[7].u_mul             61.2506      2.9    61.2506     0.0000  0.0000  sfu_fp20_mul_0
+GEN_UNP[0].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_15
+GEN_UNP[0].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_14
+GEN_UNP[1].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_13
+GEN_UNP[1].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_12
+GEN_UNP[2].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_11
+GEN_UNP[2].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_10
+GEN_UNP[3].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_9
+GEN_UNP[3].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_8
+GEN_UNP[4].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_7
+GEN_UNP[4].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_6
+GEN_UNP[5].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_5
+GEN_UNP[5].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_4
+GEN_UNP[6].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_3
+GEN_UNP[6].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_2
+GEN_UNP[7].u_ua                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_1
+GEN_UNP[7].u_ub                      6.7214      0.3     6.7214     0.0000  0.0000  sfu_fp16_to_fp20_0
+--------------------------------  ---------  -------  ---------  ---------  ------  -------------------
+Total                                                 1530.0689   595.1556  0.0000
+
+1

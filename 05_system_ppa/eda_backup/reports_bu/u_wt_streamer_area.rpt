@@ -1,0 +1,78 @@
+ 
+****************************************
+Report : area
+Design : snax_streamer_wt_16ch_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9
+Version: O-2018.06-SP1
+Date   : Sun Nov 22 06:05:25 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Warning: Design 'snax_streamer_wt_16ch_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9' contains 2 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+Library(s) Used:
+
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_AO_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_SLVT_TT.db)
+    asap7sc7p5t_AO_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_LVT_TT.db)
+    asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db)
+    asap7sc7p5t_INVBUF_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db)
+    asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_SLVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+    asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_SLVT_TT.db)
+
+Number of ports:                         6853
+Number of nets:                         21982
+Number of cells:                        18171
+Number of combinational cells:          12998
+Number of sequential cells:              5157
+Number of macros/black boxes:               0
+Number of buf/inv:                       1179
+Number of references:                      80
+
+Combinational area:               1068.961867
+Buf/Inv area:                       59.909220
+Noncombinational area:            1551.807668
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                  2620.769535
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area          Local cell area
+                                  ------------------  ---------------------------- 
+Hierarchical cell                 Absolute   Percent  Combi-     Noncombi-  Black-
+                                  Total      Total    national   national   boxes   Design
+--------------------------------  ---------  -------  ---------  ---------  ------  --------------------------------
+snax_streamer_wt_16ch_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9
+                                  2620.7695    100.0   334.5964   165.6580  0.0000  snax_streamer_wt_16ch_DATA_WIDTH72_ADDR_WIDTH32_NUM_LANES16_STRB_WIDTH9
+GEN_SKID_BUFFERS[0].u_skid_buffer  132.4301      5.1    45.7958    86.6344  0.0000  skid_buffer_00000048_00000004_15
+GEN_SKID_BUFFERS[10].u_skid_buffer
+                                   132.5322      5.1    45.8978    86.6344  0.0000  skid_buffer_00000048_00000004_5
+GEN_SKID_BUFFERS[11].u_skid_buffer
+                                   132.4885      5.1    45.8541    86.6344  0.0000  skid_buffer_00000048_00000004_4
+GEN_SKID_BUFFERS[12].u_skid_buffer
+                                   132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_3
+GEN_SKID_BUFFERS[13].u_skid_buffer
+                                   132.4739      5.1    45.8395    86.6344  0.0000  skid_buffer_00000048_00000004_2
+GEN_SKID_BUFFERS[14].u_skid_buffer
+                                   132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_1
+GEN_SKID_BUFFERS[15].u_skid_buffer
+                                   132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_0
+GEN_SKID_BUFFERS[1].u_skid_buffer  132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_14
+GEN_SKID_BUFFERS[2].u_skid_buffer  132.5614      5.1    45.9270    86.6344  0.0000  skid_buffer_00000048_00000004_13
+GEN_SKID_BUFFERS[3].u_skid_buffer  132.5322      5.1    45.8978    86.6344  0.0000  skid_buffer_00000048_00000004_12
+GEN_SKID_BUFFERS[4].u_skid_buffer  132.5905      5.1    45.9562    86.6344  0.0000  skid_buffer_00000048_00000004_11
+GEN_SKID_BUFFERS[5].u_skid_buffer  132.5322      5.1    45.8978    86.6344  0.0000  skid_buffer_00000048_00000004_10
+GEN_SKID_BUFFERS[6].u_skid_buffer  132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_9
+GEN_SKID_BUFFERS[7].u_skid_buffer  132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_8
+GEN_SKID_BUFFERS[8].u_skid_buffer  132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_7
+GEN_SKID_BUFFERS[9].u_skid_buffer  132.5468      5.1    45.9124    86.6344  0.0000  skid_buffer_00000048_00000004_6
+--------------------------------  ---------  -------  ---------  ---------  ------  --------------------------------
+Total                                                 1068.9619  1551.8077  0.0000
+
+1

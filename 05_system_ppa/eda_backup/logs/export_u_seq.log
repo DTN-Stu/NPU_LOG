@@ -1,0 +1,137 @@
+
+Warning:  Site Information is not available ... Have you run install_site?
+
+
+                           Design Compiler Graphical 
+                                 DC Ultra (TM)
+                                  DFTMAX (TM)
+                              Power Compiler (TM)
+                                 DesignWare (R)
+                                 DC Expert (TM)
+                               Design Vision (TM)
+                               HDL Compiler (TM)
+                               VHDL Compiler (TM)
+                                  DFT Compiler
+                               Design Compiler(R)
+
+               Version O-2018.06-SP1 for linux64 - Jul 19, 2018 
+
+                    Copyright (c) 1988 - 2018 Synopsys, Inc.
+   This software and the associated documentation are proprietary to Synopsys,
+ Inc. This software may only be used in accordance with the terms and conditions
+ of a written license agreement with Synopsys, Inc. All other use, reproduction,
+            or distribution of this software is strictly prohibited.
+Initializing...
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db'
+Loading db file '/home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/AO_LVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/OA_LVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/SEQ_LVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/AO_SLVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/OA_SLVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/SIMPLE_SLVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/INVBUF_SLVT_TT.db'
+Loading db file '/home/ICer/asap7_multivt/db/SEQ_SLVT_TT.db'
+Loading db file '/EDA/Synopsys/syn_v201806/libraries/syn/gtech.db'
+Loading db file '/EDA/Synopsys/syn_v201806/libraries/syn/standard.sldb'
+  Loading link library 'asap7sc7p5t_AO_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_OA_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_INVBUF_RVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SEQ_RVT_TT_nldm_220123'
+  Loading link library 'asap7sc7p5t_AO_LVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_OA_LVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_INVBUF_LVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SEQ_LVT_TT_nldm_220123'
+  Loading link library 'asap7sc7p5t_AO_SLVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_OA_SLVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120'
+  Loading link library 'asap7sc7p5t_SEQ_SLVT_TT_nldm_220123'
+  Loading link library 'gtech'
+Reading ddc file '/home/ICer/sys_syn/ddc_bu/u_seq.ddc'.
+Information: Checking out the license 'DesignWare'. (SEC-104)
+Loaded 4 designs.
+Current design is 'snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16'.
+
+  Linking design 'snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16'
+  Using the following designs and libraries:
+  --------------------------------------------------------------------------
+  * (4 designs)               /home/ICer/sys_syn/ddc_bu/u_seq.ddc, etc
+  asap7sc7p5t_AO_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db
+  asap7sc7p5t_OA_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db
+  asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db
+  asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db
+  asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (library) /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db
+  asap7sc7p5t_AO_LVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/AO_LVT_TT.db
+  asap7sc7p5t_OA_LVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/OA_LVT_TT.db
+  asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db
+  asap7sc7p5t_INVBUF_LVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db
+  asap7sc7p5t_SEQ_LVT_TT_nldm_220123 (library) /home/ICer/asap7_multivt/db/SEQ_LVT_TT.db
+  asap7sc7p5t_AO_SLVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/AO_SLVT_TT.db
+  asap7sc7p5t_OA_SLVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/OA_SLVT_TT.db
+  asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/SIMPLE_SLVT_TT.db
+  asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120 (library) /home/ICer/asap7_multivt/db/INVBUF_SLVT_TT.db
+  asap7sc7p5t_SEQ_SLVT_TT_nldm_220123 (library) /home/ICer/asap7_multivt/db/SEQ_SLVT_TT.db
+
+Warning: In the design snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16, net 'act_k_blocks_o[31]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16, net 'act_k_stride_o[9]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[10]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[9]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[8]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[7]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[6]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[5]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[4]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[3]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[2]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[1]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'cfg_attn_k_blocks_i[0]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[8]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[7]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[6]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[5]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[4]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[3]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[2]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[1]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'attn_k_pin_addr[0]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'wt_ready_o[8]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'wt_ready_o[0]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'lane_valid_o[7]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'lane_valid_o[1]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_cmp_fsm_00000020_00000010_00000004_00000010, net 'sm_drain_idx_o[3]_BAR' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[15]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[14]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[13]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[12]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[11]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[10]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[9]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[8]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[7]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[6]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[5]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[4]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[3]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[2]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[1]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'auto_causal_mask_i[0]' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dr_fsm_00000010_00000004, net 'tile_drain_req_o' is connecting multiple ports. (UCN-1)
+Warning: In the design snax_seq_dma_fsm_00000020_00000004_00020000, net 'dma_state_o' is connecting multiple ports. (UCN-1)
+Writing verilog file '/home/ICer/sys_syn/netlist_bu/u_seq.v'.
+Warning: Verilog 'assign' or 'tran' statements are written out. (VO-4)
+Current design is 'snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16'.
+EXPORTED_U_SEQ -> snax_llm_sequencer_ADDR_WIDTH32_NUM_LANES16_NUM_RING_SLOTS4_SLOT_SIZE_BYTES131072_OUT_PIPE_CREDITS4_CAP_O_TILES16
+
+Memory usage for main task 291 Mbytes.
+Memory usage for this session 291 Mbytes.
+CPU usage for this session 2 seconds ( 0.00 hours ).
+
+Thank you...

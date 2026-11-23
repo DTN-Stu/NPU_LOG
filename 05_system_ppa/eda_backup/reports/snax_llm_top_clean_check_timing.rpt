@@ -1,0 +1,26 @@
+Warning: The following synthetic libraries should be added to 
+	the list of link libraries: 
+	'dw_foundation.sldb'. (UISN-26)
+Information: Converting time units for library 'srambank_256x4x72_6t122' since those in library 'asap7sc7p5t_AO_RVT_TT_nldm_211120' differ. (TIM-105)
+Information: Converting capacitance units for library 'srambank_256x4x72_6t122' since those in library 'asap7sc7p5t_AO_RVT_TT_nldm_211120' differ. (TIM-106)
+Warning: The trip points for the library named srambank_256x4x72_6t122 differ from those in the library named asap7sc7p5t_AO_RVT_TT_nldm_211120. (TIM-164)
+Information: Updating design information... (UID-85)
+Warning: Design 'snax_llm_top_clean' contains 14 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+
+Information: Checking generated_clocks...
+
+Information: Checking loops...
+
+Information: Checking no_input_delay...
+Warning: The following input ports have no clock_relative delay specified, the command set_input_delay without -clock option will be ignored. (TIM-216)
+--------------------
+rst_n
+
+Information: Checking unconstrained_endpoints...
+
+Information: Checking pulse_clock_cell_type...
+
+Information: Checking no_driving_cell...
+
+Information: Checking partial_input_delay...
+1

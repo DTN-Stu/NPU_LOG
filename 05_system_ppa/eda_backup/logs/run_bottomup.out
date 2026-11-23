@@ -1,0 +1,40 @@
+=== [STAGE 1A] Sub-Block Synthesis Batch 1 (u_core, u_seq, u_sfu) ===
+=== [STAGE 1B] Sub-Block Synthesis Batch 2 (u_write_out, u_wt_streamer, u_csr) ===
+=== [STAGE 1 SUMMARY] ===
+>>> reports_bu/u_core_qor.rpt
+  Levels of Logic:               1.00
+  Critical Path Length:         96.26
+  Critical Path Slack:           0.00
+  Total Negative Slack:          0.00
+  Cell Area:             17339.862757
+>>> reports_bu/u_csr_qor.rpt
+  Levels of Logic:              10.00
+  Critical Path Length:        539.93
+  Critical Path Slack:        1039.55
+  Total Negative Slack:          0.00
+  Cell Area:               512.355780
+>>> reports_bu/u_seq_qor.rpt
+  Levels of Logic:              36.00
+  Critical Path Length:        916.70
+  Critical Path Slack:           0.02
+  Total Negative Slack:          0.00
+  Cell Area:              5081.858961
+>>> reports_bu/u_sfu_qor.rpt
+  Levels of Logic:              52.00
+  Critical Path Length:       1233.99
+  Critical Path Slack:           0.07
+  Total Negative Slack:          0.00
+  Cell Area:              2125.224533
+>>> reports_bu/u_write_out_qor.rpt
+  Levels of Logic:              54.00
+  Critical Path Length:       1231.27
+  Critical Path Slack:           2.46
+  Total Negative Slack:          0.00
+  Cell Area:               602.037355
+>>> reports_bu/u_wt_streamer_qor.rpt
+  Levels of Logic:              49.00
+  Critical Path Length:       1250.01
+  Critical Path Slack:           0.05
+  Total Negative Slack:          0.00
+  Cell Area:               502.849618
+=== [STAGE 2] Top-Level Incremental Integration ===
