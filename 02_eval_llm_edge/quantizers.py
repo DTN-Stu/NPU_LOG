@@ -2,11 +2,15 @@
 Bit-exact PyTorch/CUDA models for SNAX FP4 LLM Subsystem (Tier A Evaluation).
 Matches RTL modules in 01_snax_llm_fp4_subsystem/:
   - slq_encoder.sv          -> quantize_log8_fp4()
+  - logscale_frac_scaler    -> quantize_log8_fp4(..., use_csd=True) / quantize_log8_fp4_csd()
+  - Offline CPU DRAM packer -> quantize_log8_fp4_exact() / quantize_log8_fp4_exact_csd() (0 RTL change)
   - softmax_requantizer.sv  -> exp_free_softmax_requantizer()
-  - Baselines               -> quantize_mxfp4(), quantize_nvfp4()
+  - Baselines               -> quantize_mxfp4() (g32 & g16 floor/ceil), quantize_nvfp4()
 """
 
 import math
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -43,7 +47,7 @@ def _unpad_from_block(blocked: torch.Tensor, orig_shape, pad: int):
 def _nearest_e2m1(val: torch.Tensor) -> torch.Tensor:
     """Round arbitrary tensor to nearest signed E2M1 value in [-6, 6]."""
     sign = torch.where(val < 0, -1.0, 1.0)
-    abs_v = val.abs()
+    abs_v = val.abs().contiguous()
     mids = E2M1_MIDPOINTS.to(val.device)
     # bucketize returns index 0..7 corresponding to E2M1_LEVELS
     idx = torch.bucketize(abs_v, mids, right=False)
@@ -54,23 +58,43 @@ def _nearest_e2m1(val: torch.Tensor) -> torch.Tensor:
     return q_mag
 
 
+def _decode_log8_scale(scale_sat: torch.Tensor, use_csd: bool) -> torch.Tensor:
+    """Decode signed int8 Log8 scale in [-128, 127] using exact 2^(s/8) or 3-term CSD_Q5/32."""
+    if use_csd:
+        # Matches logscale_frac_scaler + scale_adder in log8_fp4_arith_units.sv:
+        # q_s = arithmetic floor(scale_sat / 8), r_s = two's complement scale_sat[2:0]
+        q_s = torch.floor(scale_sat.float() / 8.0)
+        r_s = scale_sat.long() & 7
+        csd = CSD_Q5.to(scale_sat.device)[r_s]
+        return torch.pow(2.0, q_s) * (csd / 32.0)
+    return torch.pow(2.0, scale_sat.float() / 8.0)
+
+
 @torch.no_grad()
-def quantize_log8_fp4(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
+def quantize_log8_fp4(
+    x: torch.Tensor,
+    block_size: int = 16,
+    use_csd: bool = False,
+) -> torch.Tensor:
     """
-    Bit-exact simulation of slq_encoder.sv (log_quantizer):
+    Bit-exact simulation of slq_encoder.sv (log_quantizer) & logscale_frac_scaler:
       - Converts input to IEEE-754 FP16
       - Extracts mu = {E_fp16[4:0], M_fp16[9:7]} (0 if E==0, 247 if E==31)
       - Computes mu_max per block of 16
       - scale_sat = clamp(mu_max - 140, -128, 127) (0 if mu_max == 0)
       - diff = mu_max - mu
       - Thresholds TH = [2, 6, 10, 14, 18, 24, 36] -> E2M1 magnitude
-      - Dequantized value: sign * E2M1[mag] * 2^(scale_sat / 8)
+      - Dequantized value:
+          * use_csd=False: sign * E2M1[mag] * 2^(scale_sat / 8)
+          * use_csd=True : sign * E2M1[mag] * 2^floor(scale_sat/8) * (CSD_Q5[scale_sat & 7] / 32)
+            Note: per-operand CSD is a conservative upper bound on the hardware paired
+            CSD((s_a + s_w) & 7) error in log8_fp4_mac_array.sv while keeping F.linear fast.
     """
     orig_dtype = x.dtype
     blocked, orig_shape, pad = _pad_to_block(x.float(), block_size)
 
     # Convert to IEEE FP16 bit representation (uint16 stored in int32)
-    fp16 = blocked.to(torch.float16)
+    fp16 = blocked.to(torch.float16).contiguous()
     bits = fp16.view(torch.int16).to(torch.int32) & 0xFFFF
 
     sign_bit = (bits >> 15) & 0x1
@@ -107,7 +131,8 @@ def quantize_log8_fp4(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
     sign_val = torch.where(sign_bit == 1, -1.0, 1.0)
     sign_val = torch.where(mag_idx == 0, 1.0, sign_val)
 
-    scale_val = torch.pow(2.0, scale_sat.float() / 8.0)
+    scale_val = _decode_log8_scale(scale_sat, use_csd=use_csd)
+
     dequant = sign_val * mag_val * scale_val
 
     out = _unpad_from_block(dequant, orig_shape, pad)
@@ -115,26 +140,102 @@ def quantize_log8_fp4(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
 
 
 @torch.no_grad()
-def quantize_mxfp4(x: torch.Tensor, block_size: int = 32) -> torch.Tensor:
+def quantize_log8_fp4_csd(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
+    """Log8-FP4 quantizer using the RTL 3-term CSD_Q5/32 fractional scaler."""
+    return quantize_log8_fp4(x, block_size=block_size, use_csd=True)
+
+
+@torch.no_grad()
+def quantize_log8_fp4_exact(
+    x: torch.Tensor,
+    block_size: int = 16,
+    use_csd: bool = False,
+) -> torch.Tensor:
     """
-    OCP MXFP4 Baseline:
-      - Block size = 32
-      - Scale = E8M0 (pure power-of-2: 2^floor(log2(max_abs / 6.0)))
-      - Data  = E2M1
+    Offline CPU Exact-Log8 weight packer targeting the identical 72-bit hardware
+    packet {int8 scale_log8, 16x E2M1} without modifying any RTL:
+      - Computes exact float log2(max_abs / 6.0) and rounds to signed int8 [-128, 127]
+      - Decodes effective hardware scale (exact 2^(s/8) or 3-term CSD_Q5/32)
+      - Rounds each normalized element to nearest E2M1 grid value in [-6, 6]
     """
     orig_dtype = x.dtype
     blocked, orig_shape, pad = _pad_to_block(x.float(), block_size)
 
     max_abs = blocked.abs().max(dim=-1, keepdim=True).values
-    # E8M0: largest power of 2 <= max_abs / 6.0 (or ceil so no clipping; OCP uses floor(log2(max)) - 2)
-    safe_max = torch.clamp(max_abs / 6.0, min=2.0 ** -127)
-    exp_e8m0 = torch.ceil(torch.log2(safe_max)).clamp(-127, 127)
+    zero_blk = max_abs == 0.0
+    safe_max = torch.clamp(max_abs, min=1e-30)
+
+    scale_sat = torch.round(8.0 * torch.log2(safe_max / 6.0)).clamp(-128.0, 127.0)
+    scale_sat = torch.where(zero_blk, torch.zeros_like(scale_sat), scale_sat)
+
+    scale_val = _decode_log8_scale(scale_sat, use_csd=use_csd)
+    safe_scale = torch.where(zero_blk, torch.ones_like(scale_val), scale_val)
+    q_e2m1 = _nearest_e2m1(blocked / safe_scale)
+    dequant = torch.where(zero_blk, torch.zeros_like(q_e2m1), q_e2m1 * scale_val)
+
+    return _unpad_from_block(dequant, orig_shape, pad).to(orig_dtype)
+
+
+@torch.no_grad()
+def quantize_log8_fp4_exact_csd(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
+    """Offline Exact-Log8 quantizer paired with the RTL 3-term CSD_Q5/32 fractional scaler."""
+    return quantize_log8_fp4_exact(x, block_size=block_size, use_csd=True)
+
+
+@torch.no_grad()
+def quantize_mxfp4(
+    x: torch.Tensor,
+    block_size: int = 32,
+    scale_mode: str = "ceil",
+) -> torch.Tensor:
+    """
+    OCP MXFP4 Baseline:
+      - Block size: 32 (4.25 b/elem) or 16 (4.50 b/elem iso-bitwidth)
+      - Scale = E8M0 (pure power-of-2):
+          * scale_mode="floor": OCP v1.0 spec floor(log2(max_abs)) - 2 (MiX Table IV clipping anomaly)
+          * scale_mode="ceil" : ceil(log2(max_abs / 6.0)) (non-clipping E8M0 per MiX Table IV)
+      - Data  = E2M1
+    """
+    if scale_mode not in ("floor", "ceil"):
+        raise ValueError(f"Unsupported scale_mode={scale_mode!r}; expected 'floor' or 'ceil'.")
+
+    orig_dtype = x.dtype
+    blocked, orig_shape, pad = _pad_to_block(x.float(), block_size)
+
+    max_abs = blocked.abs().max(dim=-1, keepdim=True).values
+    if scale_mode == "floor":
+        # Strict OCP v1.0 MXFP4: floor(log2(max_abs)) - floor(log2(6.0)) = floor(log2(max_abs)) - 2
+        safe_max = torch.clamp(max_abs, min=2.0 ** -125)
+        exp_e8m0 = (torch.floor(torch.log2(safe_max)) - 2.0).clamp(-127, 127)
+    else:
+        # Non-clipping E8M0: ceil(log2(max_abs / 6.0)) guarantees scaled values <= 6.0
+        safe_max = torch.clamp(max_abs / 6.0, min=2.0 ** -127)
+        exp_e8m0 = torch.ceil(torch.log2(safe_max)).clamp(-127, 127)
+
     scale = torch.pow(2.0, exp_e8m0)
     scale = torch.where(max_abs == 0.0, torch.ones_like(scale), scale)
 
     q_e2m1 = _nearest_e2m1(blocked / scale)
     dequant = q_e2m1 * scale
     return _unpad_from_block(dequant, orig_shape, pad).to(orig_dtype)
+
+
+@torch.no_grad()
+def quantize_mxfp4_g32_floor(x: torch.Tensor) -> torch.Tensor:
+    """Strict OCP v1.0 MXFP4 (B=32, 4.25 b/elem, floor shared exponent)."""
+    return quantize_mxfp4(x, block_size=32, scale_mode="floor")
+
+
+@torch.no_grad()
+def quantize_mxfp4_g16_floor(x: torch.Tensor) -> torch.Tensor:
+    """Iso-bitwidth OCP v1.0 MXFP4 (B=16, 4.50 b/elem, floor shared exponent)."""
+    return quantize_mxfp4(x, block_size=16, scale_mode="floor")
+
+
+@torch.no_grad()
+def quantize_mxfp4_g16_ceil(x: torch.Tensor) -> torch.Tensor:
+    """Iso-bitwidth non-clipping MXFP4 (B=16, 4.50 b/elem, ceil shared exponent)."""
+    return quantize_mxfp4(x, block_size=16, scale_mode="ceil")
 
 
 @torch.no_grad()
@@ -167,16 +268,17 @@ def quantize_nvfp4(x: torch.Tensor, block_size: int = 16) -> torch.Tensor:
         mant = blk_scale_fp32 / torch.pow(2.0, exp)
         blk_scale_fp8 = torch.round(mant * 8.0) / 8.0 * torch.pow(2.0, exp)
 
-    blk_scale_fp8 = torch.where(max_abs == 0.0, torch.ones_like(blk_scale_fp8), blk_scale_fp8)
-    q_e2m1 = _nearest_e2m1(blocked / blk_scale_fp8)
-    dequant = q_e2m1 * blk_scale_fp8 * tensor_scale
+    zero_mask = (max_abs == 0.0) | (blk_scale_fp8 == 0.0)
+    safe_scale = torch.where(zero_mask, torch.ones_like(blk_scale_fp8), blk_scale_fp8)
+    q_e2m1 = _nearest_e2m1(blocked / safe_scale)
+    dequant = torch.where(zero_mask, torch.zeros_like(q_e2m1), q_e2m1 * blk_scale_fp8 * tensor_scale)
     return _unpad_from_block(dequant, orig_shape, pad).to(orig_dtype)
 
 
 @torch.no_grad()
 def exp_free_softmax_requantizer(
     scores: torch.Tensor,
-    attn_mask: torch.Tensor | None = None,
+    attn_mask: Optional[torch.Tensor] = None,
     base_scale_mode: str = "log2e",
 ) -> torch.Tensor:
     """
@@ -192,12 +294,12 @@ def exp_free_softmax_requantizer(
     orig_dtype = scores.dtype
     s = scores.float()
 
-    # Determine valid key mask
+    # Determine valid key mask (always placed on s.device)
     if attn_mask is not None:
         if attn_mask.dtype == torch.bool:
-            valid_mask = attn_mask
+            valid_mask = attn_mask.to(device=s.device)
         else:
-            valid_mask = attn_mask > -1e4
+            valid_mask = (attn_mask > -1e4).to(device=s.device)
     else:
         valid_mask = torch.ones_like(s, dtype=torch.bool)
 

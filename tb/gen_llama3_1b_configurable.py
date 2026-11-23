@@ -11,6 +11,8 @@ NousResearch/Llama-3.2-1B running on snax_llm_top_clean + 8-port snax_simple_dma
   - Generates separate-KV past cache files + causal FP32 & FP4 Fake-Quant golden references
 """
 import argparse
+import csv
+import json
 import os
 import sys
 import time
@@ -94,18 +96,301 @@ def quantize_rtl_vec(mat_f32):
     return pkts
 
 
-def fq_rtl_vec(mat_f32):
-    """Dequantized FP4+Log8 Fake-Quant tensor matching quantize_rtl_vec."""
-    pkts = quantize_rtl_vec(mat_f32)
-    n_ch, kb, _ = pkts.shape
-    sc = pkts[:, :, 8].astype(np.int8).astype(np.float32)
-    codes = np.zeros((n_ch, kb, 16), dtype=np.int32)
+# Hardware LUTs & constants matching RTL:
+#   - log8_fp4_arith_units.sv (CSD_Q5)
+#   - softmax_requantizer.sv   (SM_TH_Q16, P_RND, P_OFFSET, CSD_Q5)
+#   - l_accumulator.sv         (RECIP_LUT)
+#   - snax_fused_llm_core.sv   (LOG2E_Q16 = 94548)
+E2M1_MAG = np.array([0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0], dtype=np.float32)
+E2M1_LUT = np.concatenate([E2M1_MAG, -E2M1_MAG]).astype(np.float32)
+CSD_Q5 = np.array([32.0, 35.0, 38.0, 41.0, 46.0, 49.0, 54.0, 59.0], dtype=np.float32)
+CSD_Q5_INT = np.array([32, 35, 38, 41, 46, 49, 54, 59], dtype=np.int64)
+MINT_TABLE = np.array([0, 1, 2, 3, 4, 6, 8, 12], dtype=np.int64)
+RECIP_LUT = np.array([
+    32768, 31775, 30840, 29960, 29127, 28339, 27592, 26884,
+    26214, 25579, 24976, 24403, 23859, 23341, 22847, 22376,
+    21926, 21495, 21083, 20687, 20308, 19944, 19594, 19258,
+    18934, 18622, 18322, 18032, 17752, 17482, 17220, 16968,
+], dtype=np.int64)
+SM_TH_Q16 = (17238, 50961, 82774, 116497, 148310, 196608, 300480)
+
+
+def decode_pkts_codes_scales(pkts):
+    """Extract (codes[... , kb, 16], scales[... , kb]) from 9B SLQ packets."""
+    sc = pkts[..., 8].astype(np.int8).astype(np.int32)
+    codes = np.zeros(pkts.shape[:-1] + (16,), dtype=np.int32)
     for b in range(8):
-        codes[:, :, 2 * b]     = pkts[:, :, b] & 0xF
-        codes[:, :, 2 * b + 1] = (pkts[:, :, b] >> 4) & 0xF
-    mag_lut = np.array([0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0], dtype=np.float32)
-    lut = np.concatenate([mag_lut, -mag_lut])
-    return (lut[codes] * (2.0 ** (sc[:, :, None] / 8.0))).reshape(n_ch, kb * 16)
+        codes[..., 2 * b]     = pkts[..., b] & 0xF
+        codes[..., 2 * b + 1] = (pkts[..., b] >> 4) & 0xF
+    return codes, sc
+
+
+def dequant_pkts_csd(pkts, use_csd=True):
+    """Dequantize 9B SLQ packets using CSD_Q5/32 (default) or ideal 2^(sc/8)."""
+    codes, sc = decode_pkts_codes_scales(pkts)
+    if use_csd:
+        q_s = np.floor(sc.astype(np.float32) / 8.0)
+        r_s = sc & 7
+        scale = (2.0 ** q_s) * (CSD_Q5[r_s] / 32.0)
+    else:
+        scale = 2.0 ** (sc.astype(np.float32) / 8.0)
+    vals = E2M1_LUT[codes] * scale[..., None]
+    return vals.reshape(pkts.shape[0], -1).astype(np.float32)
+
+
+def fq_rtl_vec(mat_f32, use_csd=True):
+    """Dequantized FP4+Log8 Fake-Quant tensor matching quantize_rtl_vec + CSD_Q5."""
+    pkts = quantize_rtl_vec(mat_f32)
+    return dequant_pkts_csd(pkts, use_csd=use_csd)
+
+
+def matmul_log8_csd_pkts(a_pkts, w_pkts):
+    """Hardware-exact paired-scale CSD matmul matching log8_fp4_arith_units.sv.
+
+    Uses CSD_Q5[(s_a + s_w) & 7] / 32 once per block pair (instead of twice).
+    a_pkts: (M, KB, 9), w_pkts: (N, KB, 9) -> returns (M, N) float32.
+    """
+    m_rows, kb, _ = a_pkts.shape
+    n_rows = w_pkts.shape[0]
+    a_codes, a_sc = decode_pkts_codes_scales(a_pkts)
+    w_codes, w_sc = decode_pkts_codes_scales(w_pkts)
+
+    a_q = (a_sc >> 3).astype(np.float32)
+    a_r = a_sc & 7
+    w_q = (w_sc >> 3).astype(np.float32)
+    w_r = w_sc & 7
+
+    a_vals = E2M1_LUT[a_codes] * (2.0 ** a_q)[..., None]
+    w_vals = E2M1_LUT[w_codes] * (2.0 ** w_q)[..., None]
+
+    out = np.zeros((m_rows, n_rows), dtype=np.float32)
+    for ra in range(8):
+        mask_a = (a_r == ra)
+        if not np.any(mask_a):
+            continue
+        a_m = np.where(mask_a[..., None], a_vals, 0.0).reshape(m_rows, kb * 16)
+        rs = ra + w_r
+        fac = np.where(rs >= 8, 2.0, 1.0).astype(np.float32) * (CSD_Q5[rs & 7] / 32.0)
+        w_m = (w_vals * fac[..., None]).reshape(n_rows, kb * 16)
+        out += a_m @ w_m.T
+    return out
+
+
+def pack_p_pkts_u8(mag_idx, p_blk):
+    """Pack softmax_requantizer E2M1 magnitudes (0..7) & signed int8 p_blk into 9B packets."""
+    m_rows, num_blk, _ = mag_idx.shape
+    pkts = np.zeros((m_rows, num_blk, 9), dtype=np.uint8)
+    codes = mag_idx.astype(np.uint8)
+    for b in range(8):
+        pkts[:, :, b] = codes[:, :, 2 * b] | (codes[:, :, 2 * b + 1] << 4)
+    pkts[:, :, 8] = p_blk.astype(np.int8).view(np.uint8)
+    return pkts
+
+
+def exp_free_softmax_requantizer_np(scores_f32, valid_mask_bool):
+    """Vectorized model of snax_fused_llm_core LOG2E_Q16 + softmax_requantizer.sv.
+
+    Returns:
+      mag_idx : (M, num_blk, 16) int32 codes in 0..7
+      p_blk   : (M, num_blk) int32 signed scale exponent
+      p_unnorm: (M, K) float64 unnormalized probabilities
+    """
+    m_rows, k_len = scores_f32.shape
+    assert k_len % 16 == 0
+    num_blk = k_len // 16
+    s_min = -(1 << 31)
+
+    # Exact Q16.16 conversion + 7-term CSD LOG2E_Q16 (= 94548) multiply
+    s_q16 = np.clip(np.round(scores_f32.astype(np.float64) * 65536.0),
+                    -2147483648.0, 2147483647.0).astype(np.int64)
+    s_prod = ((s_q16 << 16) + (s_q16 << 15) - (s_q16 << 12) +
+              (s_q16 << 8) + (s_q16 << 6) + (s_q16 << 4) + (s_q16 << 2)) >> 16
+    s_scaled = np.clip(s_prod, -2147483648, 2147483647)
+
+    s_blk = s_scaled.reshape(m_rows, num_blk, 16)
+    m_blk = valid_mask_bool.reshape(m_rows, num_blk, 16)
+    s_masked = np.where(m_blk, s_blk, s_min)
+
+    blk_max = s_masked.max(axis=-1, keepdims=True)
+    row_max = blk_max.max(axis=-2, keepdims=True)
+    score_dist = blk_max - s_masked
+
+    th_6p0, th_4p0, th_3p0, th_2p0, th_1p5, th_1p0, th_0p5 = SM_TH_Q16
+    mag_idx = np.zeros_like(score_dist, dtype=np.int32)
+    mag_idx = np.where(score_dist <= th_0p5, 1, mag_idx)
+    mag_idx = np.where(score_dist <= th_1p0, 2, mag_idx)
+    mag_idx = np.where(score_dist <= th_1p5, 3, mag_idx)
+    mag_idx = np.where(score_dist <= th_2p0, 4, mag_idx)
+    mag_idx = np.where(score_dist <= th_3p0, 5, mag_idx)
+    mag_idx = np.where(score_dist <= th_4p0, 6, mag_idx)
+    mag_idx = np.where(score_dist <= th_6p0, 7, mag_idx)
+    mag_idx = np.where(m_blk, mag_idx, 0)
+
+    p_wide = ((blk_max - row_max + 4096) >> 13) - 21
+    p_blk = np.clip(p_wide, -128, 127).astype(np.int32)
+
+    q_s = p_blk >> 3
+    r_s = p_blk & 7
+    s_blk_val = (2.0 ** q_s.astype(np.float64)) * (CSD_Q5[r_s].astype(np.float64) / 32.0)
+
+    p_unnorm = E2M1_MAG[mag_idx].astype(np.float64) * s_blk_val
+    blk_any = np.any(m_blk, axis=-1, keepdims=True)
+    p_unnorm = np.where(m_blk & blk_any, p_unnorm, 0.0)
+    return mag_idx, p_blk[..., 0], p_unnorm.reshape(m_rows, k_len)
+
+
+def csd_rescaler_32b_vec(val_in, resc_q, resc_r):
+    """Vectorized mirror of vsq_rescaler_32b.sv on int64 arrays (32-bit signed range)."""
+    val = val_in.astype(np.int64)
+    fac = CSD_Q5_INT[resc_r]
+    prod = val * fac
+    net = np.where(resc_q < -26, 32, 5 + ((-resc_q) & 0x1F))
+    rounded = prod + (np.int64(1) << (net - 1))
+    return (rounded >> net).astype(np.int64)
+
+
+def eval_attn_online_rtl_sim(scores_all_f32, v_pkts_all, valid_mask_bool, gqa_grp):
+    """Vectorized over (H_Q, M): models RTL online running max, l_accum, RECIP_LUT & final_normalizer."""
+    h_q, m_rows, k_len = scores_all_f32.shape
+    num_blk = k_len // 16
+    s_min = -(1 << 31)
+
+    s_q16 = np.clip(np.round(scores_all_f32.astype(np.float64) * 65536.0),
+                    -2147483648.0, 2147483647.0).astype(np.int64)
+    s_prod = ((s_q16 << 16) + (s_q16 << 15) - (s_q16 << 12) +
+              (s_q16 << 8) + (s_q16 << 6) + (s_q16 << 4) + (s_q16 << 2)) >> 16
+    s_scaled = np.clip(s_prod, -2147483648, 2147483647)
+
+    s_blk_all = s_scaled.reshape(h_q, m_rows, num_blk, 16)
+    m_blk_all = valid_mask_bool.reshape(1, m_rows, num_blk, 16)
+    s_masked_all = np.where(m_blk_all, s_blk_all, s_min)
+
+    v_codes_all, v_sc_all = decode_pkts_codes_scales(v_pkts_all)  # (H_KV, D_V, num_blk, 16)
+    v_codes_rep = np.repeat(v_codes_all, gqa_grp, axis=0)         # (H_Q, D_V, num_blk, 16)
+    v_sc_rep = np.repeat(v_sc_all, gqa_grp, axis=0)               # (H_Q, D_V, num_blk)
+
+    th_6p0, th_4p0, th_3p0, th_2p0, th_1p5, th_1p0, th_0p5 = SM_TH_Q16
+    m_running = np.full((h_q, m_rows), s_min, dtype=np.int64)
+    l_running = np.zeros((h_q, m_rows), dtype=np.int64)
+    o_accum = np.zeros((h_q, m_rows, v_codes_rep.shape[1]), dtype=np.float64)
+
+    for j in range(num_blk):
+        s_j = s_masked_all[:, :, j, :]  # (H_Q, M, 16)
+        m_j = np.broadcast_to(m_blk_all[:, :, j, :], (h_q, m_rows, 16))
+        any_v = np.any(m_j, axis=-1)
+        blk_max = s_j.max(axis=-1)
+
+        if j == 0:
+            m_next = np.where(any_v, blk_max, m_running)
+            resc_req = np.zeros_like(any_v, dtype=bool)
+        else:
+            inc = (blk_max > m_running) & any_v
+            m_next = np.where(inc, blk_max, m_running)
+            resc_req = inc
+
+        resc_delta = np.where(any_v, m_running - m_next, 0)
+        resc_oct = np.clip(resc_delta >> 16, -128, 127)
+        resc_r = ((resc_delta >> 13) & 0x7).astype(np.int64)
+
+        p_blk = np.clip(((blk_max - m_next + 4096) >> 13) - 21, -128, 127)
+        d = blk_max[..., None] - s_j
+        mag = np.zeros_like(d, dtype=np.int64)
+        mag = np.where(d <= th_0p5, 1, mag)
+        mag = np.where(d <= th_1p0, 2, mag)
+        mag = np.where(d <= th_1p5, 3, mag)
+        mag = np.where(d <= th_2p0, 4, mag)
+        mag = np.where(d <= th_3p0, 5, mag)
+        mag = np.where(d <= th_4p0, 6, mag)
+        mag = np.where(d <= th_6p0, 7, mag)
+        mag = np.where(m_j, mag, 0)
+
+        csum = MINT_TABLE[mag].sum(axis=-1)
+        q_s = p_blk >> 3
+        r_s = p_blk & 7
+        prod = csum * CSD_Q5_INT[r_s]
+        sh = np.minimum(q_s + 16, 15)
+        l_contrib = np.where(sh >= 6, prod << np.maximum(sh - 6, 0), prod >> np.maximum(6 - sh, 0))
+        l_contrib = np.where(any_v, l_contrib, 0)
+
+        # Update l_running in exact RTL Q16.16 arithmetic
+        if j == 0:
+            l_running = l_contrib
+        else:
+            l_rescaled = csd_rescaler_32b_vec(l_running, resc_oct, resc_r)
+            l_base = np.where(resc_req, l_rescaled, l_running)
+            l_running = np.where(any_v, np.clip(l_base + l_contrib, -2147483648, 2147483647), l_running)
+
+        # Online O update (paired CSD P*V in Q16.16 equivalent units: * 65536)
+        resc_scale = np.where(
+            resc_req,
+            (2.0 ** resc_oct.astype(np.float64)) * (CSD_Q5[resc_r].astype(np.float64) / 32.0),
+            1.0,
+        )
+        o_accum = np.where(j == 0, 0.0, o_accum * resc_scale[..., None])
+
+        p_val_base = E2M1_MAG[mag].astype(np.float64) * (2.0 ** q_s.astype(np.float64))[..., None]
+        v_j_vals = E2M1_LUT[v_codes_rep[:, :, j, :]].astype(np.float64) * (2.0 ** (v_sc_rep[:, :, j] >> 3).astype(np.float64))[..., None]
+        v_j_r = v_sc_rep[:, :, j] & 7  # (H_Q, D_V)
+
+        pv_j = np.zeros_like(o_accum)
+        for rp in range(8):
+            pm = (r_s == rp)
+            if not np.any(pm):
+                continue
+            rs = rp + v_j_r  # (H_Q, D_V) via broadcast if per-head
+            # Align shapes (H_Q, M, 16) x (H_Q, 16, D_V)
+            fac = np.where(rs >= 8, 2.0, 1.0) * (CSD_Q5[rs & 7].astype(np.float64) / 32.0)  # (H_Q, D_V)
+            p_sub = np.where(pm[:, :, None], p_val_base, 0.0)
+            v_sub = np.transpose(v_j_vals * fac[:, :, None], (0, 2, 1))
+            pv_j += np.matmul(p_sub, v_sub)
+
+        o_accum += np.where(any_v[..., None], pv_j * 65536.0, 0.0)
+        m_running = m_next
+
+    # 32-entry RECIP_LUT division matching l_accumulator.sv + final_normalizer.sv
+    o_out = np.zeros_like(o_accum, dtype=np.float32)
+    o_int = np.clip(np.round(o_accum), -2147483648.0, 2147483647.0).astype(np.int64)
+    for h in range(h_q):
+        for m in range(m_rows):
+            lt = int(l_running[h, m])
+            if lt <= 0:
+                continue
+            lzc = 0
+            for b in range(30, -1, -1):
+                if (lt >> b) & 1:
+                    break
+                lzc += 1
+            l_norm = (lt << lzc) & 0x7FFFFFFF
+            lut_idx = (l_norm >> 25) & 0x1F
+            inv_mant = int(RECIP_LUT[lut_idx])
+            raw_mult = o_int[h, m] * inv_mant
+            if lzc <= 29:
+                shifted = raw_mult >> (29 - lzc)
+            else:
+                shifted = raw_mult << (lzc - 29)
+            o_out[h, m] = (np.clip(shifted, -2147483648, 2147483647) / 65536.0).astype(np.float32)
+    return np.transpose(o_out, (1, 0, 2))
+
+
+def sfu_sigmoid_pwl_np(x):
+    """Exact 4-segment PWL Sigmoid matching snax_llm_sfu_opt_pipe.sv (|x| breakpoints 1.0, 2.5, 4.5)."""
+    x32 = x.astype(np.float32)
+    ax = np.abs(x32)
+    b0 = np.float32(0.500)
+    b1 = np.float32(0.73095703)  # 20'h3F3B2
+    b2 = np.float32(0.92407227)  # 20'h3F6C9
+    sig_pos = np.where(
+        ax < 1.0, b0 + np.float32(0.25) * ax,
+        np.where(
+            ax < 2.5, b1 + np.float32(0.125) * (ax - np.float32(1.0)),
+            np.where(ax < 4.5, b2 + np.float32(0.03125) * (ax - np.float32(2.5)), np.float32(1.0))
+        )
+    )
+    return np.where(x32 < 0.0, np.float32(1.0) - sig_pos, sig_pos).astype(np.float32)
+
+
+def fq_rtl_vec_ideal(mat_f32):
+    return fq_rtl_vec(mat_f32, use_csd=False)
 
 
 def permute_qk_weights_for_rope(mat, n_heads, d_k):
@@ -346,84 +631,160 @@ def main():
     up   = n2_f32 @ w_u.T
     final_f32 = res1_f32 + ((gate / (1.0 + np.exp(-gate))) * up) @ w_d.T
 
-    # 2. FP4+Log8 Hardware-Aligned Fake-Quant Golden Pass
-    wq_fq = fq_rtl_vec(w_q)
-    wk_fq = fq_rtl_vec(w_k)
-    wv_fq = fq_rtl_vec(w_v)
-    wo_fq = fq_rtl_vec(w_o)
-    wg_fq = fq_rtl_vec(w_g)
-    wu_fq = fq_rtl_vec(w_u)
-    wd_fq = fq_rtl_vec(w_d)
+    # 2. FP4+Log8 Hardware-Aligned Fake-Quant Golden Pass (CSD_Q5 + Exp-Free Softmax)
+    wq_pkts = quantize_rtl_vec(w_q)
+    wk_pkts = quantize_rtl_vec(w_k)
+    wv_pkts = quantize_rtl_vec(w_v)
+    wo_pkts = quantize_rtl_vec(w_o)
+    wg_pkts = quantize_rtl_vec(w_g)
+    wu_pkts = quantize_rtl_vec(w_u)
+    wd_pkts = quantize_rtl_vec(w_d)
 
     def quant_rope_qk(raw_rope, n_h):
         # Match Fused QK RoPE permute -> SLQ quantize -> unpermute
         perm = np.empty_like(raw_rope)
         perm[:, :, 0::2] = raw_rope[:, :, :D_K // 2]
         perm[:, :, 1::2] = raw_rope[:, :, D_K // 2:]
-        fq_perm = fq_rtl_vec(perm.reshape(-1, D_K)).reshape(raw_rope.shape[0], n_h, D_K)
+        pkts = quantize_rtl_vec(perm.reshape(-1, D_K))
+        fq_perm = dequant_pkts_csd(pkts).reshape(raw_rope.shape[0], n_h, D_K)
         out = np.empty_like(fq_perm)
         out[:, :, :D_K // 2] = fq_perm[:, :, 0::2]
         out[:, :, D_K // 2:] = fq_perm[:, :, 1::2]
-        return out
+        pkts_perm = pkts.reshape(raw_rope.shape[0], n_h, K_PACKETS_QK, 9)
+        return out, pkts_perm, perm
 
-    xn_fq = fq_rtl_vec(xn_f32)
-    q_fq = quant_rope_qk(apply_rope(xn_fq @ wq_fq.T, H_Q), H_Q)
-    k_fq = quant_rope_qk(apply_rope(xn_fq @ wk_fq.T, H_KV), H_KV)
-    v_raw_fq = (xn_fq @ wv_fq.T).reshape(m_tokens, H_KV, D_V)
+    xn_pkts = quantize_rtl_vec(xn_f32)
+    q_proj_fq = matmul_log8_csd_pkts(xn_pkts, wq_pkts)
+    k_proj_fq = matmul_log8_csd_pkts(xn_pkts, wk_pkts)
+    v_raw_fq  = matmul_log8_csd_pkts(xn_pkts, wv_pkts).reshape(m_tokens, H_KV, D_V)
+
+    q_fq, q_pkts_perm, _ = quant_rope_qk(apply_rope(q_proj_fq, H_Q), H_Q)
+    k_fq, k_pkts_perm, _ = quant_rope_qk(apply_rope(k_proj_fq, H_KV), H_KV)
 
     if is_decode:
-        xn_p_fq = fq_rtl_vec(xn_p)
-        k_p_raw = apply_rope(xn_p_fq @ wk_fq.T, H_KV, cos_all[:n_past], sin_all[:n_past])
-        k_p_fq  = quant_rope_qk(k_p_raw, H_KV)
-        # Keep k_p_perm for packing past K into DRAM_K
-        k_p_perm = np.empty_like(k_p_raw)
-        k_p_perm[:, :, 0::2] = k_p_raw[:, :, :D_K // 2]
-        k_p_perm[:, :, 1::2] = k_p_raw[:, :, D_K // 2:]
-        v_p_raw = (xn_p_fq @ wv_fq.T).reshape(n_past, H_KV, D_V)
+        xn_p_pkts = quantize_rtl_vec(xn_p)
+        k_p_raw = apply_rope(matmul_log8_csd_pkts(xn_p_pkts, wk_pkts), H_KV, cos_all[:n_past], sin_all[:n_past])
+        k_p_fq, k_p_pkts_perm, k_p_perm = quant_rope_qk(k_p_raw, H_KV)
+        v_p_raw = matmul_log8_csd_pkts(xn_p_pkts, wv_pkts).reshape(n_past, H_KV, D_V)
         v_all_in = np.concatenate([v_p_raw, v_raw_fq], axis=0)  # (n_kv, H_KV, D_V)
         v_t_mat  = np.transpose(v_all_in, (1, 2, 0)).reshape(H_KV * D_V, n_kv)
-        v_fq_all = np.transpose(fq_rtl_vec(v_t_mat).reshape(H_KV, D_V, n_kv), (2, 0, 1))
+        v_all_pkts_flat = quantize_rtl_vec(v_t_mat)              # (H_KV*D_V, kv_tiles, 9)
+        v_all_pkts = v_all_pkts_flat.reshape(H_KV, D_V, kv_tiles, 9)
+        v_fq_all = np.transpose(dequant_pkts_csd(v_all_pkts_flat).reshape(H_KV, D_V, n_kv), (2, 0, 1))
+        v_cur_fq = v_fq_all[-1:, :, :]
         k_fq_all = np.concatenate([k_p_fq, k_fq], axis=0)
+        k_all_pkts_perm = np.concatenate([k_p_pkts_perm, k_pkts_perm], axis=0)
     else:
         # Prefill: new M_TOKENS V are transposed in 16-token blocks
         v_new_t  = np.transpose(v_raw_fq.reshape(m_tokens // 16, 16, H_KV, D_V), (0, 2, 3, 1)).reshape(-1, 16)
-        v_new_fq = np.transpose(fq_rtl_vec(v_new_t).reshape(m_tokens // 16, H_KV, D_V, 16), (0, 3, 1, 2)).reshape(m_tokens, H_KV, D_V)
+        v_new_pkts_flat = quantize_rtl_vec(v_new_t)  # (mb_cnt*H_KV*D_V, 1, 9)
+        v_new_fq = np.transpose(
+            dequant_pkts_csd(v_new_pkts_flat).reshape(m_tokens // 16, H_KV, D_V, 16),
+            (0, 3, 1, 2)
+        ).reshape(m_tokens, H_KV, D_V)
+        v_new_pkts_blk = v_new_pkts_flat.reshape(m_tokens // 16, H_KV, D_V, 9).transpose(1, 2, 0, 3)  # (H_KV, D_V, mb_cnt, 9)
+        v_cur_fq = v_new_fq
         if n_past > 0:
-            xn_p_fq = fq_rtl_vec(xn_p)
-            k_p_raw = apply_rope(xn_p_fq @ wk_fq.T, H_KV, cos_all[:n_past], sin_all[:n_past])
-            k_p_fq  = quant_rope_qk(k_p_raw, H_KV)
-            k_p_perm = np.empty_like(k_p_raw)
-            k_p_perm[:, :, 0::2] = k_p_raw[:, :, :D_K // 2]
-            k_p_perm[:, :, 1::2] = k_p_raw[:, :, D_K // 2:]
-            v_p_raw = (xn_p_fq @ wv_fq.T).reshape(n_past, H_KV, D_V)
+            xn_p_pkts = quantize_rtl_vec(xn_p)
+            k_p_raw = apply_rope(matmul_log8_csd_pkts(xn_p_pkts, wk_pkts), H_KV, cos_all[:n_past], sin_all[:n_past])
+            k_p_fq, k_p_pkts_perm, k_p_perm = quant_rope_qk(k_p_raw, H_KV)
+            v_p_raw = matmul_log8_csd_pkts(xn_p_pkts, wv_pkts).reshape(n_past, H_KV, D_V)
             v_p_t   = np.transpose(v_p_raw, (1, 2, 0)).reshape(H_KV * D_V, n_past)
-            v_p_fq  = np.transpose(fq_rtl_vec(v_p_t).reshape(H_KV, D_V, n_past), (2, 0, 1))
+            v_p_pkts_flat = quantize_rtl_vec(v_p_t)  # (H_KV*D_V, kv_tiles_past, 9)
+            v_p_fq  = np.transpose(dequant_pkts_csd(v_p_pkts_flat).reshape(H_KV, D_V, n_past), (2, 0, 1))
             k_fq_all = np.concatenate([k_p_fq, k_fq], axis=0)
+            k_all_pkts_perm = np.concatenate([k_p_pkts_perm, k_pkts_perm], axis=0)
             v_fq_all = np.concatenate([v_p_fq, v_new_fq], axis=0)
+            v_all_pkts = np.concatenate([v_p_pkts_flat.reshape(H_KV, D_V, kv_tiles_past, 9), v_new_pkts_blk], axis=2)
         else:
             k_fq_all = k_fq
+            k_all_pkts_perm = k_pkts_perm
             v_fq_all = v_new_fq
+            v_all_pkts = v_new_pkts_blk
 
-    k_fq_rep = np.repeat(k_fq_all, GQA_GRP, axis=1)
-    v_fq_rep = np.repeat(v_fq_all, GQA_GRP, axis=1)
-    attn_fq = np.zeros((m_tokens, H_Q, D_V), dtype=np.float32)
+    valid_mask_attn = (mask > -1e4)  # (m_tokens, n_kv) bool
+    sc_all_fq = np.zeros((H_Q, m_tokens, n_kv), dtype=np.float32)
+    attn_fq_raw = np.zeros((m_tokens, H_Q, D_V), dtype=np.float32)
     for h_i in range(H_Q):
-        sc_fq = q_fq[:, h_i, :] @ k_fq_rep[:, h_i, :].T + mask
-        sc_fq -= sc_fq.max(axis=1, keepdims=True)
-        pr_fq = np.exp(sc_fq)
-        pr_fq /= pr_fq.sum(axis=1, keepdims=True)
-        attn_fq[:, h_i, :] = fq_rtl_vec(pr_fq) @ v_fq_rep[:, h_i, :]
-    res1_fq = x_fp16_in + fq_rtl_vec(attn_fq.reshape(m_tokens, D_MODEL)) @ wo_fq.T
+        hkv = h_i // GQA_GRP
+        sc_fq = matmul_log8_csd_pkts(q_pkts_perm[:, h_i, :, :], k_all_pkts_perm[:, hkv, :, :])
+        sc_all_fq[h_i] = sc_fq
+        mag_idx, p_blk, p_unnorm = exp_free_softmax_requantizer_np(sc_fq, valid_mask_attn)
+        p_pkts = pack_p_pkts_u8(mag_idx, p_blk)
+        pv_unnorm = matmul_log8_csd_pkts(p_pkts, v_all_pkts[hkv])
+        l_sum = np.maximum(p_unnorm.sum(axis=-1, keepdims=True), 1e-12).astype(np.float32)
+        attn_fq_raw[:, h_i, :] = pv_unnorm / l_sum
+
+    attn_o_pkts = quantize_rtl_vec(attn_fq_raw.reshape(m_tokens, D_MODEL))
+    attn_fq = dequant_pkts_csd(attn_o_pkts).reshape(m_tokens, H_Q, D_V)
+
+    res1_fq = x_fp16_in + matmul_log8_csd_pkts(attn_o_pkts, wo_pkts)
     rms2_fq = 1.0 / np.sqrt(np.mean(res1_fq ** 2, axis=1, keepdims=True) + eps)
     n2_fq   = res1_fq * rms2_fq * g2_fp16
-    n2_qq   = fq_rtl_vec(n2_fq)
-    g_fq    = n2_qq @ wg_fq.T
-    u_fq    = n2_qq @ wu_fq.T
-    h_fq    = fq_rtl_vec((g_fq / (1.0 + np.exp(-g_fq))) * u_fq)
-    final_fq = res1_fq + h_fq @ wd_fq.T
+    n2_pkts = quantize_rtl_vec(n2_fq)
+    g_fq    = matmul_log8_csd_pkts(n2_pkts, wg_pkts)
+    u_fq    = matmul_log8_csd_pkts(n2_pkts, wu_pkts)
+    h_pkts  = quantize_rtl_vec((g_fq / (1.0 + np.exp(-g_fq))) * u_fq)
+    final_fq = res1_fq + matmul_log8_csd_pkts(h_pkts, wd_pkts)
 
-    sq_fq, cs_fq, mx_fq = metrics(final_fq, final_f32)
-    print(f"    PyFQ vs FP32 baseline: SQNR={sq_fq:.2f} dB, CosineSim={cs_fq:.6f}, MaxAbs={mx_fq:.4f}")
+    # Diagnostic checks (non-intrusive):
+    # (a) Per-operand CSD vs Paired CSD delta on Q_proj & Final
+    q_proj_perop = dequant_pkts_csd(xn_pkts) @ dequant_pkts_csd(wq_pkts).T
+    sq_csd_q, cs_csd_q, _ = metrics(q_proj_fq, q_proj_perop)
+    # (b) Offline Exp-Free Softmax vs Online + 32-entry RECIP_LUT delta on Attn O
+    attn_online_pkts = quantize_rtl_vec(eval_attn_online_rtl_sim(sc_all_fq, v_all_pkts, valid_mask_attn, GQA_GRP).reshape(m_tokens, D_MODEL))
+    attn_online_fq = dequant_pkts_csd(attn_online_pkts).reshape(m_tokens, H_Q, D_V)
+    sq_onl_a, cs_onl_a, mx_onl_a = metrics(attn_online_fq, attn_fq)
+    # (c) FP32 Sigmoid vs u_sfu 4-segment PWL Sigmoid delta on Final
+    h_pkts_pwl = quantize_rtl_vec((g_fq * sfu_sigmoid_pwl_np(g_fq)) * u_fq)
+    final_fq_pwl = res1_fq + matmul_log8_csd_pkts(h_pkts_pwl, wd_pkts)
+    sq_pwl_f, cs_pwl_f, mx_pwl_f = metrics(final_fq_pwl, final_fq)
+    sq_pwl_32, cs_pwl_32, mx_pwl_32 = metrics(final_fq_pwl, final_f32)
+
+    stage_pairs = [
+        ("Stage 1: RMSNorm 1",           xn_f32.astype(np.float16).astype(np.float32), xn_f32),
+        ("Stage 2: Q + RoPE + LogQ",     q_fq,       q_rope),
+        ("Stage 3: K + RoPE + LogQ",     k_fq,       k_rope),
+        ("Stage 4: V + Trans + LogQ",    v_cur_fq,   v_h),
+        ("Stage 5: Exp-Free Attn O",     attn_fq,    attn_out),
+        ("Stage 6: GEMM O + Res1",       res1_fq,    res1_f32),
+        ("Stage 7: RMSNorm 2",           n2_fq,      n2_f32),
+        ("Stage 8: FFN + Res2 (Final)",  final_fq,   final_f32),
+    ]
+    print("    --- PyFQ vs. FP32 Stage Summary ---")
+    pyfq_summary = {"mode": args.mode, "m_tokens": m_tokens, "n_kv": n_kv, "n_past": n_past, "stages": {}, "diagnostics": {}}
+    csv_rows = []
+    for st_name, st_fq, st_fp32 in stage_pairs:
+        sq, cs, mx = metrics(st_fq, st_fp32)
+        entry = {"sqnr_db": round(sq, 4), "cos_sim": round(cs, 6), "max_abs": round(mx, 6)}
+        extra = ""
+        if (not is_decode) and (n_past == 0) and (m_tokens > 1):
+            sq_nb, cs_nb, mx_nb = metrics(st_fq[1:], st_fp32[1:])
+            entry["no_bos_sqnr_db"] = round(sq_nb, 4)
+            entry["no_bos_cos_sim"] = round(cs_nb, 6)
+            entry["no_bos_max_abs"] = round(mx_nb, 6)
+            extra = f" | no-BOS: {sq_nb:6.2f} dB / {cs_nb:.6f} / {mx_nb:.4f}"
+        pyfq_summary["stages"][st_name] = entry
+        csv_rows.append([st_name, entry["sqnr_db"], entry["cos_sim"], entry["max_abs"],
+                         entry.get("no_bos_sqnr_db", ""), entry.get("no_bos_cos_sim", ""), entry.get("no_bos_max_abs", "")])
+        print(f"    [PyFQ vs FP32] {st_name:<28s} : SQNR={sq:6.2f} dB | Cos={cs:.6f} | MaxAbs={mx:.4f}{extra}")
+
+    pyfq_summary["diagnostics"] = {
+        "q_proj_paired_vs_perop_csd": {"sqnr_db": round(sq_csd_q, 4), "cos_sim": round(cs_csd_q, 6)},
+        "attn_o_online_recip_vs_offline_pyfq": {"sqnr_db": round(sq_onl_a, 4), "cos_sim": round(cs_onl_a, 6), "max_abs": round(mx_onl_a, 6)},
+        "final_pwl_vs_fp32_sigmoid_pyfq": {"sqnr_db": round(sq_pwl_f, 4), "cos_sim": round(cs_pwl_f, 6), "max_abs": round(mx_pwl_f, 6)},
+        "final_pwl_vs_fp32_true": {"sqnr_db": round(sq_pwl_32, 4), "cos_sim": round(cs_pwl_32, 6), "max_abs": round(mx_pwl_32, 6)},
+    }
+    print(f"    [DIAG-PY] Q paired-CSD vs per-op CSD     : SQNR={sq_csd_q:6.2f} dB | Cos={cs_csd_q:.6f}")
+    print(f"    [DIAG-PY] AttnO online+RECIP_LUT vs PyFQ : SQNR={sq_onl_a:6.2f} dB | Cos={cs_onl_a:.6f} | MaxAbs={mx_onl_a:.4f}")
+    print(f"    [DIAG-PY] Final PWL-Sig vs FP32-Sig PyFQ : SQNR={sq_pwl_f:6.2f} dB | Cos={cs_pwl_f:.6f} | MaxAbs={mx_pwl_f:.4f} (vs FP32: {sq_pwl_32:.2f} dB)")
+
+    with open(os.path.join(out_dir, "pyfq_vs_fp32.json"), "w") as fj:
+        json.dump(pyfq_summary, fj, indent=2)
+    with open(os.path.join(out_dir, "pyfq_vs_fp32.csv"), "w", newline="") as fc:
+        w = csv.writer(fc)
+        w.writerow(["stage", "sqnr_db", "cos_sim", "max_abs", "no_bos_sqnr_db", "no_bos_cos_sim", "no_bos_max_abs"])
+        w.writerows(csv_rows)
 
     # 3. Emit hex stimulus files
     write_72b_words_hex(os.path.join(out_dir, "x_fp16.hex"), pack_fp16_72b_words(x_fp16_in))
@@ -456,7 +817,7 @@ def main():
                         rope_mbatch.append(pk)
         write_72b_words_hex(os.path.join(out_dir, "rope_mbatch.hex"), rope_mbatch)
 
-    # Golden files
+    # Golden files (existing FP16 + new FP32 intermediate stage references)
     write_fp16_hex(os.path.join(out_dir, "g_xnorm.hex"), xn_f32)
     write_fp16_hex(os.path.join(out_dir, "g_res1.hex"), res1_f32)
     write_fp16_hex(os.path.join(out_dir, "g_n2.hex"), n2_f32)
@@ -465,6 +826,18 @@ def main():
     write_fp16_hex(os.path.join(out_dir, "g_res1_fq.hex"), res1_fq)
     write_fp16_hex(os.path.join(out_dir, "g_n2_fq.hex"), n2_fq)
     write_fp16_hex(os.path.join(out_dir, "g_final_fq.hex"), final_fq)
+
+    write_fp32_hex(os.path.join(out_dir, "g_xnorm_fp32.hex"), xn_f32)
+    write_fp32_hex(os.path.join(out_dir, "g_q_fp32.hex"), q_rope)
+    write_fp32_hex(os.path.join(out_dir, "g_q_fq.hex"), q_fq)
+    write_fp32_hex(os.path.join(out_dir, "g_k_fp32.hex"), k_rope)
+    write_fp32_hex(os.path.join(out_dir, "g_k_fq.hex"), k_fq)
+    write_fp32_hex(os.path.join(out_dir, "g_v_fp32.hex"), v_h)
+    write_fp32_hex(os.path.join(out_dir, "g_v_fq.hex"), v_cur_fq)
+    write_fp32_hex(os.path.join(out_dir, "g_attn_o_fp32.hex"), attn_out)
+    write_fp32_hex(os.path.join(out_dir, "g_attn_o_fq.hex"), attn_fq)
+    write_fp32_hex(os.path.join(out_dir, "g_res1_fp32.hex"), res1_f32)
+    write_fp32_hex(os.path.join(out_dir, "g_n2_fp32.hex"), n2_f32)
 
     # Past KV files in Separate-KV format (matches cfg_attn_sep_kv_i = 1)
     # K order: [H_KV][kj][kp][l]  (4*16 words per kj)
@@ -475,7 +848,7 @@ def main():
         k_p_pkts = quantize_rtl_vec(k_all_perm.reshape(n_kv * H_KV, D_K)) \
             .reshape(kv_tiles, 16, H_KV, K_PACKETS_QK, 9) \
             .transpose(2, 0, 3, 1, 4)  # (H_KV, kv_tiles, 4, 16, 9)
-        v_p_pkts = quantize_rtl_vec(v_t_mat) \
+        v_p_pkts = v_all_pkts_flat \
             .reshape(H_KV, DV_TILES, 16, kv_tiles, 9) \
             .transpose(0, 1, 3, 2, 4)  # (H_KV, DV_TILES, kv_tiles, 16, 9)
         write_9b_pkts_hex(os.path.join(out_dir, "k_past_words.hex"), k_p_pkts)
@@ -483,10 +856,10 @@ def main():
         v_tail_words = pack_fp16_72b_words(v_p_raw[n_kv - 16:n_kv - 1].reshape(15, H_KV * D_V))
         write_72b_words_hex(os.path.join(out_dir, "v_tail_past_fp16.hex"), v_tail_words)
     elif kv_tiles_past > 0:
-        k_p_pkts = quantize_rtl_vec(k_p_perm.reshape(n_past * H_KV, D_K)) \
-            .reshape(kv_tiles_past, 16, H_KV, K_PACKETS_QK, 9) \
-            .transpose(2, 0, 3, 1, 4)  # (H_KV, kv_tiles_past, 4, 16, 9)
-        v_p_pkts = quantize_rtl_vec(v_p_t) \
+        k_p_pkts = k_p_pkts_perm.transpose(1, 0, 2, 3) \
+            .reshape(H_KV, kv_tiles_past, 16, K_PACKETS_QK, 9) \
+            .transpose(0, 1, 3, 2, 4)  # (H_KV, kv_tiles_past, 4, 16, 9)
+        v_p_pkts = v_p_pkts_flat \
             .reshape(H_KV, DV_TILES, 16, kv_tiles_past, 9) \
             .transpose(0, 1, 3, 2, 4)  # (H_KV, DV_TILES, kv_tiles_past, 16, 9)
         write_9b_pkts_hex(os.path.join(out_dir, "k_past_words.hex"), k_p_pkts)

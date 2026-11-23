@@ -27,6 +27,9 @@
 ../01_snax_llm_fp4_subsystem/snax_stream_read_fp16.sv
 ../01_snax_llm_fp4_subsystem/snax_csr_manager.sv
 ../01_snax_llm_fp4_subsystem/snax_flash_csr_snax.sv
+../01_snax_llm_fp4_subsystem/snax_seq_dr_fsm.sv
+../01_snax_llm_fp4_subsystem/snax_seq_dma_fsm.sv
+../01_snax_llm_fp4_subsystem/snax_seq_cmp_fsm.sv
 ../01_snax_llm_fp4_subsystem/snax_llm_sequencer.sv
 ../01_snax_llm_fp4_subsystem/fixed_priority_arb_n.sv
 ../01_snax_llm_fp4_subsystem/interleaved_interconnect_72b.sv

@@ -44,6 +44,7 @@ module tb_llama3_1b_configurable;
     localparam int MAX_M          = 512;
     localparam int MAX_KV         = 2048;
     localparam int MAX_FP16       = MAX_M * D_MODEL;  // 1,048,576
+    localparam int MAX_KV_FP16    = MAX_M * H_KV * D_K; // 262,144
     localparam int MAX_X_WORDS    = MAX_M * ROW_WORDS;// 262,144
     localparam int MAX_ROPE_WORDS = (MAX_M / 16) * 256; // 8,192 (also >= 512 decode)
     localparam int MAX_K_WORDS    = H_KV * (MAX_KV / 16) * K_PACKETS_QK * 16; // 65,536
@@ -325,6 +326,17 @@ module tb_llama3_1b_configurable;
     logic [15:0] g_final_fq   [0:MAX_FP16-1];
     logic [15:0] g_final_fp16 [0:MAX_FP16-1];
     logic [31:0] g_final_fp32 [0:MAX_FP16-1];
+    logic [31:0] g_xnorm_fp32 [0:MAX_FP16-1];
+    logic [31:0] g_q_fp32     [0:MAX_FP16-1];
+    logic [31:0] g_q_fq       [0:MAX_FP16-1];
+    logic [31:0] g_k_fp32     [0:MAX_KV_FP16-1];
+    logic [31:0] g_k_fq       [0:MAX_KV_FP16-1];
+    logic [31:0] g_v_fp32     [0:MAX_KV_FP16-1];
+    logic [31:0] g_v_fq       [0:MAX_KV_FP16-1];
+    logic [31:0] g_attn_o_fp32[0:MAX_FP16-1];
+    logic [31:0] g_attn_o_fq  [0:MAX_FP16-1];
+    logic [31:0] g_res1_fp32  [0:MAX_FP16-1];
+    logic [31:0] g_n2_fp32    [0:MAX_FP16-1];
 
     // --------------------------------------------------------- Helpers -------
     function automatic logic [31:0] tcdm_addr(input int word, input int bank);
@@ -419,6 +431,39 @@ module tb_llama3_1b_configurable;
         return sign ? -v : v;
     endfunction
 
+    function automatic real decode_log8_pkt_elem(input logic [71:0] pkt, input int elem_idx);
+        logic [3:0]        code;
+        logic signed [7:0] sc;
+        int                r_s, q_s;
+        real               mag, csd_val, val;
+        code = pkt[elem_idx*4 +: 4];
+        if (code[2:0] == 3'd0) return 0.0;
+        sc  = signed'(pkt[71:64]);
+        r_s = int'(sc[2:0]);
+        q_s = (int'(sc) - r_s) / 8;
+        case (code[2:0])
+            3'd1:    mag = 0.5;
+            3'd2:    mag = 1.0;
+            3'd3:    mag = 1.5;
+            3'd4:    mag = 2.0;
+            3'd5:    mag = 3.0;
+            3'd6:    mag = 4.0;
+            default: mag = 6.0;
+        endcase
+        case (r_s)
+            0:       csd_val = 32.0 / 32.0;
+            1:       csd_val = 35.0 / 32.0;
+            2:       csd_val = 38.0 / 32.0;
+            3:       csd_val = 41.0 / 32.0;
+            4:       csd_val = 46.0 / 32.0;
+            5:       csd_val = 49.0 / 32.0;
+            6:       csd_val = 54.0 / 32.0;
+            default: csd_val = 59.0 / 32.0;
+        endcase
+        val = mag * (2.0 ** real'(q_s)) * csd_val;
+        return code[3] ? -val : val;
+    endfunction
+
     task automatic cpu_csr_write(input logic [11:0] a, input logic [31:0] d);
         @(negedge clk);
         csr_req_valid = 1'b1; csr_req_write = 1'b1;
@@ -499,121 +544,140 @@ module tb_llama3_1b_configurable;
                    name, dut.u_seq.state_q, busy, done_irq);
     endtask
 
-    // Accumulated sequence-wide error accumulators
-    real acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max;
-    real acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max;
-    real acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max;
-    real acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max;
-    real acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max;
-    real acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max;
-    real acc_fnfp_ref2, acc_fnfp_err2, acc_fnfp_dot, acc_fnfp_act2, acc_fnfp_max;
+    // Accumulated sequence-wide error accumulators (8 stages x vs PyFQ / vs FP32 + no-BOS)
+    localparam int M_N1_FP32   = 0;
+    localparam int M_Q_FQ      = 1;
+    localparam int M_Q_FP32    = 2;
+    localparam int M_K_FQ      = 3;
+    localparam int M_K_FP32    = 4;
+    localparam int M_V_FQ      = 5;
+    localparam int M_V_FP32    = 6;
+    localparam int M_AO_FQ     = 7;
+    localparam int M_AO_FP32   = 8;
+    localparam int M_R1_FQ     = 9;
+    localparam int M_R1_FP32   = 10;
+    localparam int M_N2_FQ     = 11;
+    localparam int M_N2_FP32   = 12;
+    localparam int M_FN_FQ     = 13;
+    localparam int M_FN_FP32   = 14;
+    localparam int NUM_METRICS = 15;
 
-    function automatic logic [15:0] get_ref_fp16(input int ref_sel, input int idx);
-        case (ref_sel)
-            0: get_ref_fp16 = g_xnorm[idx];
-            1: get_ref_fp16 = g_res1_fq[idx];
-            2: get_ref_fp16 = g_res1[idx];
-            3: get_ref_fp16 = g_n2_fq[idx];
-            4: get_ref_fp16 = g_n2[idx];
-            default: get_ref_fp16 = g_final_fq[idx];
+    real m_ref2  [0:NUM_METRICS-1];
+    real m_err2  [0:NUM_METRICS-1];
+    real m_dot   [0:NUM_METRICS-1];
+    real m_act2  [0:NUM_METRICS-1];
+    real m_max   [0:NUM_METRICS-1];
+    real nb_ref2 [0:NUM_METRICS-1];
+    real nb_err2 [0:NUM_METRICS-1];
+    real nb_dot  [0:NUM_METRICS-1];
+    real nb_act2 [0:NUM_METRICS-1];
+    real nb_max  [0:NUM_METRICS-1];
+
+    function automatic real get_ref_real(input int mid, input int idx);
+        case (mid)
+            M_N1_FP32: get_ref_real = fp32_to_real(g_xnorm_fp32[idx]);
+            M_Q_FQ:    get_ref_real = fp32_to_real(g_q_fq[idx]);
+            M_Q_FP32:  get_ref_real = fp32_to_real(g_q_fp32[idx]);
+            M_K_FQ:    get_ref_real = fp32_to_real(g_k_fq[idx]);
+            M_K_FP32:  get_ref_real = fp32_to_real(g_k_fp32[idx]);
+            M_V_FQ:    get_ref_real = fp32_to_real(g_v_fq[idx]);
+            M_V_FP32:  get_ref_real = fp32_to_real(g_v_fp32[idx]);
+            M_AO_FQ:   get_ref_real = fp32_to_real(g_attn_o_fq[idx]);
+            M_AO_FP32: get_ref_real = fp32_to_real(g_attn_o_fp32[idx]);
+            M_R1_FQ:   get_ref_real = fp16_to_real(g_res1_fq[idx]);
+            M_R1_FP32: get_ref_real = fp32_to_real(g_res1_fp32[idx]);
+            M_N2_FQ:   get_ref_real = fp16_to_real(g_n2_fq[idx]);
+            M_N2_FP32: get_ref_real = fp32_to_real(g_n2_fp32[idx]);
+            M_FN_FQ:   get_ref_real = fp16_to_real(g_final_fq[idx]);
+            default:   get_ref_real = fp32_to_real(g_final_fp32[idx]);
         endcase
     endfunction
 
+    task automatic accum_point(input int mid, input int tok_abs, input real v_a, input real v_g);
+        real df;
+        df = (v_a > v_g) ? (v_a - v_g) : (v_g - v_a);
+        if (df > m_max[mid]) m_max[mid] = df;
+        m_ref2[mid] += v_g * v_g;
+        m_act2[mid] += v_a * v_a;
+        m_err2[mid] += (v_a - v_g) * (v_a - v_g);
+        m_dot[mid]  += v_a * v_g;
+        if (!IS_DECODE && (KV_TILES_PAST == 0) && (tok_abs > 0)) begin
+            if (df > nb_max[mid]) nb_max[mid] = df;
+            nb_ref2[mid] += v_g * v_g;
+            nb_act2[mid] += v_a * v_a;
+            nb_err2[mid] += (v_a - v_g) * (v_a - v_g);
+            nb_dot[mid]  += v_a * v_g;
+        end
+    endtask
+
     task automatic accum_rows_dram_1bank(
-        input logic [31:0] dram_base, input int n_tok, input int tok_off,
-        input int ref_sel,
-        inout real s_ref2, inout real s_err2, inout real s_dot, inout real s_act2, inout real m_abs
+        input logic [31:0] dram_base, input int n_tok, input int tok_off, input int mid
     );
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
                 read_dram_9b(dram_base, t * ROW_WORDS + w, rw);
                 for (int e = 0; e < 4; e++) begin
-                    real v_a, v_g, df;
-                    v_a = fp16_to_real(rw[16*e +: 16]);
-                    v_g = fp16_to_real(get_ref_fp16(ref_sel, (tok_off + t)*D_MODEL + 4*w + e));
-                    df  = (v_a > v_g) ? (v_a - v_g) : (v_g - v_a);
-                    if (df > m_abs) m_abs = df;
-                    s_ref2 += v_g * v_g;
-                    s_act2 += v_a * v_a;
-                    s_err2 += (v_a - v_g) * (v_a - v_g);
-                    s_dot  += v_a * v_g;
+                    int tok_abs;
+                    tok_abs = tok_off + t;
+                    accum_point(mid, tok_abs, fp16_to_real(rw[16*e +: 16]),
+                                get_ref_real(mid, tok_abs * D_MODEL + 4*w + e));
                 end
             end
     endtask
 
     task automatic accum_rows_dram_16bank(
-        input logic [31:0] dram_base, input int n_tok, input int tok_off,
-        input int ref_sel,
-        inout real s_ref2, inout real s_err2, inout real s_dot, inout real s_act2, inout real m_abs
+        input logic [31:0] dram_base, input int n_tok, input int tok_off, input int mid
     );
         logic [71:0] rw;
         for (int t = 0; t < n_tok; t++)
             for (int w = 0; w < ROW_WORDS; w++) begin
                 read_dram_9b(dram_base, w * 16 + t, rw);
                 for (int e = 0; e < 4; e++) begin
-                    real v_a, v_g, df;
-                    v_a = fp16_to_real(rw[16*e +: 16]);
-                    v_g = fp16_to_real(get_ref_fp16(ref_sel, (tok_off + t)*D_MODEL + 4*w + e));
-                    df  = (v_a > v_g) ? (v_a - v_g) : (v_g - v_a);
-                    if (df > m_abs) m_abs = df;
-                    s_ref2 += v_g * v_g;
-                    s_act2 += v_a * v_a;
-                    s_err2 += (v_a - v_g) * (v_a - v_g);
-                    s_dot  += v_a * v_g;
+                    int tok_abs;
+                    tok_abs = tok_off + t;
+                    accum_point(mid, tok_abs, fp16_to_real(rw[16*e +: 16]),
+                                get_ref_real(mid, tok_abs * D_MODEL + 4*w + e));
                 end
             end
     endtask
 
-    task automatic accum_final_fp32_dram_1bank(input logic [31:0] dram_base, input int n_tok, input int tok_off);
-        logic [71:0] rw;
-        for (int t = 0; t < n_tok; t++)
-            for (int w = 0; w < ROW_WORDS; w++) begin
-                read_dram_9b(dram_base, t * ROW_WORDS + w, rw);
-                for (int e = 0; e < 4; e++) begin
-                    real v_a, v_g, df;
-                    v_a = fp16_to_real(rw[16*e +: 16]);
-                    v_g = fp32_to_real(g_final_fp32[(tok_off + t)*D_MODEL + 4*w + e]);
-                    df  = (v_a > v_g) ? (v_a - v_g) : (v_g - v_a);
-                    if (df > acc_fnfp_max) acc_fnfp_max = df;
-                    acc_fnfp_ref2 += v_g * v_g;
-                    acc_fnfp_act2 += v_a * v_a;
-                    acc_fnfp_err2 += (v_a - v_g) * (v_a - v_g);
-                    acc_fnfp_dot  += v_a * v_g;
-                end
-            end
+    task automatic accum_pkt_qk_point(
+        input logic [71:0] pkt, input int e, input int kp,
+        input int tok_abs, input int head_idx, input int n_heads,
+        input int mid_fq, input int mid_fp
+    );
+        int d, idx;
+        real v_a;
+        d   = ((e & 1) ? 32 : 0) + kp * 8 + (e >> 1);
+        idx = (tok_abs * n_heads + head_idx) * D_K + d;
+        v_a = decode_log8_pkt_elem(pkt, e);
+        accum_point(mid_fq, tok_abs, v_a, get_ref_real(mid_fq, idx));
+        accum_point(mid_fp, tok_abs, v_a, get_ref_real(mid_fp, idx));
     endtask
 
-    task automatic accum_final_fp32_dram_16bank(input logic [31:0] dram_base, input int n_tok, input int tok_off);
-        logic [71:0] rw;
-        for (int t = 0; t < n_tok; t++)
-            for (int w = 0; w < ROW_WORDS; w++) begin
-                read_dram_9b(dram_base, w * 16 + t, rw);
-                for (int e = 0; e < 4; e++) begin
-                    real v_a, v_g, df;
-                    v_a = fp16_to_real(rw[16*e +: 16]);
-                    v_g = fp32_to_real(g_final_fp32[(tok_off + t)*D_MODEL + 4*w + e]);
-                    df  = (v_a > v_g) ? (v_a - v_g) : (v_g - v_a);
-                    if (df > acc_fnfp_max) acc_fnfp_max = df;
-                    acc_fnfp_ref2 += v_g * v_g;
-                    acc_fnfp_act2 += v_a * v_a;
-                    acc_fnfp_err2 += (v_a - v_g) * (v_a - v_g);
-                    acc_fnfp_dot  += v_a * v_g;
-                end
-            end
-    endtask
-
-    task automatic report_metric(
-        input string name,
-        input real s_ref2, input real s_err2, input real s_dot, input real s_act2, input real m_abs,
-        input real min_cos
+    task automatic verify_stage_metrics(
+        input string name, input int mid, input real min_cos, input bit warn_lt25 = 1'b0
     );
         real sqnr, cos_s;
-        sqnr  = (s_err2 > 0.0) ? (10.0 * $log10(s_ref2 / s_err2)) : 999.0;
-        cos_s = s_dot / ($sqrt(s_act2) * $sqrt(s_ref2));
-        $display("    [METRIC] %-20s : SQNR = %6.2f dB | CosineSim = %0.6f | MaxAbs = %0.4f",
-                 name, sqnr, cos_s, m_abs);
+        sqnr  = (m_err2[mid] > 0.0) ? (10.0 * $log10(m_ref2[mid] / m_err2[mid])) : 999.0;
+        cos_s = (m_act2[mid] > 0.0 && m_ref2[mid] > 0.0)
+              ? (m_dot[mid] / ($sqrt(m_act2[mid]) * $sqrt(m_ref2[mid]))) : 0.0;
+        $display("    [METRIC] %-26s : SQNR = %6.2f dB | CosineSim = %0.6f | MaxAbs = %0.4f",
+                 name, sqnr, cos_s, m_max[mid]);
+        if (warn_lt25 && (sqnr < 25.0))
+            $display("    [DIAG]   %-26s : RTL vs PyFQ SQNR = %6.2f dB (< 25 dB threshold)",
+                     name, sqnr);
         check(cos_s >= min_cos, name);
+    endtask
+
+    task automatic report_nobos_metric(input string name, input int mid);
+        real sqnr, cos_s;
+        sqnr  = (nb_err2[mid] > 0.0) ? (10.0 * $log10(nb_ref2[mid] / nb_err2[mid])) : 999.0;
+        cos_s = (nb_act2[mid] > 0.0 && nb_ref2[mid] > 0.0)
+              ? (nb_dot[mid] / ($sqrt(nb_act2[mid]) * $sqrt(nb_ref2[mid]))) : 0.0;
+        $display("    [NO-BOS] %-26s : SQNR = %6.2f dB | CosineSim = %0.6f | MaxAbs = %0.4f",
+                 name, sqnr, cos_s, nb_max[mid]);
     endtask
 
     // --------------------------------------------------------- Job Launchers -
@@ -788,7 +852,7 @@ module tb_llama3_1b_configurable;
         int dec_arg, m_arg, kv_arg, qs_arg, bp_arg;
         longint t0, t_attn;
         logic [31:0] rd32;
-        int n_fp16;
+        int n_fp16, n_kv_elem;
 
         IS_DECODE = 1'b0;
         if ($value$plusargs("DECODE=%d", dec_arg)) IS_DECODE = (dec_arg != 0);
@@ -836,30 +900,39 @@ module tb_llama3_1b_configurable;
         cyc_total = 0; cyc_seq = 0; cyc_sfu = 0; cyc_core_compute = 0; cyc_dma = 0; job_cycles_total = 0;
         cpu_mem_active_cyc = 0; dram_stall_cyc = 0; max_inflight_seen = 0;
 
-        acc_n1_ref2   = 0.0; acc_n1_err2   = 0.0; acc_n1_dot   = 0.0; acc_n1_act2   = 0.0; acc_n1_max   = 0.0;
-        acc_r1fq_ref2 = 0.0; acc_r1fq_err2 = 0.0; acc_r1fq_dot = 0.0; acc_r1fq_act2 = 0.0; acc_r1fq_max = 0.0;
-        acc_r1fp_ref2 = 0.0; acc_r1fp_err2 = 0.0; acc_r1fp_dot = 0.0; acc_r1fp_act2 = 0.0; acc_r1fp_max = 0.0;
-        acc_n2fq_ref2 = 0.0; acc_n2fq_err2 = 0.0; acc_n2fq_dot = 0.0; acc_n2fq_act2 = 0.0; acc_n2fq_max = 0.0;
-        acc_n2fp_ref2 = 0.0; acc_n2fp_err2 = 0.0; acc_n2fp_dot = 0.0; acc_n2fp_act2 = 0.0; acc_n2fp_max = 0.0;
-        acc_fnfq_ref2 = 0.0; acc_fnfq_err2 = 0.0; acc_fnfq_dot = 0.0; acc_fnfq_act2 = 0.0; acc_fnfq_max = 0.0;
-        acc_fnfp_ref2 = 0.0; acc_fnfp_err2 = 0.0; acc_fnfp_dot = 0.0; acc_fnfp_act2 = 0.0; acc_fnfp_max = 0.0;
+        for (int i = 0; i < NUM_METRICS; i++) begin
+            m_ref2[i]  = 0.0; m_err2[i]  = 0.0; m_dot[i]  = 0.0; m_act2[i]  = 0.0; m_max[i]  = 0.0;
+            nb_ref2[i] = 0.0; nb_err2[i] = 0.0; nb_dot[i] = 0.0; nb_act2[i] = 0.0; nb_max[i] = 0.0;
+        end
 
-        n_fp16 = EVAL_TOKENS * D_MODEL;
+        n_fp16    = EVAL_TOKENS * D_MODEL;
+        n_kv_elem = EVAL_TOKENS * H_KV * D_K;
 
         $display("Loading weights (%s) & stimulus (%s)...", WEIGHTS_HEX, DATA_DIR);
-        $readmemh(WEIGHTS_HEX,                        dram_mem,    0, DRAM_WT_BEATS - 1);
-        $readmemh({DATA_DIR, "/x_fp16.hex"},          x_fp16_mem,  0, EVAL_TOKENS * ROW_WORDS - 1);
-        $readmemh({DATA_DIR, "/gamma1.hex"},          gamma1_mem,  0, ROW_WORDS - 1);
-        $readmemh({DATA_DIR, "/gamma2.hex"},          gamma2_mem,  0, ROW_WORDS - 1);
-        $readmemh({DATA_DIR, "/rope_mbatch.hex"},     rope_mb_mem, 0, (IS_DECODE ? 512 : M_CHUNKS * 256) - 1);
-        $readmemh({DATA_DIR, "/g_xnorm.hex"},         g_xnorm,     0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_res1.hex"},          g_res1,      0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_n2.hex"},            g_n2,        0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_final_fp16.hex"},    g_final_fp16,0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_final_fp32.hex"},    g_final_fp32,0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_res1_fq.hex"},       g_res1_fq,   0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_n2_fq.hex"},         g_n2_fq,     0, n_fp16 - 1);
-        $readmemh({DATA_DIR, "/g_final_fq.hex"},      g_final_fq,  0, n_fp16 - 1);
+        $readmemh(WEIGHTS_HEX,                        dram_mem,      0, DRAM_WT_BEATS - 1);
+        $readmemh({DATA_DIR, "/x_fp16.hex"},          x_fp16_mem,    0, EVAL_TOKENS * ROW_WORDS - 1);
+        $readmemh({DATA_DIR, "/gamma1.hex"},          gamma1_mem,    0, ROW_WORDS - 1);
+        $readmemh({DATA_DIR, "/gamma2.hex"},          gamma2_mem,    0, ROW_WORDS - 1);
+        $readmemh({DATA_DIR, "/rope_mbatch.hex"},     rope_mb_mem,   0, (IS_DECODE ? 512 : M_CHUNKS * 256) - 1);
+        $readmemh({DATA_DIR, "/g_xnorm.hex"},         g_xnorm,       0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_res1.hex"},          g_res1,        0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_n2.hex"},            g_n2,          0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_final_fp16.hex"},    g_final_fp16,  0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_final_fp32.hex"},    g_final_fp32,  0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_res1_fq.hex"},       g_res1_fq,     0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_n2_fq.hex"},         g_n2_fq,       0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_final_fq.hex"},      g_final_fq,    0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_xnorm_fp32.hex"},    g_xnorm_fp32,  0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_q_fp32.hex"},        g_q_fp32,      0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_q_fq.hex"},          g_q_fq,        0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_k_fp32.hex"},        g_k_fp32,      0, n_kv_elem - 1);
+        $readmemh({DATA_DIR, "/g_k_fq.hex"},          g_k_fq,        0, n_kv_elem - 1);
+        $readmemh({DATA_DIR, "/g_v_fp32.hex"},        g_v_fp32,      0, n_kv_elem - 1);
+        $readmemh({DATA_DIR, "/g_v_fq.hex"},          g_v_fq,        0, n_kv_elem - 1);
+        $readmemh({DATA_DIR, "/g_attn_o_fp32.hex"},   g_attn_o_fp32, 0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_attn_o_fq.hex"},     g_attn_o_fq,   0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_res1_fp32.hex"},     g_res1_fp32,   0, n_fp16 - 1);
+        $readmemh({DATA_DIR, "/g_n2_fp32.hex"},       g_n2_fp32,     0, n_fp16 - 1);
 
         // Pre-load host DRAM images (ZERO runtime cpu_mem!)
         for (int w = 0; w < ROW_WORDS; w++) begin
@@ -942,7 +1015,7 @@ module tb_llama3_1b_configurable;
                         tcdm_addr(GAMMA1_WORD, GAMMA_BANK), 0,              0,
                         tcdm_addr(0, XN_BANK),              ROW_WORDS * 32, 0, 32'h3A000000);
             run_dma_1d(2'b11, tcdm_addr(0, XN_BANK), DRAM_DBG, ROW_WORDS * 9, "DMA WB XN Dbg");
-            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 0, acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, M_N1_FP32);
 
             $display("[2/12] HW Requant Xn -> ACT_BANK...");
             run_requant_addr(tcdm_addr(0, XN_BANK), NUM_VEC_XN, tcdm_addr(0, ACT_BANK), "Requant Xn");
@@ -950,6 +1023,13 @@ module tb_llama3_1b_configurable;
             $display("[3/12] Fused Q (2048x2048, DMA) + RoPE + LogQ...");
             run_fused_qk_rope_dma_ex(N_TILES_MODEL, DRAM_WQ, tcdm_addr(0, ACT_BANK),
                                      tcdm_addr(0, QPKT_BANK), tcdm_addr(0, ROPE_BANK), 1'b0, "Fused Q+RoPE");
+            for (int h = 0; h < H_Q; h++)
+                for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
+                    logic [71:0] pkt;
+                    pkt = dut.u_tcdm.GEN_BANKS[QPKT_BANK].u_bank.mem[h * K_PACKETS_QK + kp];
+                    for (int e = 0; e < 16; e++)
+                        accum_pkt_qk_point(pkt, e, kp, 0, h, H_Q, M_Q_FQ, M_Q_FP32);
+                end
 
             $display("[4/12] Fused K (512x2048, GQA H_KV=8, DMA) + RoPE + LogQ...");
             run_fused_qk_rope_dma_ex(N_TILES_KV, DRAM_WK, tcdm_addr(0, ACT_BANK),
@@ -981,6 +1061,27 @@ module tb_llama3_1b_configurable;
                                16 * 9, "DMA Append V");
             end
 
+            // Passive DRAM readback for Decode Stage 3 (K) & Stage 4 (V)
+            for (int hkv = 0; hkv < H_KV; hkv++) begin
+                for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
+                    logic [71:0] pkt;
+                    read_dram_9b(DRAM_K, ((hkv * KV_TILES + (KV_TILES - 1)) * K_PACKETS_QK + kp) * 16 + 15, pkt);
+                    for (int e = 0; e < 16; e++)
+                        accum_pkt_qk_point(pkt, e, kp, 0, hkv, H_KV, M_K_FQ, M_K_FP32);
+                end
+                for (int dvi = 0; dvi < DV_TILES; dvi++)
+                    for (int l = 0; l < 16; l++) begin
+                        logic [71:0] pkt;
+                        real v_a;
+                        int idx;
+                        read_dram_9b(DRAM_V, ((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES - 1)) * 16 + l, pkt);
+                        v_a = decode_log8_pkt_elem(pkt, 15);
+                        idx = hkv * D_V + dvi * 16 + l;
+                        accum_point(M_V_FQ,   0, v_a, get_ref_real(M_V_FQ,   idx));
+                        accum_point(M_V_FP32, 0, v_a, get_ref_real(M_V_FP32, idx));
+                    end
+            end
+
             t_attn = cyc_total;
             $display("[6/12] HW Decode FlashAttention (N_KV=%0d, Sep-KV + KV_Pin=%0d)...", N_KV, KV_PIN_EN);
             clear_ext_macro_csrs();
@@ -1003,6 +1104,19 @@ module tb_llama3_1b_configurable;
             wait_job("Decode FlashAttention");
             clear_ext_macro_csrs();
             $display("       Attn cycles=%0d", cyc_total - t_attn);
+            for (int h = 0; h < H_Q; h++)
+                for (int dvi = 0; dvi < DV_TILES; dvi++) begin
+                    logic [71:0] pkt;
+                    pkt = dut.u_tcdm.GEN_BANKS[O_ACT_BANK].u_bank.mem[h * DV_TILES + dvi];
+                    for (int e = 0; e < 16; e++) begin
+                        real v_a;
+                        int idx;
+                        v_a = decode_log8_pkt_elem(pkt, e);
+                        idx = h * D_V + dvi * 16 + e;
+                        accum_point(M_AO_FQ,   0, v_a, get_ref_real(M_AO_FQ,   idx));
+                        accum_point(M_AO_FP32, 0, v_a, get_ref_real(M_AO_FP32, idx));
+                    end
+                end
 
             $display("[7/12] GEMM O (2048x2048, DMA)...");
             run_gemm_dma_ex(N_TILES_MODEL, K_PACKETS_QKV, 0, DRAM_WO, K_PACKETS_QKV * 144,
@@ -1014,16 +1128,16 @@ module tb_llama3_1b_configurable;
                         tcdm_addr(0, X_BANK),   ROW_WORDS * 32, 4 * 32,
                         tcdm_addr(0, RES1_BANK),ROW_WORDS * 32, 4 * 32, 32'h3F800000);
             run_dma_1d(2'b11, tcdm_addr(0, RES1_BANK), DRAM_RES1, ROW_WORDS * 9, "DMA WB RES1");
-            accum_rows_dram_1bank(DRAM_RES1, 1, 0, 1, acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
-            accum_rows_dram_1bank(DRAM_RES1, 1, 0, 2, acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
+            accum_rows_dram_1bank(DRAM_RES1, 1, 0, M_R1_FQ);
+            accum_rows_dram_1bank(DRAM_RES1, 1, 0, M_R1_FP32);
 
             run_sfu_seq(3'd2, 1, 1, K_PACKETS_QKV,
                         tcdm_addr(0, RES1_BANK),            ROW_WORDS * 32, 0,
                         tcdm_addr(GAMMA2_WORD, GAMMA_BANK), 0,              0,
                         tcdm_addr(0, XN_BANK),              ROW_WORDS * 32, 0, 32'h3A000000);
             run_dma_1d(2'b11, tcdm_addr(0, XN_BANK), DRAM_DBG, ROW_WORDS * 9, "DMA WB N2 Dbg");
-            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 3, acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
-            accum_rows_dram_1bank(DRAM_DBG, 1, 0, 4, acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, M_N2_FQ);
+            accum_rows_dram_1bank(DRAM_DBG, 1, 0, M_N2_FP32);
 
             $display("[9/12] HW Requant Norm2 -> ACT_BANK...");
             run_requant_addr(tcdm_addr(0, XN_BANK), NUM_VEC_XN, tcdm_addr(0, ACT_BANK), "Requant Norm2");
@@ -1056,8 +1170,8 @@ module tb_llama3_1b_configurable;
                         tcdm_addr(0, FIN_BANK),  ROW_WORDS * 32, 4 * 32, 32'h3F800000);
             run_dma_1d(2'b11, tcdm_addr(0, FIN_BANK), DRAM_OUT, ROW_WORDS * 9, "DMA WB Final Out");
             check_dram_canaries(int'(DRAM_OUT), ROW_WORDS * 9, "Decode Final Out");
-            accum_rows_dram_1bank(DRAM_OUT, 1, 0, 5, acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
-            accum_final_fp32_dram_1bank(DRAM_OUT, 1, 0);
+            accum_rows_dram_1bank(DRAM_OUT, 1, 0, M_FN_FQ);
+            accum_rows_dram_1bank(DRAM_OUT, 1, 0, M_FN_FP32);
         end else begin
             // -----------------------------------------------------------------
             // PREFILL FLOW (Arbitrary M = 16 * M_CHUNKS, N_KV >= M, ZERO cpu_mem)
@@ -1075,8 +1189,7 @@ module tb_llama3_1b_configurable;
                             tcdm_addr(0, 16), 1, 0, tcdm_addr(0, 0), 0, 0,
                             tcdm_addr(512, 16), 1, 0, 32'h3A000000);
                 run_dma_1d(2'b01, tcdm_addr(512, 16), DRAM_DBG, 8192 * 9, "DMA WB XN Dbg");
-                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 0,
-                                       acc_n1_ref2, acc_n1_err2, acc_n1_dot, acc_n1_act2, acc_n1_max);
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, M_N1_FP32);
 
                 run_requant_wrap(tcdm_addr(512, 16), M_BATCH * K_PACKETS_QKV, tcdm_addr(0, 16), 511, 127, "Requant Xn");
                 run_dma_1d(2'b10, tcdm_addr(512, ROPE_BANK), DRAM_ROPE + 32'(mb) * 32'(256 * 9), 256 * 9, "DMA Load RoPE");
@@ -1112,6 +1225,42 @@ module tb_llama3_1b_configurable;
             end
             $display("       Pre-Attn cycles=%0d", cyc_total - t0);
 
+            // Passive DRAM readback for Prefill Stage 2 (Q), Stage 3 (K), Stage 4 (V)
+            for (int h = 0; h < H_Q; h++)
+                for (int t_abs = 0; t_abs < M_TOKENS; t_abs++)
+                    for (int kp = 0; kp < K_PACKETS_QK; kp++) begin
+                        logic [71:0] pkt;
+                        read_dram_9b(DRAM_QPKT, (h * M_TOKENS + t_abs) * K_PACKETS_QK + kp, pkt);
+                        for (int e = 0; e < 16; e++)
+                            accum_pkt_qk_point(pkt, e, kp, t_abs, h, H_Q, M_Q_FQ, M_Q_FP32);
+                    end
+
+            for (int hkv = 0; hkv < H_KV; hkv++) begin
+                for (int mb = 0; mb < M_CHUNKS; mb++) begin
+                    for (int kp = 0; kp < K_PACKETS_QK; kp++)
+                        for (int l = 0; l < 16; l++) begin
+                            logic [71:0] pkt;
+                            read_dram_9b(DRAM_K, ((hkv * KV_TILES + (KV_TILES_PAST + mb)) * K_PACKETS_QK + kp) * 16 + l, pkt);
+                            for (int e = 0; e < 16; e++)
+                                accum_pkt_qk_point(pkt, e, kp, mb * 16 + l, hkv, H_KV, M_K_FQ, M_K_FP32);
+                        end
+                    for (int dvi = 0; dvi < DV_TILES; dvi++)
+                        for (int l = 0; l < 16; l++) begin
+                            logic [71:0] pkt;
+                            read_dram_9b(DRAM_V, ((hkv * DV_TILES + dvi) * KV_TILES + (KV_TILES_PAST + mb)) * 16 + l, pkt);
+                            for (int e = 0; e < 16; e++) begin
+                                int t_abs, idx;
+                                real v_a;
+                                t_abs = mb * 16 + e;
+                                idx   = (t_abs * H_KV + hkv) * D_V + dvi * 16 + l;
+                                v_a   = decode_log8_pkt_elem(pkt, e);
+                                accum_point(M_V_FQ,   t_abs, v_a, get_ref_real(M_V_FQ,   idx));
+                                accum_point(M_V_FP32, t_abs, v_a, get_ref_real(M_V_FP32, idx));
+                            end
+                        end
+                end
+            end
+
             t_attn = cyc_total;
             $display("[6/12] Single-Launch HW Causal FlashAttention (M=%0d, N_KV=%0d, Q_T=%0d, Q_SUB=%0d, Sep-KV, KV_Pin=%0d)...",
                      M_TOKENS, N_KV, Q_TILES, Q_SUB, KV_PIN_EN);
@@ -1140,6 +1289,22 @@ module tb_llama3_1b_configurable;
             clear_ext_macro_csrs();
             $display("       Attn cycles=%0d", cyc_total - t_attn);
 
+            // Passive DRAM readback for Prefill Stage 5 (Exp-Free FlashAttention O)
+            for (int h = 0; h < H_Q; h++)
+                for (int t_abs = 0; t_abs < M_TOKENS; t_abs++)
+                    for (int dvi = 0; dvi < DV_TILES; dvi++) begin
+                        logic [71:0] pkt;
+                        read_dram_9b(DRAM_OPKT, (h * M_TOKENS + t_abs) * DV_TILES + dvi, pkt);
+                        for (int e = 0; e < 16; e++) begin
+                            int idx;
+                            real v_a;
+                            v_a = decode_log8_pkt_elem(pkt, e);
+                            idx = (t_abs * H_Q + h) * D_V + dvi * 16 + e;
+                            accum_point(M_AO_FQ,   t_abs, v_a, get_ref_real(M_AO_FQ,   idx));
+                            accum_point(M_AO_FP32, t_abs, v_a, get_ref_real(M_AO_FP32, idx));
+                        end
+                    end
+
             t0 = cyc_total;
             $display("[7/12 .. 12/12] Post-Attention & FFN M-batched (%0d x 16 tokens)...", M_CHUNKS);
             for (int mb = 0; mb < M_CHUNKS; mb++) begin
@@ -1162,20 +1327,16 @@ module tb_llama3_1b_configurable;
                                 tcdm_addr(512 + c*256, 16), 1, 4 * 32, 32'h3F800000);
                 end
                 run_dma_1d(2'b01, tcdm_addr(512, 16), DRAM_RES1 + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA Save RES1");
-                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 1,
-                                       acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max);
-                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 2,
-                                       acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max);
+                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, M_R1_FQ);
+                accum_rows_dram_16bank(DRAM_RES1 + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, M_R1_FP32);
 
                 run_dma_1d(2'b10, tcdm_addr(0, 0), DRAM_GAMMA2, ROW_WORDS * 9, "DMA Load Gamma2");
                 run_sfu_seq(3'd2, M_BATCH, 1, K_PACKETS_QKV,
                             tcdm_addr(512, 16), 1, 0, tcdm_addr(0, 0), 0, 0,
                             tcdm_addr(0, 16),   1, 0, 32'h3A000000);
                 run_dma_1d(2'b01, tcdm_addr(0, 16), DRAM_DBG, 8192 * 9, "DMA WB N2 Dbg");
-                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 3,
-                                       acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max);
-                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, 4,
-                                       acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max);
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, M_N2_FQ);
+                accum_rows_dram_16bank(DRAM_DBG, M_BATCH, mb * M_BATCH, M_N2_FP32);
 
                 run_requant_wrap(tcdm_addr(0, 16), M_BATCH * K_PACKETS_QKV, tcdm_addr(0, 16), 511, 127, "Requant Norm2");
                 for (int c = 0; c < N_CHUNKS; c++) begin
@@ -1203,9 +1364,8 @@ module tb_llama3_1b_configurable;
                             tcdm_addr(0, 16),   1, 4 * 32, 32'h3F800000);
 
                 run_dma_1d(2'b01, tcdm_addr(0, 16), DRAM_OUT + 32'(mb) * 32'(8192 * 9), 8192 * 9, "DMA WB Final Out");
-                accum_rows_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, 5,
-                                       acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max);
-                accum_final_fp32_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH);
+                accum_rows_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, M_FN_FQ);
+                accum_rows_dram_16bank(DRAM_OUT + 32'(mb) * 32'(8192 * 9), M_BATCH, mb * M_BATCH, M_FN_FP32);
             end
             check_dram_canaries(int'(DRAM_OUT), EVAL_TOKENS * ROW_WORDS * 9, "Prefill Final Out");
             $display("       Post-Attn/FFN cycles=%0d", cyc_total - t0);
@@ -1218,13 +1378,39 @@ module tb_llama3_1b_configurable;
         $display("  SEQUENCE-WIDE ACCURACY & PERFORMANCE SUMMARY (%s M=%0d, N_KV=%0d)",
                  IS_DECODE ? "DECODE" : "PREFILL", EVAL_TOKENS, N_KV);
         $display("========================================================================");
-        report_metric("RMSNorm 1 vs FP16",  acc_n1_ref2,   acc_n1_err2,   acc_n1_dot,   acc_n1_act2,   acc_n1_max,   0.998);
-        report_metric("Residual 1 vs PyFQ", acc_r1fq_ref2, acc_r1fq_err2, acc_r1fq_dot, acc_r1fq_act2, acc_r1fq_max, 0.90);
-        report_metric("Residual 1 vs FP32", acc_r1fp_ref2, acc_r1fp_err2, acc_r1fp_dot, acc_r1fp_act2, acc_r1fp_max, 0.85);
-        report_metric("RMSNorm 2 vs PyFQ",  acc_n2fq_ref2, acc_n2fq_err2, acc_n2fq_dot, acc_n2fq_act2, acc_n2fq_max, 0.90);
-        report_metric("RMSNorm 2 vs FP32",  acc_n2fp_ref2, acc_n2fp_err2, acc_n2fp_dot, acc_n2fp_act2, acc_n2fp_max, 0.85);
-        report_metric("Final vs PyFQ",      acc_fnfq_ref2, acc_fnfq_err2, acc_fnfq_dot, acc_fnfq_act2, acc_fnfq_max, 0.85);
-        report_metric("Final vs FP32",      acc_fnfp_ref2, acc_fnfp_err2, acc_fnfp_dot, acc_fnfp_act2, acc_fnfp_max, 0.78);
+        verify_stage_metrics("RMSNorm 1 vs FP32",  M_N1_FP32, 0.998, 1'b0);
+        verify_stage_metrics("Q+RoPE vs PyFQ",     M_Q_FQ,    0.950, 1'b1);
+        verify_stage_metrics("Q+RoPE vs FP32",     M_Q_FP32,  0.900, 1'b0);
+        verify_stage_metrics("K+RoPE vs PyFQ",     M_K_FQ,    0.950, 1'b1);
+        verify_stage_metrics("K+RoPE vs FP32",     M_K_FP32,  0.900, 1'b0);
+        verify_stage_metrics("V+Trans vs PyFQ",    M_V_FQ,    0.950, 1'b1);
+        verify_stage_metrics("V+Trans vs FP32",    M_V_FP32,  0.900, 1'b0);
+        verify_stage_metrics("Attn O vs PyFQ",     M_AO_FQ,   0.900, 1'b1);
+        verify_stage_metrics("Attn O vs FP32",     M_AO_FP32, 0.650, 1'b0);
+        verify_stage_metrics("Residual 1 vs PyFQ", M_R1_FQ,   0.900, 1'b1);
+        verify_stage_metrics("Residual 1 vs FP32", M_R1_FP32, 0.850, 1'b0);
+        verify_stage_metrics("RMSNorm 2 vs PyFQ",  M_N2_FQ,   0.900, 1'b1);
+        verify_stage_metrics("RMSNorm 2 vs FP32",  M_N2_FP32, 0.850, 1'b0);
+        verify_stage_metrics("Final vs PyFQ",      M_FN_FQ,   0.850, 1'b1);
+        verify_stage_metrics("Final vs FP32",      M_FN_FP32, 0.780, 1'b0);
+        if (!IS_DECODE && (KV_TILES_PAST == 0) && (EVAL_TOKENS > 1)) begin
+            $display("  --- Diagnostic No-BOS (Tokens 1..%0d) ---", EVAL_TOKENS - 1);
+            report_nobos_metric("RMSNorm 1 vs FP32",  M_N1_FP32);
+            report_nobos_metric("Q+RoPE vs PyFQ",     M_Q_FQ);
+            report_nobos_metric("Q+RoPE vs FP32",     M_Q_FP32);
+            report_nobos_metric("K+RoPE vs PyFQ",     M_K_FQ);
+            report_nobos_metric("K+RoPE vs FP32",     M_K_FP32);
+            report_nobos_metric("V+Trans vs PyFQ",    M_V_FQ);
+            report_nobos_metric("V+Trans vs FP32",    M_V_FP32);
+            report_nobos_metric("Attn O vs PyFQ",     M_AO_FQ);
+            report_nobos_metric("Attn O vs FP32",     M_AO_FP32);
+            report_nobos_metric("Residual 1 vs PyFQ", M_R1_FQ);
+            report_nobos_metric("Residual 1 vs FP32", M_R1_FP32);
+            report_nobos_metric("RMSNorm 2 vs PyFQ",  M_N2_FQ);
+            report_nobos_metric("RMSNorm 2 vs FP32",  M_N2_FP32);
+            report_nobos_metric("Final vs PyFQ",      M_FN_FQ);
+            report_nobos_metric("Final vs FP32",      M_FN_FP32);
+        end
         $display("  Total cycles      : %0d (seq=%0d, sfu=%0d, mac=%0d, dma=%0d)",
                  cyc_total, cyc_seq, cyc_sfu, cyc_core_compute, cyc_dma);
         $display("  cpu_mem_req_valid active cyc : %0d (MUST == 0)", cpu_mem_active_cyc);
