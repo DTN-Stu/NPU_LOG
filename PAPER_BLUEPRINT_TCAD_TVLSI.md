@@ -264,7 +264,10 @@ V-A. Experimental Setup (3-Tier Toolchain & Edge LLM Workloads)
   - **`Table V` (Microarchitectural Module-Level Comparison):**
     * **Phần A — Online Dynamic Quantizer:** `slq_encoder (Ours)` vs. [nvfp4_dyn_quantizer.sv](file:///c:/Users/nguyen/Desktop/NPU_LOG/01_snax_llm_fp4_subsystem/nvfp4_dyn_quantizer.sv) vs. [MiX_MX_Quantizer.sv](file:///c:/Users/nguyen/Desktop/NPU_LOG/03_baselines/MiX-main/hardware_rtl/src/quantizer/MiX_MX_Quantizer.sv) *(tổng hợp trên cùng ASAP7 7nm @ 500 MHz)*.
     * **Phần B — Hardware Softmax / Requantizer:** Đối chiếu `softmax_requantizer + LOG2E_Q16 CSD (Ours)` với `Standard LUT-Exp + Divider FP16 Softmax` (tự tổng hợp đối chứng 7nm) và số liệu công bố của **`Softermax` (DAC'21)** (`0.90x` FP16 area, `2.35x` energy eff., cần QAT), **`SoftEx` (DATE'25)** (`0.039 mm²` @ 12nm, dùng Schraudolph + poly), **`ConSmax` (2024)** (`800 µm²` @ 16nm nhưng bắt buộc train trước), và **`ExpMul` (ISVLSI'25)** (28nm FP).
-  - **`Table VI` (Full Subsystem Area & Power Breakdown @ ASAP7 7nm, 500 MHz):** Tổng hợp toàn bộ `snax_llm_top_clean`, báo cáo từng khối (`u_mac_array`, `u_acc_buffer`, `u_attn_rescaler`, `u_softmax_req + p_fifo + l_acc`, `u_final_norm`, **`u_sfu (Auxiliary Non-Linear Unit — 1 dòng duy nhất để chứng minh hỗ trợ trọn vẹn hàm phi tuyến LLM chỉ tốn thêm X% diện tích hệ thống)`**, `u_log_quantizer + u_transpose_buffer`, `25×32 Interconnect + Streamers + Gearbox DMA + Sequencer`, và `288-KB 72-bit TCDM SRAM`).
+  - **`Table VI` (Full Subsystem Area & Power Breakdown @ ASAP7 7nm, 500 MHz):** Tổng hợp toàn bộ `snax_llm_top_clean` (`600 MHz` timing-closed netlist, đánh giá SAIF `100.00%` annotated tại `500 MHz` = `0.256 TOPS`, tách `P_logic = P_top - P_u_tcdm`):
+    * **Area:** `120,764.90 µm²` (`0.1208 mm²`) tổng (`u_tcdm` 288-KB 32× SRAM = `83,927.19 µm²` / `69.5%`; Logic-only = `36,837.71 µm²` / `30.5%`, trong đó `u_core = 17,280.17 µm²` (`14.3%`), `u_interconnect = 7,146.50 µm²` (`5.9%`), **`u_sfu = 2,113.63 µm²` (`1.8%` tổng diện tích — chứng minh hỗ trợ trọn vẹn hàm phi tuyến LLM chỉ tốn thêm `1.8%` diện tích)**, `u_seq = 1,560.85 µm²` (`1.3%`), `u_log_quantizer = 224.36 µm²` (`0.2%`)).
+    * **Real 500 MHz SAIF Logic Power (`06_gls/reports_500mhz/`):** **`17.170 mW`** (GEMM Sustained, `u_core = 5.280 mW`), **`17.930 mW`** (Fused FlashAttention, `u_core = 6.249 mW`), **`15.781 mW`** (SFU + Epilogue, `u_sfu = 1.126 mW`).
+    * **288-KB 72-bit SRAM Power (từ `.lib` `e_rd = 4.3311 pJ/word` + CACTI 7nm `e_wr = 4.80 pJ/word`, `P_leak = 1.60 mW`):** `3.16 mW` trung bình trong `FLASH_KVPIN` (`M=256`) đến `38.41 mW` đỉnh ở GEMM 17-word/cyc.
 
 ---
 
@@ -300,9 +303,9 @@ V-A. Experimental Setup (3-Tier Toolchain & Edge LLM Workloads)
 | **On-Chip SRAM** | 141 KB (264b) | 544 KB | 270 KB (64b) | 1,024 KB | Shared SPM | 134 KB (64b) | 704 KB | **288 KB Native 72b (32×1024×72b)** |
 | **Throughput** | 2048 MAC/cyc | 4096 MAC/cyc | 512 MAC/cyc | 8×8 Bit-serial | 8×8 Hybrid MX | 512 MAC/cyc | 512 / 1024 MAC/cyc | **256 MAC/cyc (0.256 TOPS)** |
 | **Sustained Util.** | 89%–99% | — | 81.9%–99.3% | — | — | 69.7%–97.3% | — (Cycle-sim) | **85.1% (Full Layer) / 99.7% (GEMM)** |
-| **Compute Area** | $0.153\text{ mm}^2$ (Macro) | $10.76\text{ mm}^2$ (Chip) | $0.063\text{ mm}^2$ (Core) | $0.0995\text{ mm}^2$ (Tile) | — | $0.654\text{ mm}^2$ (Chip) | $0.056\text{–}0.130\text{ mm}^2$ | **`0.0072 mm²` (MAC+Latch) / `[X]` (Full)** |
-| **Area Eff. ($\text{TOPS/mm}^2$)** | 23.3 (Macro) | 0.016–0.61 (Sys) | 3.25 (Core) | — | — | 1.25 (Sys) | 9.1 (Array 28nm) | **`35.58` (MAC+Latch) / `[X']` (Sys)** |
-| **Energy Eff. ($\text{TOPS/W}$)** | 38.7–48.7 (0.67V) | 2.22–49.7 (Sys) | 35.5 (Core)/4.68 (Sys) | — | 4.07 (MXFP4) | 1.60 (Sys) | 16.1 (Array 28nm) | **`43.72` (MAC+Latch) / `[Y']` (Sys)** |
+| **Compute Area** | $0.153\text{ mm}^2$ (Macro) | $10.76\text{ mm}^2$ (Chip) | $0.063\text{ mm}^2$ (Core) | $0.0995\text{ mm}^2$ (Tile) | — | $0.654\text{ mm}^2$ (Chip) | $0.056\text{–}0.130\text{ mm}^2$ | **`0.0072 mm²` (MAC+Latch) / `0.0368 mm²` (Logic) / `0.1208 mm²` (Full+SRAM)** |
+| **Area Eff. ($\text{TOPS/mm}^2$)** | 23.3 (Macro) | 0.016–0.61 (Sys) | 3.25 (Core) | — | — | 1.25 (Sys) | 9.1 (Array 28nm) | **`35.58` (MAC+Latch) / `6.95` (Logic) / `2.12` (Full+SRAM)** |
+| **Energy Eff. ($\text{TOPS/W}$)** | 38.7–48.7 (0.67V) | 2.22–49.7 (Sys) | 35.5 (Core)/4.68 (Sys) | — | 4.07 (MXFP4) | 1.60 (Sys) | 16.1 (Array 28nm) | **`43.72` (MAC+Latch) / `14.91` (Logic) / `4.61–12.14` (Full+SRAM)** |
 
 ### Lưu ý khi so sánh số liệu với SOTA (Cách chặn bẻ của Reviewer về Technology Scaling):
 - Các đối thủ nằm trên các nút công nghệ khác nhau (`5 nm` của `VSQ`, `7 nm` của ta, `16 nm` của `OpenGeMM`/`Voltra`/`SNAX-MX`, `28 nm` của `MiX`/`BitMoD`/`Ayaka`).

@@ -1,0 +1,31 @@
+{
+  "syn_freq_hz": 600000000,
+  "eval_freq_hz": 500000000,
+  "logic_power_mw": {
+    "gemm_active": 17.170,
+    "attn_fused_active": 17.930,
+    "sfu_active": 15.781,
+    "u_core_gemm_mw": 5.280,
+    "u_core_attn_mw": 6.249,
+    "u_core_sfu_mw": 3.897,
+    "u_sfu_active_mw": 1.126,
+    "mac_core_power_fraction": 0.1582,
+    "pe_c2_nvfp4_ratio": 1.3478,
+    "pe_c1_mxfp4_ratio": 1.0130,
+    "source": "06_gls/reports_500mhz/power_500m_{gemm,attn,sfu}_hier.rpt (100.00% SAIF annotated @ 500MHz, 0 PWR-12, P_logic = P_top - P_u_tcdm) + 04_ablation_rtl/paper_syn/PAPER_ABLATION_RESULTS.md (C2=7.893mW, C1=5.932mW, C5=5.856mW)"
+  },
+  "sram_72b": {
+    "e_rd_pJ_per_word": 4.3311,
+    "e_wr_pJ_per_word": 4.8000,
+    "e_wr_lib_raw_pJ_artifact": 0.3252,
+    "p_leak_mw_32banks": 1.6000,
+    "notes": "e_rd=4.3311 pJ/word (0.0602 pJ/bit) parsed directly from srambank_256x4x72_6t122.lib (clk !write 4.2911 pJ + 72b dataout 0.0400 pJ). Because mk_SRAM_lib.py under-models write energy (0.3252 pJ) and sets cell_leakage_power=0, conservative 7nm CACTI 7.0 physical values are used for write (4.80 pJ/word in 4.0-6.0 pJ range) and leakage (50 uW/bank x 32 = 1.60 mW).",
+    "source": "05_system_ppa/eda_backup/sram_lib/srambank_256x4x72_6t122.lib + 08_system_models/parse_sram_lib.py + CACTI 7.0 7nm"
+  },
+  "dram_offchip": {
+    "primary_standard": "LPDDR4X-3200",
+    "e_dram_pJ_per_bit": 16.0,
+    "sensitivity_lpddr5_pJ_per_bit": 9.0,
+    "source": "Micron LPDDR4X datasheet / DRAMSim3 standard edge model"
+  }
+}

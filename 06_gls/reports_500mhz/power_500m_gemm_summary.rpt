@@ -1,0 +1,92 @@
+=== Workload: gemm (500 MHz, 2000 ps) ===
+--- Clock Switching Activity Verification ---
+Warning: Attribute 'toggle_rate' does not exist on net 'clk'. (UID-101)
+clk toggle_rate =   static_prob = 0.500000
+Information: Updating design information... (UID-85)
+Warning: Design 'snax_llm_top_clean' contains 4 high-fanout nets. A fanout number of 1000 will be used for delay calculations involving these nets. (TIM-134)
+ 
+****************************************
+Report : saif
+Design : snax_llm_top_clean
+Version: O-2018.06-SP1
+Date   : Tue Nov 24 06:58:56 2026
+****************************************
+
+  
+
+--------------------------------------------------------------------------------
+              User              Default           Propagated
+Object type   Annotated (%)     Activity (%)      Activity (%)       Total
+--------------------------------------------------------------------------------
+  
+ Nets         8421(100.00%)     0(0.00%)          0(0.00%)           8421
+ Ports        1887(100.00%)     0(0.00%)          0(0.00%)           1887
+ Pins         20010(100.00%)    0(0.00%)          0(0.00%)           20010
+--------------------------------------------------------------------------------
+--- Total Power Summary ---
+Information: Propagating switching activity (medium effort zero delay simulation). (PWR-6)
+Warning: Invalid switching activity annotation on constant net(s) is being ignored. (PWR-421)
+ 
+****************************************
+Report : power
+        -analysis_effort medium
+Design : snax_llm_top_clean
+Version: O-2018.06-SP1
+Date   : Tue Nov 24 06:58:57 2026
+****************************************
+
+
+Library(s) Used:
+
+    asap7sc7p5t_INVBUF_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/INVBUF_RVT_TT.db)
+    asap7sc7p5t_SIMPLE_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SIMPLE_RVT_TT.db)
+    asap7sc7p5t_SIMPLE_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_LVT_TT.db)
+    asap7sc7p5t_OA_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/OA_RVT_TT.db)
+    asap7sc7p5t_INVBUF_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_LVT_TT.db)
+    asap7sc7p5t_SIMPLE_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/SIMPLE_SLVT_TT.db)
+    asap7sc7p5t_AO_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_LVT_TT.db)
+    asap7sc7p5t_AO_RVT_TT_nldm_211120 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/AO_RVT_TT.db)
+    asap7sc7p5t_INVBUF_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/INVBUF_SLVT_TT.db)
+    asap7sc7p5t_AO_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/AO_SLVT_TT.db)
+    asap7sc7p5t_SEQ_RVT_TT_nldm_220123 (File: /home/ICer/vsq_syn/syn/libs/db/asap7/SEQ_RVT_TT.db)
+    asap7sc7p5t_SEQ_LVT_TT_nldm_220123 (File: /home/ICer/asap7_multivt/db/SEQ_LVT_TT.db)
+    asap7sc7p5t_SEQ_SLVT_TT_nldm_220123 (File: /home/ICer/asap7_multivt/db/SEQ_SLVT_TT.db)
+    asap7sc7p5t_OA_LVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/OA_LVT_TT.db)
+    asap7sc7p5t_OA_SLVT_TT_nldm_211120 (File: /home/ICer/asap7_multivt/db/OA_SLVT_TT.db)
+    srambank_256x4x72_6t122 (File: /home/ICer/sys_syn/sram_lib/srambank_256x4x72_6t122.db)
+
+
+Operating Conditions: PVT_0P7V_25C   Library: asap7sc7p5t_AO_RVT_TT_nldm_211120
+Wire Load Model Mode: top
+
+
+Global Operating Voltage = 0.7  
+Power-specific unit information :
+    Voltage Units = 1V
+    Capacitance Units = 1.000000ff
+    Time Units = 1ps
+    Dynamic Power Units = 1mW    (derived from V,C,T units)
+    Leakage Power Units = 1pW
+
+
+  Cell Internal Power  =  83.4624 mW   (99%)
+  Net Switching Power  =   1.0579 mW    (1%)
+                         ---------
+Total Dynamic Power    =  84.5203 mW  (100%)
+
+Cell Leakage Power     =  44.3889 uW
+
+
+                 Internal         Switching           Leakage            Total
+Power Group      Power            Power               Power              Power   (   %    )  Attrs
+--------------------------------------------------------------------------------------------------
+io_pad             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+memory             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+black_box         67.3481        2.5597e-02            0.0000           67.3737  (  79.67%)
+clock_network  5.4430e-02        1.3476e-02        1.1692e+05        6.8023e-02  (   0.08%)
+register          15.5625        2.8337e-02        1.0192e+07           15.6013  (  18.45%)
+sequential         0.0000            0.0000            0.0000            0.0000  (   0.00%)
+combinational      0.4959            0.9905        3.4080e+07            1.5204  (   1.80%)
+--------------------------------------------------------------------------------------------------
+Total             83.4610 mW         1.0579 mW     4.4388e+07 pW        84.5635 mW
+1

@@ -57,7 +57,7 @@ module tb_gemm_os_gls;
 
     logic clk, rst_n;
     initial clk = 1'b0;
-    always #5 clk = ~clk;
+    always #1 clk = ~clk; // 2.000 ns period = 500.0 MHz (locked eval frequency)
 
     // CPU & CSR (cpu_mem permanently tied to IDLE = 0)
     logic        cpu_req_valid, cpu_req_ready, cpu_req_write, cpu_rsp_valid;
@@ -2111,6 +2111,26 @@ module tb_gemm_os_gls;
     // =========================================================================
     // MAIN
     // =========================================================================
+    // Active-window VCD gating: capture ONLY when subsystem_busy_o == 1'b1
+`ifdef DUMP_VCD
+    int   vcd_active_cyc = 0;
+    logic vcd_on = 1'b0;
+    always @(posedge clk) begin
+        if (rst_n) begin
+            if (busy_o) begin
+                if (!vcd_on) begin
+                    $dumpon;
+                    vcd_on <= 1'b1;
+                end
+                vcd_active_cyc <= vcd_active_cyc + 1;
+            end else if (vcd_on) begin
+                $dumpoff;
+                vcd_on <= 1'b0;
+            end
+        end
+    end
+`endif
+
     initial begin
         logic [31:0] id32;
         string       test_sel_raw, test_sel, wave_file;
@@ -2183,9 +2203,15 @@ module tb_gemm_os_gls;
             errs++;
         end
 `ifdef DUMP_VCD
-        $dumpfile("gls_dut.vcd");
-        $dumpvars(0, dut);
-        $dumpon;
+        begin
+            string vcd_name;
+            vcd_name = "gls_dut.vcd";
+            void'($value$plusargs("VCD_FILE=%s", vcd_name));
+            $dumpfile(vcd_name);
+            $dumpvars(0, dut);
+            $dumpoff;
+            $display("[GLS-VCD] Active-window VCD armed: %s (500 MHz, gated on busy_o)", vcd_name);
+        end
 `endif
 
         if (test_sel == "ALL" || test_sel == "1")
@@ -2205,6 +2231,7 @@ module tb_gemm_os_gls;
 
 `ifdef DUMP_VCD
         $dumpoff;
+        $display("[GLS-VCD] Captured active compute cycles = %0d (at 500 MHz)", vcd_active_cyc);
 `endif
         tb_test_id = 8'hFF;
         $display("\n========================================================================");
